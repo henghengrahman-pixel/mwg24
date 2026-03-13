@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Website wisata Berastagi SEO-ready dengan admin panel, rating, dan komentar.",
   "main": "app.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js"
@@ -12,10 +13,14 @@
     "berastagi",
     "wisata karo",
     "villa berastagi",
-    "seo"
+    "tempat wisata berastagi",
+    "seo wisata berastagi"
   ],
-  "author": "OpenAI",
+  "author": "WisataBerastagi",
   "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
     "connect-sqlite3": "^0.9.15",
