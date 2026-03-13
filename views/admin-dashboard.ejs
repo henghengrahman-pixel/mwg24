@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+    <main class="admin-main">
+      <h1>Dashboard Admin</h1>
+      <div class="stats-grid">
+        <div class="stat-card"><strong><%= stats.wisata %></strong><span>Data Wisata</span></div>
+        <div class="stat-card"><strong><%= stats.villa %></strong><span>Data Villa</span></div>
+        <div class="stat-card"><strong><%= stats.articles %></strong><span>Artikel</span></div>
+        <div class="stat-card"><strong><%= stats.comments %></strong><span>Komentar</span></div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

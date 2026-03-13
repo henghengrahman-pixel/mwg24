@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+    <main class="admin-main">
+      <div class="admin-head">
+        <h1>Kelola Villa</h1>
+        <a href="/admin/villa/new" class="btn-primary">Tambah Villa</a>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Judul</th>
+              <th>Lokasi</th>
+              <th>Harga</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% items.forEach(item => { %>
+              <tr>
+                <td><%= item.title %></td>
+                <td><%= item.location %></td>
+                <td><%= item.price %></td>
+                <td class="actions">
+                  <a href="/admin/villa/edit/<%= item.id %>">Edit</a>
+                  <form action="/admin/villa/delete/<%= item.id %>" method="post" onsubmit="return confirm('Hapus data ini?')">
+                    <button type="submit">Hapus</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

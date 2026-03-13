@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+
+  <section class="page-hero small">
+    <div class="container">
+      <span class="eyebrow">Kontak</span>
+      <h1>Hubungi Kami</h1>
+      <p>Silakan hubungi tim Wisata Berastagi untuk promosi, kerja sama, atau informasi tambahan.</p>
+    </div>
+  </section>
+
+  <section class="section container contact-grid">
+    <div class="contact-card">
+      <h2>Informasi Kontak</h2>
+      <p><strong>HP/WA:</strong> <a href="tel:<%= settings.contact_phone %>"><%= settings.contact_phone %></a></p>
+      <p><strong>Email:</strong> <a href="mailto:<%= settings.contact_email %>"><%= settings.contact_email %></a></p>
+      <p><strong>Alamat:</strong> <%= settings.address %></p>
+    </div>
+    <div class="contact-card">
+      <h2>Catatan</h2>
+      <p>Pastikan email dan nomor telepon selalu aktif agar pengunjung mudah menghubungi kamu.</p>
+    </div>
+  </section>
+
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>

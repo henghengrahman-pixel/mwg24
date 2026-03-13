@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+  <section class="page-hero small">
+    <div class="container">
+      <span class="eyebrow">Daftar Wisata</span>
+      <h1>Tempat Wisata Berastagi</h1>
+      <p>Temukan destinasi wisata Berastagi terbaru, populer, dan cocok untuk keluarga.</p>
+    </div>
+  </section>
+
+  <section class="section container">
+    <div class="card-grid">
+      <% items.forEach(item => { %>
+        <article class="card">
+          <a href="/wisata/<%= item.slug %>">
+            <img src="<%= item.image %>" alt="<%= item.title %>">
+            <div class="card-body">
+              <h2><%= item.title %></h2>
+              <p><%= item.excerpt %></p>
+            </div>
+          </a>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+
+  <section class="page-hero small">
+    <div class="container">
+      <span class="eyebrow">Tentang</span>
+      <h1><%= pageTitle %></h1>
+      <p><%= pageContent %></p>
+    </div>
+  </section>
+
+  <%- include("partials/footer", { settings: typeof settings !== 'undefined' ? settings : null }) %>
+</body>
+</html>

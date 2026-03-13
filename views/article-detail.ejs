@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+
+  <section class="section container detail-layout">
+    <article class="detail-main">
+      <img src="<%= item.image %>" alt="<%= item.title %>" class="detail-cover" />
+      <span class="eyebrow">Artikel Wisata</span>
+      <h1><%= item.title %></h1>
+      <p class="detail-content"><%= item.content %></p>
+
+      <section class="comment-box" id="ulasan">
+        <h2>Komentar Pembaca</h2>
+        <form action="/artikel/<%= item.slug %>/comment" method="post" class="comment-form">
+          <input type="text" name="name" placeholder="Nama" required />
+          <input type="email" name="email" placeholder="Email (opsional)" />
+          <textarea name="comment" rows="5" placeholder="Tulis komentar..." required></textarea>
+          <button type="submit">Kirim Komentar</button>
+        </form>
+
+        <div class="comment-list">
+          <% comments.forEach(comment => { %>
+            <article class="comment-item">
+              <h3><%= comment.name %></h3>
+              <p><%= comment.comment %></p>
+              <small><%= comment.created_at %></small>
+            </article>
+          <% }) %>
+          <% if (!comments.length) { %>
+            <p>Belum ada komentar yang tampil.</p>
+          <% } %>
+        </div>
+      </section>
+    </article>
+
+    <aside class="detail-sidebar">
+      <div class="sticky-box">
+        <h3>Artikel Terkait</h3>
+        <% related.forEach(rel => { %>
+          <a href="/artikel/<%= rel.slug %>" class="mini-link"><%= rel.title %></a>
+        <% }) %>
+      </div>
+    </aside>
+  </section>
+
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>

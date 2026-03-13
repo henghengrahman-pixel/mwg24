@@ -1,0 +1,22 @@
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="/" class="logo">
+      <span class="logo-badge">WB</span>
+      <span>
+        <strong>Wisata Berastagi</strong>
+        <small>Panduan liburan Berastagi</small>
+      </span>
+    </a>
+
+    <button class="menu-toggle" aria-label="Buka menu" onclick="toggleMenu()">☰</button>
+
+    <nav class="main-nav" id="mainNav">
+      <a href="/" class="<%= path === '/' ? 'active' : '' %>">Home</a>
+      <a href="/wisata" class="<%= path.startsWith('/wisata') ? 'active' : '' %>">Wisata</a>
+      <a href="/villa" class="<%= path.startsWith('/villa') ? 'active' : '' %>">Villa</a>
+      <a href="/artikel" class="<%= path.startsWith('/artikel') ? 'active' : '' %>">Artikel</a>
+      <a href="/tentang" class="<%= path === '/tentang' ? 'active' : '' %>">Tentang</a>
+      <a href="/kontak" class="<%= path === '/kontak' ? 'active' : '' %>">Kontak</a>
+    </nav>
+  </div>
+</header>

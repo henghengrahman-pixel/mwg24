@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+    <main class="admin-main">
+      <h1><%= item ? 'Edit Wisata' : 'Tambah Wisata' %></h1>
+
+      <form action="/admin/wisata/save" method="post" enctype="multipart/form-data" class="admin-form">
+        <input type="hidden" name="id" value="<%= item?.id || '' %>" />
+        <input type="hidden" name="current_image" value="<%= item?.image || '' %>" />
+
+        <label>Judul</label>
+        <input type="text" name="title" value="<%= item?.title || '' %>" required />
+
+        <label>Slug</label>
+        <input type="text" name="slug" value="<%= item?.slug || '' %>" />
+
+        <label>Excerpt</label>
+        <textarea name="excerpt" rows="3"><%= item?.excerpt || '' %></textarea>
+
+        <label>Konten</label>
+        <textarea name="content" rows="7" required><%= item?.content || '' %></textarea>
+
+        <label>Gambar</label>
+        <input type="file" name="image" accept="image/*" />
+
+        <label>Lokasi</label>
+        <input type="text" name="location" value="<%= item?.location || '' %>" />
+
+        <label>Harga Tiket</label>
+        <input type="text" name="ticket_price" value="<%= item?.ticket_price || '' %>" />
+
+        <label>Jam Buka</label>
+        <input type="text" name="open_hours" value="<%= item?.open_hours || '' %>" />
+
+        <label>Link Maps</label>
+        <input type="text" name="maps_url" value="<%= item?.maps_url || '' %>" />
+
+        <label>Meta Title</label>
+        <input type="text" name="meta_title" value="<%= item?.meta_title || '' %>" />
+
+        <label>Meta Description</label>
+        <textarea name="meta_description" rows="3"><%= item?.meta_description || '' %></textarea>
+
+        <label class="checkbox-line">
+          <input type="checkbox" name="is_featured" value="1" <%= item?.is_featured ? 'checked' : '' %> />
+          Jadikan unggulan
+        </label>
+
+        <button type="submit">Simpan</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

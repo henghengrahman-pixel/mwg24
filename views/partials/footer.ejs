@@ -1,0 +1,32 @@
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <h3><%= settings?.site_name || 'Wisata Berastagi' %></h3>
+      <p><%= settings?.footer_text || 'Panduan wisata Berastagi yang ramah, informatif, dan mudah digunakan.' %></p>
+    </div>
+
+    <div>
+      <h4>Menu Cepat</h4>
+      <ul class="footer-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/wisata">Tempat Wisata</a></li>
+        <li><a href="/villa">Villa</a></li>
+        <li><a href="/artikel">Artikel</a></li>
+        <li><a href="/kontak">Kontak</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4>Kontak Kami</h4>
+      <ul class="footer-links">
+        <li>HP/WA: <a href="tel:<%= settings?.contact_phone %>"><%= settings?.contact_phone %></a></li>
+        <li>Email: <a href="mailto:<%= settings?.contact_email %>"><%= settings?.contact_email %></a></li>
+        <li>Alamat: <%= settings?.address %></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="container footer-bottom">
+    <p>© <%= currentYear %> <%= settings?.site_name || 'Wisata Berastagi' %>. All rights reserved.</p>
+  </div>
+</footer>

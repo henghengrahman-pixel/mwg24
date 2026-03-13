@@ -1,0 +1,26 @@
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= seo?.title || site?.defaultTitle %></title>
+  <meta name="description" content="<%= seo?.description || site?.defaultDescription %>" />
+  <meta name="robots" content="<%= seo?.noindex ? 'noindex, nofollow' : 'index, follow' %>" />
+  <link rel="canonical" href="<%= seo?.canonical || baseUrl %>" />
+
+  <meta property="og:title" content="<%= seo?.title || site?.defaultTitle %>" />
+  <meta property="og:description" content="<%= seo?.description || site?.defaultDescription %>" />
+  <meta property="og:type" content="<%= seo?.type || 'website' %>" />
+  <meta property="og:url" content="<%= seo?.canonical || baseUrl %>" />
+  <meta property="og:image" content="<%= seo?.image || site?.defaultImage %>" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="<%= seo?.title || site?.defaultTitle %>" />
+  <meta name="twitter:description" content="<%= seo?.description || site?.defaultDescription %>" />
+  <meta name="twitter:image" content="<%= seo?.image || site?.defaultImage %>" />
+
+  <link rel="stylesheet" href="/public/css/style.css" />
+  <script defer src="/public/js/main.js"></script>
+
+  <% if (seo?.jsonLd) { %>
+    <script type="application/ld+json"><%- seo.jsonLd %></script>
+  <% } %>
+</head>

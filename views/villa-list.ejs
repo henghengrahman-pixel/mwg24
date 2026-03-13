@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+  <section class="page-hero small">
+    <div class="container">
+      <span class="eyebrow">Daftar Villa</span>
+      <h1>Villa Berastagi</h1>
+      <p>Rekomendasi villa Berastagi yang nyaman, murah, dan cocok untuk keluarga.</p>
+    </div>
+  </section>
+
+  <section class="section container">
+    <div class="card-grid">
+      <% items.forEach(item => { %>
+        <article class="card">
+          <a href="/villa/<%= item.slug %>">
+            <img src="<%= item.image %>" alt="<%= item.title %>">
+            <div class="card-body">
+              <h2><%= item.title %></h2>
+              <p><%= item.excerpt %></p>
+              <strong><%= helpers.formatCurrency(item.price) %></strong>
+            </div>
+          </a>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>

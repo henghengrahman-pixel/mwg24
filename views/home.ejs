@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+
+  <section class="hero" style="background-image:linear-gradient(rgba(16,46,31,.62), rgba(16,46,31,.62)), url('<%= settings.hero_background %>')">
+    <div class="container hero-inner">
+      <div class="hero-content reveal">
+        <span class="eyebrow">Wisata Berastagi</span>
+        <h1><%= settings.hero_title %></h1>
+        <p><%= settings.hero_subtitle %></p>
+        <form class="search-box" action="/cari" method="get">
+          <input type="text" name="q" placeholder="Cari wisata, villa, artikel..." />
+          <button type="submit">Cari Sekarang</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="section container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Rekomendasi</span>
+        <h2>Tempat Wisata Populer di Berastagi</h2>
+      </div>
+      <a href="/wisata" class="text-link">Lihat semua</a>
+    </div>
+    <div class="card-grid">
+      <% featuredWisata.forEach(item => { %>
+        <article class="card reveal">
+          <a href="/wisata/<%= item.slug %>">
+            <img src="<%= item.image %>" alt="<%= item.title %>" loading="lazy" />
+            <div class="card-body">
+              <h3><%= item.title %></h3>
+              <p><%= item.excerpt %></p>
+              <div class="meta-row">
+                <span><%= item.location %></span>
+              </div>
+            </div>
+          </a>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Penginapan</span>
+          <h2>Villa Pilihan di Berastagi</h2>
+        </div>
+        <a href="/villa" class="text-link">Lihat semua</a>
+      </div>
+      <div class="card-grid">
+        <% featuredVilla.forEach(item => { %>
+          <article class="card reveal">
+            <a href="/villa/<%= item.slug %>">
+              <img src="<%= item.image %>" alt="<%= item.title %>" loading="lazy" />
+              <div class="card-body">
+                <h3><%= item.title %></h3>
+                <p><%= item.excerpt %></p>
+                <div class="meta-row">
+                  <strong><%= helpers.formatCurrency(item.price) %></strong>
+                </div>
+              </div>
+            </a>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <section class="section container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Artikel SEO</span>
+        <h2>Artikel Wisata Berastagi Terbaru</h2>
+      </div>
+      <a href="/artikel" class="text-link">Lihat semua</a>
+    </div>
+    <div class="card-grid">
+      <% latestArticles.forEach(item => { %>
+        <article class="card reveal">
+          <a href="/artikel/<%= item.slug %>">
+            <img src="<%= item.image %>" alt="<%= item.title %>" loading="lazy" />
+            <div class="card-body">
+              <h3><%= item.title %></h3>
+              <p><%= item.excerpt %></p>
+            </div>
+          </a>
+        </article>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="container trust-box reveal">
+      <div>
+        <span class="eyebrow">Kenapa Website Ini</span>
+        <h2>Ramah Pengunjung dan Siap SEO</h2>
+      </div>
+      <p>WisataBerastagi dirancang mobile friendly, cepat dibuka, mudah dikelola dari admin panel, dan siap dioptimasi untuk keyword utama <strong>Wisata Berastagi</strong>.</p>
+    </div>
+  </section>
+
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>
