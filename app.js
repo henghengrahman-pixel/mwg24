@@ -3,7 +3,6 @@ const session = require("express-session");
 const SQLiteStore = require("connect-sqlite3")(session);
 const path = require("path");
 const fs = require("fs");
-require("dotenv").config?.();
 
 const { initDb } = require("./lib/db");
 const publicRoutes = require("./routes/public");
