@@ -3,12 +3,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title><%= seo?.title || site?.defaultTitle || "Wisata Berastagi" %></title>
+
   <meta name="description" content="<%= seo?.description || site?.defaultDescription || 'Panduan lengkap wisata Berastagi, tempat wisata, vila dan hotel, kuliner, dan tips liburan di Berastagi Sumatera Utara.' %>" />
   <meta name="robots" content="<%= seo?.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large' %>" />
   <meta name="author" content="WisataBerastagi.com" />
   <meta name="theme-color" content="#1e5b3a" />
 
   <link rel="canonical" href="<%= seo?.canonical || baseUrl %>" />
+
+  <!-- =========================
+  FAVICON
+  ========================= -->
+
+  <link rel="icon" href="/favicon/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/favicon/favicon-64x64.png">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon/favicon-180x180.png">
+
+  <!-- =========================
+  OPEN GRAPH (FACEBOOK / WA)
+  ========================= -->
 
   <meta property="og:locale" content="id_ID" />
   <meta property="og:site_name" content="WisataBerastagi.com" />
@@ -18,17 +35,40 @@
   <meta property="og:url" content="<%= seo?.canonical || baseUrl %>" />
   <meta property="og:image" content="<%= seo?.image || site?.defaultImage || (baseUrl + '/public/images/default-cover.jpg') %>" />
 
+  <!-- =========================
+  TWITTER
+  ========================= -->
+
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="<%= seo?.title || site?.defaultTitle || 'Wisata Berastagi' %>" />
   <meta name="twitter:description" content="<%= seo?.description || site?.defaultDescription || 'Panduan lengkap wisata Berastagi, tempat wisata, vila dan hotel, kuliner, dan tips liburan di Berastagi Sumatera Utara.' %>" />
   <meta name="twitter:image" content="<%= seo?.image || site?.defaultImage || (baseUrl + '/public/images/default-cover.jpg') %>" />
   <meta name="twitter:url" content="<%= seo?.canonical || baseUrl %>" />
 
+  <!-- =========================
+  PRELOAD
+  ========================= -->
+
   <link rel="preconnect" href="<%= baseUrl %>" />
+
+  <!-- =========================
+  CSS
+  ========================= -->
+
   <link rel="stylesheet" href="/public/css/style.css" />
+
+  <!-- =========================
+  JS
+  ========================= -->
+
   <script defer src="/public/js/main.js"></script>
+
+  <!-- =========================
+  JSON LD SEO
+  ========================= -->
 
   <% if (seo?.jsonLd) { %>
     <script type="application/ld+json"><%- seo.jsonLd %></script>
   <% } %>
+
 </head>
