@@ -4,9 +4,21 @@
 <body>
   <%- include("partials/header") %>
 
+  <%
+    const heroBgRaw = settings?.hero_background || "/images/default-cover.jpg";
+    const heroBg = heroBgRaw.startsWith("/public/")
+      ? heroBgRaw.replace("/public", "")
+      : heroBgRaw;
+
+    function normalizeImagePath(src) {
+      if (!src) return "/images/default-cover.jpg";
+      return src.startsWith("/public/") ? src.replace("/public", "") : src;
+    }
+  %>
+
   <section
     class="hero"
-    style="background-image:linear-gradient(rgba(16,46,31,.56), rgba(16,46,31,.56)), url('<%= settings?.hero_background || "/images/default-cover.jpg" %>')"
+    style="background-image:linear-gradient(rgba(16,46,31,.56), rgba(16,46,31,.56)), url('<%= heroBg %>')"
   >
     <div class="container hero-inner">
       <div class="hero-content reveal">
@@ -78,7 +90,7 @@
             <article class="card reveal">
               <a href="/wisata/<%= item.slug %>">
                 <img
-                  src="<%= item.image || '/images/default-cover.jpg' %>"
+                  src="<%= normalizeImagePath(item.image) %>"
                   alt="<%= item.title %> di Berastagi"
                   loading="lazy"
                 />
@@ -120,7 +132,7 @@
             <article class="card reveal">
               <a href="/villa/<%= item.slug %>">
                 <img
-                  src="<%= item.image || '/images/default-cover.jpg' %>"
+                  src="<%= normalizeImagePath(item.image) %>"
                   alt="<%= item.title %> di Berastagi"
                   loading="lazy"
                 />
@@ -162,7 +174,7 @@
             <article class="card reveal">
               <a href="/kuliner/<%= item.slug %>">
                 <img
-                  src="<%= item.image || '/images/default-cover.jpg' %>"
+                  src="<%= normalizeImagePath(item.image) %>"
                   alt="<%= item.title %>"
                   loading="lazy"
                 />
@@ -204,7 +216,7 @@
             <article class="card reveal">
               <a href="/berita/<%= item.slug %>">
                 <img
-                  src="<%= item.image || '/images/default-cover.jpg' %>"
+                  src="<%= normalizeImagePath(item.image) %>"
                   alt="<%= item.title %>"
                   loading="lazy"
                 />
