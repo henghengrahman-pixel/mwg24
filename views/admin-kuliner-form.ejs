@@ -10,7 +10,7 @@
         <div>
           <h1><%= item ? "Edit Kuliner" : "Tambah Kuliner" %></h1>
           <p class="admin-subtitle">
-            Isi data kuliner dengan lengkap agar tampil rapi, profesional, dan SEO lebih kuat.
+            Tambahkan data kuliner dengan lengkap agar tampil rapi, profesional, dan mudah ditemukan pengunjung.
           </p>
         </div>
       </div>
@@ -20,8 +20,8 @@
       <% } %>
 
       <form action="/admin/kuliner/save" method="post" enctype="multipart/form-data" class="admin-form">
-        <input type="hidden" name="id" value="<%= item?.id || "" %>">
-        <input type="hidden" name="current_image" value="<%= item?.image || "" %>">
+        <input type="hidden" name="id" value="<%= item?.id || '' %>">
+        <input type="hidden" name="current_image" value="<%= item?.image || '' %>">
 
         <div class="form-grid">
           <div class="form-group full">
@@ -122,6 +122,9 @@
               placeholder="Tulis deskripsi lengkap kuliner di sini..."
               required
             ><%= item?.content || '' %></textarea>
+            <small class="form-hint">
+              Isi deskripsi dengan jelas agar pengunjung lebih tertarik dan SEO lebih kuat.
+            </small>
           </div>
 
           <div class="form-group full">
