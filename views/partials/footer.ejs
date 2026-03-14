@@ -2,7 +2,9 @@
   <div class="container footer-grid">
     <div>
       <h3><%= settings?.site_name || 'Wisata Berastagi' %></h3>
-      <p><%= settings?.footer_text || 'Panduan wisata Berastagi yang ramah, informatif, dan mudah digunakan.' %></p>
+      <p>
+        <%= settings?.footer_text || 'Wisata Berastagi adalah panduan wisata lengkap yang membahas tempat wisata, vila dan hotel, kuliner, serta tips liburan terbaik di Berastagi, Sumatera Utara.' %>
+      </p>
     </div>
 
     <div>
@@ -10,8 +12,9 @@
       <ul class="footer-links">
         <li><a href="/">Home</a></li>
         <li><a href="/wisata">Tempat Wisata</a></li>
-        <li><a href="/villa">Villa</a></li>
+        <li><a href="/villa">Vila &amp; Hotel</a></li>
         <li><a href="/artikel">Artikel</a></li>
+        <li><a href="/tentang">Tentang</a></li>
         <li><a href="/kontak">Kontak</a></li>
       </ul>
     </div>
@@ -19,9 +22,26 @@
     <div>
       <h4>Kontak Kami</h4>
       <ul class="footer-links">
-        <li>HP/WA: <a href="tel:<%= settings?.contact_phone %>"><%= settings?.contact_phone %></a></li>
-        <li>Email: <a href="mailto:<%= settings?.contact_email %>"><%= settings?.contact_email %></a></li>
-        <li>Alamat: <%= settings?.address %></li>
+        <li>
+          HP/WA:
+          <% if (settings?.contact_phone) { %>
+            <a href="tel:<%= settings.contact_phone %>"><%= settings.contact_phone %></a>
+          <% } else { %>
+            <span>-</span>
+          <% } %>
+        </li>
+        <li>
+          Email:
+          <% if (settings?.contact_email) { %>
+            <a href="mailto:<%= settings.contact_email %>"><%= settings.contact_email %></a>
+          <% } else { %>
+            <span>-</span>
+          <% } %>
+        </li>
+        <li>
+          Alamat:
+          <%= settings?.address || 'Berastagi, Kabupaten Karo, Sumatera Utara' %>
+        </li>
       </ul>
     </div>
   </div>
