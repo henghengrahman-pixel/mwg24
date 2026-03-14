@@ -248,19 +248,24 @@ SECTIONS
 ========================= */
 
 .section{
-  padding:58px 0;
+  padding:64px 0;
+  position:relative;
 }
 
 .section-muted{
   background:#eef4ef;
 }
 
+.home-section{
+  border-top:1px solid #e4ebe5;
+}
+
 .section-head{
   display:flex;
-  align-items:end;
+  align-items:flex-end;
   justify-content:space-between;
   gap:20px;
-  margin-bottom:22px;
+  margin-bottom:30px;
 }
 
 .section-head h2{
@@ -269,9 +274,31 @@ SECTIONS
   line-height:1.2;
 }
 
+.section-title{
+  margin:0;
+  font-size:clamp(26px,3.2vw,36px);
+  line-height:1.2;
+  color:#183124;
+  letter-spacing:.2px;
+}
+
+.section-divider{
+  width:82px;
+  height:4px;
+  margin:14px 0 0;
+  border-radius:999px;
+  background:linear-gradient(90deg,#24593f,#6da57b);
+  box-shadow:0 6px 16px rgba(36,89,63,.18);
+}
+
 .text-link{
   font-weight:700;
   color:#24593f;
+  white-space:nowrap;
+}
+
+.text-link:hover{
+  color:#183124;
 }
 
 .intro-box,
@@ -353,6 +380,7 @@ CARDS
   margin:0 0 10px;
   font-size:18px;
   line-height:1.35;
+  color:#183124;
 }
 
 .card-body p{
@@ -776,6 +804,15 @@ RESPONSIVE
   .hero-content{
     max-width:100%;
   }
+
+  .section-head{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .section-divider{
+    margin-top:12px;
+  }
 }
 
 @media (max-width: 640px){
@@ -824,5 +861,18 @@ RESPONSIVE
 
   .footer-grid{
     gap:18px;
+  }
+
+  .section-title{
+    font-size:28px;
+  }
+
+  .intro-box,
+  .trust-box,
+  .info-card,
+  .contact-card,
+  .search-card{
+    padding:22px;
+    border-radius:20px;
   }
 }
