@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+
+  <section class="section container detail-layout">
+    <article class="detail-main">
+      <img
+        src="<%= item.image || '/images/default-cover.jpg' %>"
+        alt="<%= item.title %> - Kuliner Berastagi"
+        class="detail-cover"
+        loading="lazy"
+      />
+
+      <span class="eyebrow">Kuliner Berastagi</span>
+      <h1><%= item.title %></h1>
+
+      <div class="detail-meta">
+        <% if (item.location) { %>
+          <span><%= item.location %></span>
+        <% } %>
+
+        <% if (item.open_hours) { %>
+          <span>• Jam buka: <%= item.open_hours %></span>
+        <% } %>
+
+        <% if (item.price_range) { %>
+          <span>• Harga: <%= item.price_range %></span>
+        <% } %>
+
+        <% if (avg) { %>
+          <span>• Rating: <%= avg %>/5</span>
+        <% } %>
+      </div>
+
+      <% if (item.excerpt) { %>
+        <div class="detail-intro">
+          <p><%= item.excerpt %></p>
+        </div>
+      <% } %>
+
+      <div class="detail-content article-content">
+        <%- item.content %>
+      </div>
+
+      <section class="rating-box" id="rating">
+        <h2>Rating Pengunjung</h2>
+
+        <form action="/kuliner/<%= item.slug %>/rating" method="post" class="inline-form">
+          <input type="text" name="name" placeholder="Nama" />
+          <select name="rating" required>
+            <option value="">Pilih rating</option>
+            <option value="5">5 - Sangat bagus</option>
+            <option value="4">4 - Bagus</option>
+            <option value="3">3 - Cukup</option>
+            <option value="2">2 - Kurang</option>
+            <option value="1">1 - Buruk</option>
+          </select>
+          <button type="submit">Kirim Rating</button>
+        </form>
+
+        <div class="comment-list">
+          <% if (ratings && ratings.length) { %>
+            <% ratings.forEach(rate => { %>
+              <article class="comment-item">
+                <h3><%= rate.name || "Pengunjung" %></h3>
+                <p>Memberi rating <strong><%= rate.rating %>/5</strong></p>
+                <small><%= rate.created_at %></small>
+              </article>
+            <% }) %>
+          <% } else { %>
+            <p>Belum ada rating. Jadilah yang pertama memberi penilaian.</p>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="comment-box" id="ulasan">
+        <h2>Komentar Pengunjung</h2>
+
+        <form action="/kuliner/<%= item.slug %>/comment" method="post" class="comment-form">
+          <input type="text" name="name" placeholder="Nama" required />
+          <input type="email" name="email" placeholder="Email (opsional)" />
+          <textarea name="comment" rows="5" placeholder="Tulis komentar..." required></textarea>
+          <button type="submit">Kirim Komentar</button>
+        </form>
+
+        <div class="comment-list">
+          <% if (comments && comments.length) { %>
+            <% comments.forEach(comment => { %>
+              <article class="comment-item">
+                <h3><%= comment.name %></h3>
+                <p><%= comment.comment %></p>
+                <small><%= comment.created_at %></small>
+              </article>
+            <% }) %>
+          <% } else { %>
+            <p>Belum ada komentar yang tampil. Jadilah yang pertama membagikan pendapatmu.</p>
+          <% } %>
+        </div>
+      </section>
+    </article>
+
+    <aside class="detail-sidebar">
+      <div class="sticky-box">
+        <h3>Info Kuliner</h3>
+
+        <ul class="info-list">
+          <li><strong>Lokasi:</strong> <%= item.location || '-' %></li>
+          <li><strong>Harga:</strong> <%= item.price_range || '-' %></li>
+          <li><strong>Jam Buka:</strong> <%= item.open_hours || '-' %></li>
+          <li><strong>Kontak:</strong> <%= item.contact_phone || '-' %></li>
+        </ul>
+
+        <% if (item.maps_url) { %>
+          <a href="<%= item.maps_url %>" target="_blank" rel="noopener noreferrer" class="btn-primary full">
+            Lihat Lokasi
+          </a>
+        <% } %>
+      </div>
+
+      <div class="sticky-box">
+        <h3>Kuliner Terkait</h3>
+
+        <% if (related && related.length) { %>
+          <% related.forEach(rel => { %>
+            <a href="/kuliner/<%= rel.slug %>" class="mini-link"><%= rel.title %></a>
+          <% }) %>
+        <% } else { %>
+          <p>Belum ada rekomendasi kuliner terkait lainnya.</p>
+        <% } %>
+      </div>
+    </aside>
+  </section>
+
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>
