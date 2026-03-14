@@ -3,20 +3,40 @@
 <%- include("partials/head") %>
 <body>
   <%- include("partials/header") %>
+
   <section class="page-hero small">
     <div class="container">
-      <span class="eyebrow">Daftar Villa</span>
-      <h1>Villa Berastagi</h1>
-      <p>Rekomendasi villa Berastagi yang nyaman, murah, dan cocok untuk keluarga.</p>
+      <span class="eyebrow">Penginapan Berastagi</span>
+      <h1>Vila dan Hotel di Berastagi</h1>
+      <p>
+        Temukan rekomendasi vila dan hotel di Berastagi yang nyaman, bersih, dan cocok
+        untuk keluarga, pasangan, maupun rombongan yang ingin menikmati suasana sejuk Berastagi.
+      </p>
     </div>
   </section>
 
   <section class="section container">
+    <div class="intro-box reveal">
+      <span class="eyebrow">Rekomendasi Menginap</span>
+      <h2>Pilihan Vila dan Hotel Terbaik untuk Liburan di Berastagi</h2>
+      <p>
+        Berastagi memiliki banyak pilihan penginapan, mulai dari vila keluarga, hotel dengan
+        pemandangan pegunungan, hingga tempat menginap yang cocok untuk liburan singkat maupun
+        akhir pekan. Di halaman ini kamu bisa menemukan berbagai rekomendasi vila dan hotel di Berastagi
+        lengkap dengan informasi harga, lokasi, dan detail penginapan yang memudahkan kamu memilih
+        tempat menginap terbaik.
+      </p>
+    </div>
+
     <div class="card-grid">
       <% items.forEach(item => { %>
-        <article class="card">
+        <article class="card reveal">
           <a href="/villa/<%= item.slug %>">
-            <img src="<%= item.image %>" alt="<%= item.title %>">
+            <img
+              src="<%= item.image %>"
+              alt="<%= item.title %> di Berastagi"
+              loading="lazy"
+            />
             <div class="card-body">
               <h2><%= item.title %></h2>
               <p><%= item.excerpt %></p>
