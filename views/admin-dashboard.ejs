@@ -4,14 +4,63 @@
 <body class="admin-page">
   <div class="admin-layout">
     <%- include("partials/admin-sidebar") %>
+
     <main class="admin-main">
-      <h1>Dashboard Admin</h1>
-      <div class="stats-grid">
-        <div class="stat-card"><strong><%= stats.wisata %></strong><span>Data Wisata</span></div>
-        <div class="stat-card"><strong><%= stats.villa %></strong><span>Data Villa</span></div>
-        <div class="stat-card"><strong><%= stats.articles %></strong><span>Artikel</span></div>
-        <div class="stat-card"><strong><%= stats.comments %></strong><span>Komentar</span></div>
+      <div class="admin-head">
+        <div>
+          <h1>Dashboard Admin</h1>
+          <p class="admin-subtitle">
+            Kelola data wisata, villa, kuliner, berita, komentar, dan pengaturan website Wisata Berastagi.
+          </p>
+        </div>
       </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <strong><%= stats.wisata || 0 %></strong>
+          <span>Data Wisata</span>
+        </div>
+
+        <div class="stat-card">
+          <strong><%= stats.villa || 0 %></strong>
+          <span>Data Villa</span>
+        </div>
+
+        <div class="stat-card">
+          <strong><%= stats.kuliner || 0 %></strong>
+          <span>Data Kuliner</span>
+        </div>
+
+        <div class="stat-card">
+          <strong><%= stats.berita || 0 %></strong>
+          <span>Data Berita</span>
+        </div>
+
+        <div class="stat-card">
+          <strong><%= stats.comments || 0 %></strong>
+          <span>Komentar</span>
+        </div>
+      </div>
+
+      <section class="section" style="padding:28px 0 0;">
+        <div class="table-wrap">
+          <div class="admin-head" style="margin-bottom:14px;">
+            <div>
+              <h2 style="margin:0;">Akses Cepat</h2>
+              <p class="admin-subtitle">Pilih menu yang ingin langsung kamu kelola.</p>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <a href="/admin/wisata" class="btn-primary">Kelola Wisata</a>
+            <a href="/admin/villa" class="btn-secondary">Kelola Villa</a>
+            <a href="/admin/kuliner" class="btn-secondary">Kelola Kuliner</a>
+            <a href="/admin/berita" class="btn-secondary">Kelola Berita</a>
+            <a href="/admin/comments" class="btn-secondary">Komentar</a>
+            <a href="/admin/settings" class="btn-secondary">Pengaturan</a>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </body>
