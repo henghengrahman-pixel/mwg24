@@ -4,19 +4,26 @@
 <body>
   <%- include("partials/header") %>
 
-  <section class="hero" style="background-image:linear-gradient(rgba(16,46,31,.56), rgba(16,46,31,.56)), url('<%= settings.hero_background %>')">
+  <section
+    class="hero"
+    style="background-image:linear-gradient(rgba(16,46,31,.56), rgba(16,46,31,.56)), url('<%= settings?.hero_background || "/images/default-cover.jpg" %>')"
+  >
     <div class="container hero-inner">
       <div class="hero-content reveal">
         <span class="eyebrow">Wisata Berastagi</span>
-        <h1>Wisata Berastagi – Tempat Wisata Terbaik di Berastagi Sumatera Utara</h1>
+        <h1>
+          <%= settings?.hero_title || "Wisata Berastagi – Tempat Wisata, Villa, Kuliner, dan Berita Terbaru" %>
+        </h1>
         <p>
-          Temukan wisata Berastagi terbaik mulai dari tempat wisata populer, vila dan hotel nyaman,
-          tempat kuliner favorit, hingga panduan liburan lengkap untuk menikmati suasana sejuk
-          dan keindahan alam Berastagi, Sumatera Utara.
+          <%= settings?.hero_subtitle || "Temukan wisata Berastagi terbaik mulai dari tempat wisata populer, villa dan hotel nyaman, kuliner favorit, hingga berita dan panduan liburan lengkap di Berastagi, Sumatera Utara." %>
         </p>
 
         <form class="search-box" action="/cari" method="get" role="search" aria-label="Cari informasi wisata Berastagi">
-          <input type="text" name="q" placeholder="Cari wisata Berastagi, vila, hotel, artikel..." />
+          <input
+            type="text"
+            name="q"
+            placeholder="Cari wisata, villa, kuliner, berita..."
+          />
           <button type="submit">Cari Sekarang</button>
         </form>
       </div>
@@ -36,11 +43,10 @@
           untuk menghabiskan waktu di dataran tinggi Karo.
         </p>
         <p>
-          Melalui WisataBerastagi.com, kamu bisa menemukan informasi lengkap tentang wisata Berastagi,
-          mulai dari tempat wisata di Berastagi, rekomendasi vila dan hotel, panduan perjalanan,
-          ide liburan, hingga artikel terbaru yang membantu merencanakan perjalanan dengan lebih praktis.
-          Website ini dibuat agar pengunjung lebih mudah mencari destinasi, membandingkan penginapan,
-          dan menemukan pengalaman wisata Berastagi yang paling cocok.
+          Melalui website ini, pengunjung bisa menemukan informasi lengkap tentang wisata Berastagi,
+          mulai dari tempat wisata di Berastagi, rekomendasi villa dan hotel, kuliner favorit,
+          berita terbaru, panduan perjalanan, hingga ide liburan yang membantu merencanakan perjalanan
+          dengan lebih praktis dan nyaman.
         </p>
       </div>
     </div>
@@ -57,26 +63,33 @@
         <a href="/wisata" class="text-link">Lihat semua</a>
       </div>
 
-      <div class="card-grid">
-        <% featuredWisata.forEach(item => { %>
-          <article class="card reveal">
-            <a href="/wisata/<%= item.slug %>">
-              <img
-                src="<%= item.image %>"
-                alt="<%= item.title %> di Berastagi"
-                loading="lazy"
-              />
-              <div class="card-body">
-                <h3><%= item.title %></h3>
-                <p><%= item.excerpt %></p>
-                <div class="meta-row">
-                  <span><%= item.location %></span>
+      <% if (featuredWisata && featuredWisata.length) { %>
+        <div class="card-grid">
+          <% featuredWisata.forEach(item => { %>
+            <article class="card reveal">
+              <a href="/wisata/<%= item.slug %>">
+                <img
+                  src="<%= item.image || '/images/default-cover.jpg' %>"
+                  alt="<%= item.title %> di Berastagi"
+                  loading="lazy"
+                />
+                <div class="card-body">
+                  <h3><%= item.title %></h3>
+                  <p><%= item.excerpt || 'Temukan informasi lengkap tempat wisata menarik di Berastagi.' %></p>
+                  <div class="meta-row">
+                    <span><%= item.location || "Berastagi" %></span>
+                  </div>
                 </div>
-              </div>
-            </a>
-          </article>
-        <% }) %>
-      </div>
+              </a>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state reveal">
+          <h3>Belum ada wisata unggulan</h3>
+          <p>Data tempat wisata akan tampil di sini setelah ditambahkan dari panel admin.</p>
+        </div>
+      <% } %>
     </div>
   </section>
 
@@ -85,32 +98,39 @@
       <div class="section-head">
         <div>
           <span class="eyebrow">Penginapan Terbaik</span>
-          <h2 class="section-title">Vila dan Hotel di Berastagi</h2>
+          <h2 class="section-title">Villa dan Hotel di Berastagi</h2>
           <div class="section-divider"></div>
         </div>
         <a href="/villa" class="text-link">Lihat semua</a>
       </div>
 
-      <div class="card-grid">
-        <% featuredVilla.forEach(item => { %>
-          <article class="card reveal">
-            <a href="/villa/<%= item.slug %>">
-              <img
-                src="<%= item.image %>"
-                alt="<%= item.title %> di Berastagi"
-                loading="lazy"
-              />
-              <div class="card-body">
-                <h3><%= item.title %></h3>
-                <p><%= item.excerpt %></p>
-                <div class="meta-row">
-                  <strong><%= helpers.formatCurrency(item.price) %></strong>
+      <% if (featuredVilla && featuredVilla.length) { %>
+        <div class="card-grid">
+          <% featuredVilla.forEach(item => { %>
+            <article class="card reveal">
+              <a href="/villa/<%= item.slug %>">
+                <img
+                  src="<%= item.image || '/images/default-cover.jpg' %>"
+                  alt="<%= item.title %> di Berastagi"
+                  loading="lazy"
+                />
+                <div class="card-body">
+                  <h3><%= item.title %></h3>
+                  <p><%= item.excerpt || 'Temukan villa dan hotel nyaman di Berastagi untuk liburanmu.' %></p>
+                  <div class="meta-row">
+                    <strong><%= helpers.formatCurrency(item.price) %></strong>
+                  </div>
                 </div>
-              </div>
-            </a>
-          </article>
-        <% }) %>
-      </div>
+              </a>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state reveal">
+          <h3>Belum ada villa atau hotel unggulan</h3>
+          <p>Data penginapan akan tampil di sini setelah ditambahkan dari panel admin.</p>
+        </div>
+      <% } %>
     </div>
   </section>
 
@@ -118,30 +138,81 @@
     <div class="container">
       <div class="section-head">
         <div>
-          <span class="eyebrow">Artikel Terbaru</span>
-          <h2 class="section-title">Artikel Wisata Berastagi Terbaru</h2>
+          <span class="eyebrow">Kuliner Favorit</span>
+          <h2 class="section-title">Kuliner Berastagi Terbaru</h2>
           <div class="section-divider"></div>
         </div>
-        <a href="/artikel" class="text-link">Lihat semua</a>
+        <a href="/kuliner" class="text-link">Lihat semua</a>
       </div>
 
-      <div class="card-grid">
-        <% latestArticles.forEach(item => { %>
-          <article class="card reveal">
-            <a href="/artikel/<%= item.slug %>">
-              <img
-                src="<%= item.image %>"
-                alt="<%= item.title %>"
-                loading="lazy"
-              />
-              <div class="card-body">
-                <h3><%= item.title %></h3>
-                <p><%= item.excerpt %></p>
-              </div>
-            </a>
-          </article>
-        <% }) %>
+      <% if (latestKuliner && latestKuliner.length) { %>
+        <div class="card-grid">
+          <% latestKuliner.forEach(item => { %>
+            <article class="card reveal">
+              <a href="/kuliner/<%= item.slug %>">
+                <img
+                  src="<%= item.image || '/images/default-cover.jpg' %>"
+                  alt="<%= item.title %>"
+                  loading="lazy"
+                />
+                <div class="card-body">
+                  <h3><%= item.title %></h3>
+                  <p><%= item.excerpt || 'Temukan kuliner populer dan tempat makan favorit di Berastagi.' %></p>
+                  <div class="meta-row">
+                    <span><%= item.location || "Berastagi" %></span>
+                  </div>
+                </div>
+              </a>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state reveal">
+          <h3>Belum ada data kuliner</h3>
+          <p>Rekomendasi kuliner akan tampil di sini setelah ditambahkan dari panel admin.</p>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <section class="section section-muted home-section">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Berita Terbaru</span>
+          <h2 class="section-title">Berita Wisata Berastagi Terbaru</h2>
+          <div class="section-divider"></div>
+        </div>
+        <a href="/berita" class="text-link">Lihat semua</a>
       </div>
+
+      <% if (latestBerita && latestBerita.length) { %>
+        <div class="card-grid">
+          <% latestBerita.forEach(item => { %>
+            <article class="card reveal">
+              <a href="/berita/<%= item.slug %>">
+                <img
+                  src="<%= item.image || '/images/default-cover.jpg' %>"
+                  alt="<%= item.title %>"
+                  loading="lazy"
+                />
+                <div class="card-body">
+                  <% if (item.category) { %>
+                    <span class="card-tag"><%= item.category %></span>
+                  <% } %>
+                  <h3><%= item.title %></h3>
+                  <p><%= item.excerpt || 'Baca berita terbaru seputar wisata, kuliner, villa, dan tips liburan di Berastagi.' %></p>
+                </div>
+              </a>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state reveal">
+          <h3>Belum ada berita terbaru</h3>
+          <p>Berita akan tampil di sini setelah ditambahkan dari panel admin.</p>
+        </div>
+      <% } %>
     </div>
   </section>
 
@@ -150,7 +221,7 @@
       <div class="info-grid">
         <div class="info-card reveal">
           <span class="eyebrow">Rekomendasi Liburan</span>
-          <h2>Temukan Wisata Berastagi, Vila, dan Hotel yang Cocok untuk Kamu</h2>
+          <h2>Temukan Wisata Berastagi, Villa, dan Hotel yang Cocok untuk Kamu</h2>
           <p>
             Kami menyajikan berbagai pilihan wisata Berastagi, mulai dari destinasi populer,
             tempat healing bernuansa alam, hingga penginapan nyaman untuk keluarga dan pasangan
@@ -160,9 +231,9 @@
 
         <div class="info-card reveal">
           <span class="eyebrow">Update Informasi</span>
-          <h2>Artikel dan Panduan Wisata Berastagi yang Mudah Dipahami</h2>
+          <h2>Kuliner dan Berita Wisata Berastagi yang Mudah Dipahami</h2>
           <p>
-            Baca panduan wisata Berastagi, tips perjalanan, rekomendasi kuliner, serta informasi terbaru
+            Baca panduan wisata Berastagi, tips perjalanan, rekomendasi kuliner, serta berita terbaru
             tentang tempat menarik di Berastagi agar rencana liburanmu lebih matang dan nyaman.
           </p>
         </div>
@@ -176,9 +247,10 @@
         <span class="eyebrow">Kenapa Pilih Kami</span>
         <h2>Panduan Wisata Berastagi yang Ramah Pengunjung</h2>
         <p>
-          WisataBerastagi.com dibuat untuk membantu pengunjung menemukan informasi wisata Berastagi
-          dengan lebih cepat, nyaman, dan jelas. Mulai dari tempat wisata populer, vila dan hotel,
-          hingga artikel panduan liburan, semuanya disusun agar mudah dicari dan enak dibuka di HP maupun desktop.
+          Website ini dibuat untuk membantu pengunjung menemukan informasi wisata Berastagi
+          dengan lebih cepat, nyaman, dan jelas. Mulai dari tempat wisata populer, villa dan hotel,
+          kuliner favorit, hingga berita dan panduan liburan, semuanya disusun agar mudah dicari
+          dan enak dibuka di HP maupun desktop.
         </p>
       </div>
     </div>
