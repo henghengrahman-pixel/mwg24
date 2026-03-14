@@ -1,81 +1,74 @@
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title><%= seo?.title || site?.defaultTitle || "Wisata Berastagi – Tempat Wisata Terbaik di Berastagi Sumatera Utara" %></title>
+  <%
+    const siteName = settings?.site_name || "Wisata Berastagi";
+    const defaultTitle = `${siteName} – Tempat Wisata, Villa, Kuliner, dan Berita Terbaru`;
+    const defaultDescription =
+      settings?.homepage_meta_description ||
+      "Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, villa dan hotel, kuliner, berita terbaru, hingga tips liburan terbaik.";
+    const canonicalUrl = seo?.canonical || baseUrl || "";
+    const rawImage = seo?.image || settings?.hero_background || "/images/default-cover.jpg";
+    const imageUrl = /^https?:\/\//i.test(rawImage) ? rawImage : `${baseUrl}${rawImage}`;
+  %>
+
+  <title><%= seo?.title || defaultTitle %></title>
 
   <meta
     name="description"
-    content="<%= seo?.description || site?.defaultDescription || 'Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, vila dan hotel, kuliner, hingga tips liburan terbaik.' %>"
-  />
-  <meta name="robots" content="<%= seo?.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large' %>" />
-  <meta name="author" content="WisataBerastagi.com" />
-  <meta name="theme-color" content="#1e5b3a" />
+    content="<%= seo?.description || defaultDescription %>"
+  >
+  <meta
+    name="robots"
+    content="<%= seo?.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large' %>"
+  >
+  <meta name="author" content="<%= siteName %>">
+  <meta name="theme-color" content="#1e5b3a">
 
-  <link rel="canonical" href="<%= seo?.canonical || baseUrl %>" />
+  <link rel="canonical" href="<%= canonicalUrl %>">
 
-  <!-- =========================
-  FAVICON
-  ========================= -->
+  <!-- FAVICON -->
+  <link rel="icon" href="/favicon/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/favicon/favicon-64x64.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon/favicon-180x180.png">
 
-  <link rel="icon" href="/favicon/favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png" />
-  <link rel="icon" type="image/png" sizes="48x48" href="/favicon/favicon-48x48.png" />
-  <link rel="icon" type="image/png" sizes="64x64" href="/favicon/favicon-64x64.png" />
-
-  <link rel="apple-touch-icon" sizes="180x180" href="/favicon/favicon-180x180.png" />
-
-  <!-- =========================
-  OPEN GRAPH (FACEBOOK / WA)
-  ========================= -->
-
-  <meta property="og:locale" content="id_ID" />
-  <meta property="og:site_name" content="WisataBerastagi.com" />
-  <meta property="og:title" content="<%= seo?.title || site?.defaultTitle || 'Wisata Berastagi – Tempat Wisata Terbaik di Berastagi Sumatera Utara' %>" />
+  <!-- OPEN GRAPH -->
+  <meta property="og:locale" content="id_ID">
+  <meta property="og:site_name" content="<%= siteName %>">
+  <meta property="og:title" content="<%= seo?.title || defaultTitle %>">
   <meta
     property="og:description"
-    content="<%= seo?.description || site?.defaultDescription || 'Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, vila dan hotel, kuliner, hingga tips liburan terbaik.' %>"
-  />
-  <meta property="og:type" content="<%= seo?.type || 'website' %>" />
-  <meta property="og:url" content="<%= seo?.canonical || baseUrl %>" />
-  <meta property="og:image" content="<%= seo?.image || site?.defaultImage || (baseUrl + '/public/images/default-cover.jpg') %>" />
+    content="<%= seo?.description || defaultDescription %>"
+  >
+  <meta property="og:type" content="<%= seo?.type || 'website' %>">
+  <meta property="og:url" content="<%= canonicalUrl %>">
+  <meta property="og:image" content="<%= imageUrl %>">
+  <meta property="og:image:alt" content="<%= seo?.title || defaultTitle %>">
 
-  <!-- =========================
-  TWITTER
-  ========================= -->
-
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="<%= seo?.title || site?.defaultTitle || 'Wisata Berastagi – Tempat Wisata Terbaik di Berastagi Sumatera Utara' %>" />
+  <!-- TWITTER -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= seo?.title || defaultTitle %>">
   <meta
     name="twitter:description"
-    content="<%= seo?.description || site?.defaultDescription || 'Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, vila dan hotel, kuliner, hingga tips liburan terbaik.' %>"
-  />
-  <meta name="twitter:image" content="<%= seo?.image || site?.defaultImage || (baseUrl + '/public/images/default-cover.jpg') %>" />
-  <meta name="twitter:url" content="<%= seo?.canonical || baseUrl %>" />
+    content="<%= seo?.description || defaultDescription %>"
+  >
+  <meta name="twitter:image" content="<%= imageUrl %>">
+  <meta name="twitter:url" content="<%= canonicalUrl %>">
 
-  <!-- =========================
-  PRECONNECT
-  ========================= -->
+  <!-- PRECONNECT -->
+  <link rel="preconnect" href="<%= baseUrl %>">
 
-  <link rel="preconnect" href="<%= baseUrl %>" />
+  <!-- CSS -->
+  <link rel="stylesheet" href="/css/style.css">
 
-  <!-- =========================
-  CSS
-  ========================= -->
+  <!-- JS -->
+  <script defer src="/js/main.js"></script>
 
-  <link rel="stylesheet" href="/public/css/style.css" />
-
-  <!-- =========================
-  JS
-  ========================= -->
-
-  <script defer src="/public/js/main.js"></script>
-
-  <!-- =========================
-  JSON LD SEO
-  ========================= -->
-
+  <!-- JSON LD SEO -->
   <% if (seo?.jsonLd) { %>
     <script type="application/ld+json"><%- seo.jsonLd %></script>
   <% } else { %>
@@ -83,9 +76,9 @@
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "WisataBerastagi.com",
+        "name": "<%= siteName %>",
         "url": "<%= baseUrl %>",
-        "description": "Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, vila dan hotel, kuliner, hingga tips liburan terbaik.",
+        "description": "<%= defaultDescription %>",
         "inLanguage": "id-ID",
         "potentialAction": {
           "@type": "SearchAction",
