@@ -2,19 +2,50 @@
   <div class="container nav-wrap">
 
     <a href="/" class="logo-text">
-      <strong class="site-title">Wisata Berastagi</strong>
-      <small class="site-tagline">Tempat wisata, vila, hotel & kuliner</small>
+      <strong class="site-title">
+        <%= settings?.site_name || "Wisata Berastagi" %>
+      </strong>
+      <small class="site-tagline">
+        <%= settings?.site_tagline || "Tempat wisata, villa, kuliner & berita Berastagi" %>
+      </small>
     </a>
 
-    <button class="menu-toggle" aria-label="Buka menu" onclick="toggleMenu()">☰</button>
+    <button
+      class="menu-toggle"
+      aria-label="Buka menu"
+      onclick="toggleMenu()"
+    >
+      ☰
+    </button>
 
     <nav class="main-nav" id="mainNav">
-      <a href="/" class="<%= path === '/' ? 'active' : '' %>">Home</a>
-      <a href="/wisata" class="<%= path.startsWith('/wisata') ? 'active' : '' %>">Wisata</a>
-      <a href="/villa" class="<%= path.startsWith('/villa') ? 'active' : '' %>">Vila & Hotel</a>
-      <a href="/artikel" class="<%= path.startsWith('/artikel') ? 'active' : '' %>">Artikel</a>
-      <a href="/tentang" class="<%= path === '/tentang' ? 'active' : '' %>">Tentang</a>
-      <a href="/kontak" class="<%= path === '/kontak' ? 'active' : '' %>">Kontak</a>
+      <a href="/" class="<%= (path || '') === '/' ? 'active' : '' %>">
+        Home
+      </a>
+
+      <a href="/wisata" class="<%= (path || '').startsWith('/wisata') ? 'active' : '' %>">
+        Wisata
+      </a>
+
+      <a href="/villa" class="<%= (path || '').startsWith('/villa') ? 'active' : '' %>">
+        Villa & Hotel
+      </a>
+
+      <a href="/kuliner" class="<%= (path || '').startsWith('/kuliner') ? 'active' : '' %>">
+        Kuliner
+      </a>
+
+      <a href="/berita" class="<%= (path || '').startsWith('/berita') ? 'active' : '' %>">
+        Berita
+      </a>
+
+      <a href="/tentang" class="<%= (path || '') === '/tentang' ? 'active' : '' %>">
+        Tentang
+      </a>
+
+      <a href="/kontak" class="<%= (path || '') === '/kontak' ? 'active' : '' %>">
+        Kontak
+      </a>
     </nav>
 
   </div>
