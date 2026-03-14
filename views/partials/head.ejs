@@ -3,25 +3,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <%
-    const siteName = settings?.site_name || "Wisata Berastagi";
+    const safeSettings = settings || {};
+    const safeSeo = seo || {};
+    const siteName = safeSettings.site_name || "Wisata Berastagi";
     const defaultTitle = `${siteName} – Tempat Wisata, Villa, Kuliner, dan Berita Terbaru`;
     const defaultDescription =
-      settings?.homepage_meta_description ||
+      safeSettings.homepage_meta_description ||
       "Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, villa dan hotel, kuliner, berita terbaru, hingga tips liburan terbaik.";
-    const canonicalUrl = seo?.canonical || baseUrl || "";
-    const rawImage = seo?.image || settings?.hero_background || "/images/default-cover.jpg";
+    const canonicalUrl = safeSeo.canonical || `${baseUrl}${path || ""}`;
+    const rawImage = safeSeo.image || safeSettings.hero_background || "/images/default-cover.jpg";
     const imageUrl = /^https?:\/\//i.test(rawImage) ? rawImage : `${baseUrl}${rawImage}`;
+    const pageTitle = safeSeo.title || defaultTitle;
+    const pageDescription = safeSeo.description || defaultDescription;
+    const pageType = safeSeo.type || "website";
   %>
 
-  <title><%= seo?.title || defaultTitle %></title>
+  <title><%= pageTitle %></title>
 
-  <meta
-    name="description"
-    content="<%= seo?.description || defaultDescription %>"
-  >
+  <meta name="description" content="<%= pageDescription %>">
   <meta
     name="robots"
-    content="<%= seo?.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large' %>"
+    content="<%= safeSeo.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large' %>"
   >
   <meta name="author" content="<%= siteName %>">
   <meta name="theme-color" content="#1e5b3a">
@@ -39,23 +41,17 @@
   <!-- OPEN GRAPH -->
   <meta property="og:locale" content="id_ID">
   <meta property="og:site_name" content="<%= siteName %>">
-  <meta property="og:title" content="<%= seo?.title || defaultTitle %>">
-  <meta
-    property="og:description"
-    content="<%= seo?.description || defaultDescription %>"
-  >
-  <meta property="og:type" content="<%= seo?.type || 'website' %>">
+  <meta property="og:title" content="<%= pageTitle %>">
+  <meta property="og:description" content="<%= pageDescription %>">
+  <meta property="og:type" content="<%= pageType %>">
   <meta property="og:url" content="<%= canonicalUrl %>">
   <meta property="og:image" content="<%= imageUrl %>">
-  <meta property="og:image:alt" content="<%= seo?.title || defaultTitle %>">
+  <meta property="og:image:alt" content="<%= pageTitle %>">
 
   <!-- TWITTER -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="<%= seo?.title || defaultTitle %>">
-  <meta
-    name="twitter:description"
-    content="<%= seo?.description || defaultDescription %>"
-  >
+  <meta name="twitter:title" content="<%= pageTitle %>">
+  <meta name="twitter:description" content="<%= pageDescription %>">
   <meta name="twitter:image" content="<%= imageUrl %>">
   <meta name="twitter:url" content="<%= canonicalUrl %>">
 
@@ -69,8 +65,8 @@
   <script defer src="/js/main.js"></script>
 
   <!-- JSON LD SEO -->
-  <% if (seo?.jsonLd) { %>
-    <script type="application/ld+json"><%- seo.jsonLd %></script>
+  <% if (safeSeo.jsonLd) { %>
+    <script type="application/ld+json"><%- safeSeo.jsonLd %></script>
   <% } else { %>
     <script type="application/ld+json">
       {
