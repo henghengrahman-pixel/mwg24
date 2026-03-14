@@ -6,19 +6,28 @@
 
   <section class="section container detail-layout">
     <article class="detail-main">
-      <img src="<%= item.image %>" alt="<%= item.title %>" class="detail-cover" />
+      <img
+        src="<%= item.image %>"
+        alt="<%= item.title %> di Berastagi"
+        class="detail-cover"
+        loading="lazy"
+      />
+
       <span class="eyebrow">Wisata Berastagi</span>
       <h1><%= item.title %></h1>
+
       <div class="detail-meta">
         <span>Lokasi: <%= item.location %></span>
         <span>Jam buka: <%= item.open_hours || '-' %></span>
         <span>Tiket: <%= helpers.formatCurrency(item.ticket_price || 0) %></span>
       </div>
+
       <p class="detail-content"><%= item.content %></p>
 
       <section class="rating-box" id="rating">
         <h2>Rating Pengunjung</h2>
         <p><strong><%= avg || 0 %>/5</strong> dari <%= ratings.length %> ulasan</p>
+
         <form action="/wisata/<%= item.slug %>/rating" method="post" class="inline-form">
           <input type="text" name="name" placeholder="Nama kamu" required />
           <select name="rating" required>
@@ -34,7 +43,8 @@
       </section>
 
       <section class="comment-box" id="ulasan">
-        <h2>Komentar Pengunjung</h2>
+        <h2>Ulasan dan Komentar Pengunjung</h2>
+
         <form action="/wisata/<%= item.slug %>/comment" method="post" class="comment-form">
           <input type="text" name="name" placeholder="Nama" required />
           <input type="email" name="email" placeholder="Email (opsional)" />
@@ -50,8 +60,9 @@
               <small><%= comment.created_at %></small>
             </article>
           <% }) %>
+
           <% if (!comments.length) { %>
-            <p>Belum ada komentar yang tampil. Jadilah yang pertama mengirim ulasan.</p>
+            <p>Belum ada komentar yang tampil. Jadilah yang pertama mengirim ulasan untuk tempat wisata ini.</p>
           <% } %>
         </div>
       </section>
@@ -65,6 +76,7 @@
           <li><strong>Tiket:</strong> <%= helpers.formatCurrency(item.ticket_price || 0) %></li>
           <li><strong>Jam buka:</strong> <%= item.open_hours || '-' %></li>
         </ul>
+
         <% if (item.maps_url) { %>
           <a href="<%= item.maps_url %>" target="_blank" rel="noopener" class="btn-primary full">Lihat Maps</a>
         <% } %>
