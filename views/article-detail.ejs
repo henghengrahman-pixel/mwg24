@@ -6,13 +6,25 @@
 
   <section class="section container detail-layout">
     <article class="detail-main">
-      <img src="<%= item.image %>" alt="<%= item.title %>" class="detail-cover" />
-      <span class="eyebrow">Artikel Wisata</span>
+      <img
+        src="<%= item.image %>"
+        alt="<%= item.title %> - Artikel Wisata Berastagi"
+        class="detail-cover"
+        loading="lazy"
+      />
+
+      <span class="eyebrow">Artikel Wisata Berastagi</span>
       <h1><%= item.title %></h1>
+
+      <div class="detail-meta">
+        <span>Panduan wisata, vila & hotel, kuliner, dan liburan di Berastagi</span>
+      </div>
+
       <p class="detail-content"><%= item.content %></p>
 
       <section class="comment-box" id="ulasan">
         <h2>Komentar Pembaca</h2>
+
         <form action="/artikel/<%= item.slug %>/comment" method="post" class="comment-form">
           <input type="text" name="name" placeholder="Nama" required />
           <input type="email" name="email" placeholder="Email (opsional)" />
@@ -28,8 +40,9 @@
               <small><%= comment.created_at %></small>
             </article>
           <% }) %>
+
           <% if (!comments.length) { %>
-            <p>Belum ada komentar yang tampil.</p>
+            <p>Belum ada komentar yang tampil. Jadilah yang pertama membagikan pendapatmu.</p>
           <% } %>
         </div>
       </section>
