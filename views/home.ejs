@@ -10,10 +10,12 @@
   >
     <div class="container hero-inner">
       <div class="hero-content reveal">
-        <span class="eyebrow">Wisata Berastagi</span>
+        <span class="eyebrow"><%= settings?.site_name || "Wisata Berastagi" %></span>
+
         <h1>
           <%= settings?.hero_title || "Wisata Berastagi – Tempat Wisata, Villa, Kuliner, dan Berita Terbaru" %>
         </h1>
+
         <p>
           <%= settings?.hero_subtitle || "Temukan wisata Berastagi terbaik mulai dari tempat wisata populer, villa dan hotel nyaman, kuliner favorit, hingga berita dan panduan liburan lengkap di Berastagi, Sumatera Utara." %>
         </p>
@@ -26,6 +28,13 @@
           />
           <button type="submit">Cari Sekarang</button>
         </form>
+
+        <div class="meta-row" style="margin-top:18px; flex-wrap:wrap;">
+          <a href="/wisata" class="btn-secondary">Lihat Wisata</a>
+          <a href="/villa" class="btn-secondary">Lihat Villa</a>
+          <a href="/kuliner" class="btn-secondary">Lihat Kuliner</a>
+          <a href="/berita" class="btn-secondary">Lihat Berita</a>
+        </div>
       </div>
     </div>
   </section>
@@ -75,10 +84,11 @@
                 />
                 <div class="card-body">
                   <h3><%= item.title %></h3>
-                  <p><%= item.excerpt || 'Temukan informasi lengkap tempat wisata menarik di Berastagi.' %></p>
+                  <p><%= item.excerpt || "Temukan informasi lengkap tempat wisata menarik di Berastagi." %></p>
                   <div class="meta-row">
                     <span><%= item.location || "Berastagi" %></span>
                   </div>
+                  <span class="read-more">Baca Selengkapnya</span>
                 </div>
               </a>
             </article>
@@ -116,10 +126,11 @@
                 />
                 <div class="card-body">
                   <h3><%= item.title %></h3>
-                  <p><%= item.excerpt || 'Temukan villa dan hotel nyaman di Berastagi untuk liburanmu.' %></p>
+                  <p><%= item.excerpt || "Temukan villa dan hotel nyaman di Berastagi untuk liburanmu." %></p>
                   <div class="meta-row">
-                    <strong><%= helpers.formatCurrency(item.price) %></strong>
+                    <strong><%= item.price ? helpers.formatCurrency(item.price) : "Hubungi untuk harga" %></strong>
                   </div>
+                  <span class="read-more">Lihat Detail</span>
                 </div>
               </a>
             </article>
@@ -157,10 +168,11 @@
                 />
                 <div class="card-body">
                   <h3><%= item.title %></h3>
-                  <p><%= item.excerpt || 'Temukan kuliner populer dan tempat makan favorit di Berastagi.' %></p>
+                  <p><%= item.excerpt || "Temukan kuliner populer dan tempat makan favorit di Berastagi." %></p>
                   <div class="meta-row">
                     <span><%= item.location || "Berastagi" %></span>
                   </div>
+                  <span class="read-more">Baca Selengkapnya</span>
                 </div>
               </a>
             </article>
@@ -201,7 +213,8 @@
                     <span class="card-tag"><%= item.category %></span>
                   <% } %>
                   <h3><%= item.title %></h3>
-                  <p><%= item.excerpt || 'Baca berita terbaru seputar wisata, kuliner, villa, dan tips liburan di Berastagi.' %></p>
+                  <p><%= item.excerpt || "Baca berita terbaru seputar wisata, kuliner, villa, dan tips liburan di Berastagi." %></p>
+                  <span class="read-more">Baca Berita</span>
                 </div>
               </a>
             </article>
