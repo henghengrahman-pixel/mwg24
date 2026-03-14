@@ -6,22 +6,53 @@
 
   <section class="page-hero small">
     <div class="container">
-      <span class="eyebrow">Kontak</span>
-      <h1>Hubungi Kami</h1>
-      <p>Silakan hubungi tim Wisata Berastagi untuk promosi, kerja sama, atau informasi tambahan.</p>
+      <span class="eyebrow">Kontak Kami</span>
+      <h1>Hubungi Tim Wisata Berastagi</h1>
+      <p>
+        Silakan hubungi tim Wisata Berastagi untuk promosi, kerja sama, informasi wisata,
+        rekomendasi vila dan hotel, atau kebutuhan lainnya seputar liburan di Berastagi.
+      </p>
     </div>
   </section>
 
   <section class="section container contact-grid">
-    <div class="contact-card">
+    <div class="contact-card reveal">
       <h2>Informasi Kontak</h2>
-      <p><strong>HP/WA:</strong> <a href="tel:<%= settings.contact_phone %>"><%= settings.contact_phone %></a></p>
-      <p><strong>Email:</strong> <a href="mailto:<%= settings.contact_email %>"><%= settings.contact_email %></a></p>
-      <p><strong>Alamat:</strong> <%= settings.address %></p>
+
+      <p>
+        <strong>HP/WA:</strong>
+        <% if (settings?.contact_phone) { %>
+          <a href="tel:<%= settings.contact_phone %>"><%= settings.contact_phone %></a>
+        <% } else { %>
+          <span>-</span>
+        <% } %>
+      </p>
+
+      <p>
+        <strong>Email:</strong>
+        <% if (settings?.contact_email) { %>
+          <a href="mailto:<%= settings.contact_email %>"><%= settings.contact_email %></a>
+        <% } else { %>
+          <span>-</span>
+        <% } %>
+      </p>
+
+      <p>
+        <strong>Alamat:</strong>
+        <%= settings?.address || 'Berastagi, Kabupaten Karo, Sumatera Utara' %>
+      </p>
     </div>
-    <div class="contact-card">
-      <h2>Catatan</h2>
-      <p>Pastikan email dan nomor telepon selalu aktif agar pengunjung mudah menghubungi kamu.</p>
+
+    <div class="contact-card reveal">
+      <h2>Kerja Sama & Informasi</h2>
+      <p>
+        Kami terbuka untuk promosi tempat wisata, kerja sama penginapan, publikasi kuliner,
+        dan berbagai informasi yang relevan dengan wisata Berastagi.
+      </p>
+      <p>
+        Pastikan nomor telepon dan email yang ditampilkan selalu aktif agar pengunjung,
+        wisatawan, maupun calon partner lebih mudah menghubungi kamu.
+      </p>
     </div>
   </section>
 
