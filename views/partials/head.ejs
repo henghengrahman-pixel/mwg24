@@ -1,22 +1,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= seo?.title || site?.defaultTitle %></title>
-  <meta name="description" content="<%= seo?.description || site?.defaultDescription %>" />
-  <meta name="robots" content="<%= seo?.noindex ? 'noindex, nofollow' : 'index, follow' %>" />
+
+  <title><%= seo?.title || site?.defaultTitle || "Wisata Berastagi" %></title>
+  <meta name="description" content="<%= seo?.description || site?.defaultDescription || 'Panduan lengkap wisata Berastagi, tempat wisata, vila dan hotel, kuliner, dan tips liburan di Berastagi Sumatera Utara.' %>" />
+  <meta name="robots" content="<%= seo?.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large' %>" />
+  <meta name="author" content="WisataBerastagi.com" />
+  <meta name="theme-color" content="#1e5b3a" />
+
   <link rel="canonical" href="<%= seo?.canonical || baseUrl %>" />
 
-  <meta property="og:title" content="<%= seo?.title || site?.defaultTitle %>" />
-  <meta property="og:description" content="<%= seo?.description || site?.defaultDescription %>" />
+  <meta property="og:locale" content="id_ID" />
+  <meta property="og:site_name" content="WisataBerastagi.com" />
+  <meta property="og:title" content="<%= seo?.title || site?.defaultTitle || 'Wisata Berastagi' %>" />
+  <meta property="og:description" content="<%= seo?.description || site?.defaultDescription || 'Panduan lengkap wisata Berastagi, tempat wisata, vila dan hotel, kuliner, dan tips liburan di Berastagi Sumatera Utara.' %>" />
   <meta property="og:type" content="<%= seo?.type || 'website' %>" />
   <meta property="og:url" content="<%= seo?.canonical || baseUrl %>" />
-  <meta property="og:image" content="<%= seo?.image || site?.defaultImage %>" />
+  <meta property="og:image" content="<%= seo?.image || site?.defaultImage || (baseUrl + '/public/images/default-cover.jpg') %>" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="<%= seo?.title || site?.defaultTitle %>" />
-  <meta name="twitter:description" content="<%= seo?.description || site?.defaultDescription %>" />
-  <meta name="twitter:image" content="<%= seo?.image || site?.defaultImage %>" />
+  <meta name="twitter:title" content="<%= seo?.title || site?.defaultTitle || 'Wisata Berastagi' %>" />
+  <meta name="twitter:description" content="<%= seo?.description || site?.defaultDescription || 'Panduan lengkap wisata Berastagi, tempat wisata, vila dan hotel, kuliner, dan tips liburan di Berastagi Sumatera Utara.' %>" />
+  <meta name="twitter:image" content="<%= seo?.image || site?.defaultImage || (baseUrl + '/public/images/default-cover.jpg') %>" />
+  <meta name="twitter:url" content="<%= seo?.canonical || baseUrl %>" />
 
+  <link rel="preconnect" href="<%= baseUrl %>" />
   <link rel="stylesheet" href="/public/css/style.css" />
   <script defer src="/public/js/main.js"></script>
 
