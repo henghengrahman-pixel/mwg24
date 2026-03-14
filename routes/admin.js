@@ -28,10 +28,31 @@ function storageFor(folderName) {
   });
 }
 
-const wisataUpload = multer({ storage: storageFor("wisata") });
-const villaUpload = multer({ storage: storageFor("villa") });
-const kulinerUpload = multer({ storage: storageFor("kuliner") });
-const beritaUpload = multer({ storage: storageFor("berita") });
+const uploadOptions = {
+  limits: {
+    fileSize: 5 * 1024 * 1024
+  }
+};
+
+const wisataUpload = multer({
+  storage: storageFor("wisata"),
+  ...uploadOptions
+});
+
+const villaUpload = multer({
+  storage: storageFor("villa"),
+  ...uploadOptions
+});
+
+const kulinerUpload = multer({
+  storage: storageFor("kuliner"),
+  ...uploadOptions
+});
+
+const beritaUpload = multer({
+  storage: storageFor("berita"),
+  ...uploadOptions
+});
 
 function fileUrl(folder, filename) {
   return `/uploads/${folder}/${filename}`;
@@ -39,6 +60,33 @@ function fileUrl(folder, filename) {
 
 function settingsRow() {
   return getDb().prepare("SELECT * FROM settings WHERE id = 1").get();
+}
+
+function cleanText(value) {
+  return String(value || "").trim();
+}
+
+function boolToInt(value) {
+  return value ? 1 : 0;
+}
+
+function fallbackImage(currentImage, file, folder) {
+  if (file?.filename) return fileUrl(folder, file.filename);
+  return cleanText(currentImage);
+}
+
+function requireBasicContent(title, content, res, viewName, seoTitle, item = null) {
+  if (!title || !content) {
+    return res.status(400).render(viewName, {
+      seo: buildSeo({
+        title: seoTitle,
+        noindex: true
+      }),
+      item,
+      error: "Judul dan konten wajib diisi."
+    });
+  }
+  return null;
 }
 
 /* =========================
@@ -59,8 +107,8 @@ router.get("/login", (req, res) => {
 
 router.post("/login", (req, res) => {
   const db = getDb();
-  const username = String(req.body.username || "").trim();
-  const password = String(req.body.password || "").trim();
+  const username = cleanText(req.body.username);
+  const password = cleanText(req.body.password);
 
   const user = db
     .prepare("SELECT * FROM users WHERE username = ? AND password = ?")
@@ -131,7 +179,8 @@ router.get("/wisata/new", (req, res) => {
       title: "Tambah Wisata | Wisata Berastagi",
       noindex: true
     }),
-    item: null
+    item: null,
+    error: null
   });
 });
 
@@ -145,34 +194,44 @@ router.get("/wisata/edit/:id", (req, res) => {
       title: "Edit Wisata | Wisata Berastagi",
       noindex: true
     }),
-    item
+    item,
+    error: null
   });
 });
 
 router.post("/wisata/save", wisataUpload.single("image"), (req, res) => {
   const db = getDb();
   const id = req.body.id ? Number(req.body.id) : null;
-  const title = String(req.body.title || "").trim();
-  const content = String(req.body.content || "").trim();
+  const title = cleanText(req.body.title);
+  const content = cleanText(req.body.content);
+
+  const validationError = requireBasicContent(
+    title,
+    content,
+    res,
+    "admin-wisata-form",
+    id ? "Edit Wisata | Wisata Berastagi" : "Tambah Wisata | Wisata Berastagi",
+    req.body
+  );
+  if (validationError) return;
+
   const slug = makeSlug(req.body.slug || title);
-  const image = req.file
-    ? fileUrl("wisata", req.file.filename)
-    : String(req.body.current_image || "").trim();
+  const image = fallbackImage(req.body.current_image, req.file, "wisata");
 
   const payload = {
     id,
     title,
     slug,
-    excerpt: String(req.body.excerpt || excerpt(content, 150)).trim(),
+    excerpt: cleanText(req.body.excerpt || excerpt(content, 150)),
     content,
     image,
-    location: String(req.body.location || "").trim(),
-    ticket_price: String(req.body.ticket_price || "").trim(),
-    open_hours: String(req.body.open_hours || "").trim(),
-    maps_url: String(req.body.maps_url || "").trim(),
-    meta_title: String(req.body.meta_title || `${title} | Wisata Berastagi`).trim(),
-    meta_description: String(req.body.meta_description || excerpt(content, 150)).trim(),
-    is_featured: req.body.is_featured ? 1 : 0
+    location: cleanText(req.body.location),
+    ticket_price: cleanText(req.body.ticket_price),
+    open_hours: cleanText(req.body.open_hours),
+    maps_url: cleanText(req.body.maps_url),
+    meta_title: cleanText(req.body.meta_title || `${title} | Wisata Berastagi`),
+    meta_description: cleanText(req.body.meta_description || excerpt(content, 150)),
+    is_featured: boolToInt(req.body.is_featured)
   };
 
   if (id) {
@@ -235,7 +294,8 @@ router.get("/villa/new", (req, res) => {
       title: "Tambah Villa | Wisata Berastagi",
       noindex: true
     }),
-    item: null
+    item: null,
+    error: null
   });
 });
 
@@ -249,36 +309,46 @@ router.get("/villa/edit/:id", (req, res) => {
       title: "Edit Villa | Wisata Berastagi",
       noindex: true
     }),
-    item
+    item,
+    error: null
   });
 });
 
 router.post("/villa/save", villaUpload.single("image"), (req, res) => {
   const db = getDb();
   const id = req.body.id ? Number(req.body.id) : null;
-  const title = String(req.body.title || "").trim();
-  const content = String(req.body.content || "").trim();
+  const title = cleanText(req.body.title);
+  const content = cleanText(req.body.content);
+
+  const validationError = requireBasicContent(
+    title,
+    content,
+    res,
+    "admin-villa-form",
+    id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
+    req.body
+  );
+  if (validationError) return;
+
   const slug = makeSlug(req.body.slug || title);
-  const image = req.file
-    ? fileUrl("villa", req.file.filename)
-    : String(req.body.current_image || "").trim();
+  const image = fallbackImage(req.body.current_image, req.file, "villa");
 
   const payload = {
     id,
     title,
     slug,
-    excerpt: String(req.body.excerpt || excerpt(content, 150)).trim(),
+    excerpt: cleanText(req.body.excerpt || excerpt(content, 150)),
     content,
     image,
-    price: String(req.body.price || "").trim(),
-    location: String(req.body.location || "").trim(),
-    facilities: String(req.body.facilities || "").trim(),
-    booking_url: String(req.body.booking_url || "").trim(),
-    contact_phone: String(req.body.contact_phone || "").trim(),
-    maps_url: String(req.body.maps_url || "").trim(),
-    meta_title: String(req.body.meta_title || `${title} | Villa Berastagi`).trim(),
-    meta_description: String(req.body.meta_description || excerpt(content, 150)).trim(),
-    is_featured: req.body.is_featured ? 1 : 0
+    price: cleanText(req.body.price),
+    location: cleanText(req.body.location),
+    facilities: cleanText(req.body.facilities),
+    booking_url: cleanText(req.body.booking_url),
+    contact_phone: cleanText(req.body.contact_phone),
+    maps_url: cleanText(req.body.maps_url),
+    meta_title: cleanText(req.body.meta_title || `${title} | Villa Berastagi`),
+    meta_description: cleanText(req.body.meta_description || excerpt(content, 150)),
+    is_featured: boolToInt(req.body.is_featured)
   };
 
   if (id) {
@@ -343,7 +413,8 @@ router.get("/kuliner/new", (req, res) => {
       title: "Tambah Kuliner | Wisata Berastagi",
       noindex: true
     }),
-    item: null
+    item: null,
+    error: null
   });
 });
 
@@ -357,35 +428,45 @@ router.get("/kuliner/edit/:id", (req, res) => {
       title: "Edit Kuliner | Wisata Berastagi",
       noindex: true
     }),
-    item
+    item,
+    error: null
   });
 });
 
 router.post("/kuliner/save", kulinerUpload.single("image"), (req, res) => {
   const db = getDb();
   const id = req.body.id ? Number(req.body.id) : null;
-  const title = String(req.body.title || "").trim();
-  const content = String(req.body.content || "").trim();
+  const title = cleanText(req.body.title);
+  const content = cleanText(req.body.content);
+
+  const validationError = requireBasicContent(
+    title,
+    content,
+    res,
+    "admin-kuliner-form",
+    id ? "Edit Kuliner | Wisata Berastagi" : "Tambah Kuliner | Wisata Berastagi",
+    req.body
+  );
+  if (validationError) return;
+
   const slug = makeSlug(req.body.slug || title);
-  const image = req.file
-    ? fileUrl("kuliner", req.file.filename)
-    : String(req.body.current_image || "").trim();
+  const image = fallbackImage(req.body.current_image, req.file, "kuliner");
 
   const payload = {
     id,
     title,
     slug,
-    excerpt: String(req.body.excerpt || excerpt(content, 150)).trim(),
+    excerpt: cleanText(req.body.excerpt || excerpt(content, 150)),
     content,
     image,
-    location: String(req.body.location || "").trim(),
-    price_range: String(req.body.price_range || "").trim(),
-    open_hours: String(req.body.open_hours || "").trim(),
-    maps_url: String(req.body.maps_url || "").trim(),
-    contact_phone: String(req.body.contact_phone || "").trim(),
-    meta_title: String(req.body.meta_title || `${title} | Kuliner Berastagi`).trim(),
-    meta_description: String(req.body.meta_description || excerpt(content, 150)).trim(),
-    is_featured: req.body.is_featured ? 1 : 0
+    location: cleanText(req.body.location),
+    price_range: cleanText(req.body.price_range),
+    open_hours: cleanText(req.body.open_hours),
+    maps_url: cleanText(req.body.maps_url),
+    contact_phone: cleanText(req.body.contact_phone),
+    meta_title: cleanText(req.body.meta_title || `${title} | Kuliner Berastagi`),
+    meta_description: cleanText(req.body.meta_description || excerpt(content, 150)),
+    is_featured: boolToInt(req.body.is_featured)
   };
 
   if (id) {
@@ -432,8 +513,72 @@ router.post("/kuliner/delete/:id", (req, res) => {
    BERITA
    tetap pakai tabel articles
 ========================= */
+function saveBeritaHandler(req, res) {
+  const db = getDb();
+  const id = req.body.id ? Number(req.body.id) : null;
+  const title = cleanText(req.body.title);
+  const content = cleanText(req.body.content);
+
+  const validationError = requireBasicContent(
+    title,
+    content,
+    res,
+    "admin-article-form",
+    id ? "Edit Berita | Wisata Berastagi" : "Tambah Berita | Wisata Berastagi",
+    req.body
+  );
+  if (validationError) return;
+
+  const slug = makeSlug(req.body.slug || title);
+  const image = fallbackImage(req.body.current_image, req.file, "berita");
+
+  const payload = {
+    id,
+    title,
+    slug,
+    excerpt: cleanText(req.body.excerpt || excerpt(content, 150)),
+    content,
+    image,
+    category: cleanText(req.body.category || "berita"),
+    meta_title: cleanText(req.body.meta_title || `${title} | Berita Wisata Berastagi`),
+    meta_description: cleanText(req.body.meta_description || excerpt(content, 150)),
+    published_at: cleanText(req.body.published_at) || null
+  };
+
+  if (id) {
+    db.prepare(`
+      UPDATE articles
+      SET
+        title = @title,
+        slug = @slug,
+        excerpt = @excerpt,
+        content = @content,
+        image = @image,
+        category = @category,
+        meta_title = @meta_title,
+        meta_description = @meta_description,
+        published_at = COALESCE(@published_at, published_at),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = @id
+    `).run(payload);
+  } else {
+    db.prepare(`
+      INSERT INTO articles (
+        title, slug, excerpt, content, image, category, meta_title, meta_description, published_at
+      ) VALUES (
+        @title, @slug, @excerpt, @content, @image, @category, @meta_title, @meta_description,
+        COALESCE(@published_at, CURRENT_TIMESTAMP)
+      )
+    `).run(payload);
+  }
+
+  res.redirect("/admin/berita");
+}
+
 router.get("/berita", (req, res) => {
-  const items = getDb().prepare("SELECT * FROM articles ORDER BY id DESC").all();
+  const items = getDb()
+    .prepare("SELECT * FROM articles ORDER BY COALESCE(published_at, created_at) DESC, id DESC")
+    .all();
 
   res.render("admin-articles", {
     seo: buildSeo({
@@ -450,7 +595,8 @@ router.get("/berita/new", (req, res) => {
       title: "Tambah Berita | Wisata Berastagi",
       noindex: true
     }),
-    item: null
+    item: null,
+    error: null
   });
 });
 
@@ -464,59 +610,12 @@ router.get("/berita/edit/:id", (req, res) => {
       title: "Edit Berita | Wisata Berastagi",
       noindex: true
     }),
-    item
+    item,
+    error: null
   });
 });
 
-router.post("/berita/save", beritaUpload.single("image"), (req, res) => {
-  const db = getDb();
-  const id = req.body.id ? Number(req.body.id) : null;
-  const title = String(req.body.title || "").trim();
-  const content = String(req.body.content || "").trim();
-  const slug = makeSlug(req.body.slug || title);
-  const image = req.file
-    ? fileUrl("berita", req.file.filename)
-    : String(req.body.current_image || "").trim();
-
-  const payload = {
-    id,
-    title,
-    slug,
-    excerpt: String(req.body.excerpt || excerpt(content, 150)).trim(),
-    content,
-    image,
-    category: String(req.body.category || "berita").trim(),
-    meta_title: String(req.body.meta_title || `${title} | Berita Wisata Berastagi`).trim(),
-    meta_description: String(req.body.meta_description || excerpt(content, 150)).trim()
-  };
-
-  if (id) {
-    db.prepare(`
-      UPDATE articles
-      SET
-        title = @title,
-        slug = @slug,
-        excerpt = @excerpt,
-        content = @content,
-        image = @image,
-        category = @category,
-        meta_title = @meta_title,
-        meta_description = @meta_description,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = @id
-    `).run(payload);
-  } else {
-    db.prepare(`
-      INSERT INTO articles (
-        title, slug, excerpt, content, image, category, meta_title, meta_description
-      ) VALUES (
-        @title, @slug, @excerpt, @content, @image, @category, @meta_title, @meta_description
-      )
-    `).run(payload);
-  }
-
-  res.redirect("/admin/berita");
-});
+router.post("/berita/save", beritaUpload.single("image"), saveBeritaHandler);
 
 router.post("/berita/delete/:id", (req, res) => {
   getDb().prepare("DELETE FROM articles WHERE id = ?").run(req.params.id);
@@ -525,12 +624,11 @@ router.post("/berita/delete/:id", (req, res) => {
 
 /* =========================
    OPTIONAL BACKWARD COMPATIBILITY
-   kalau masih ada link lama /admin/articles
 ========================= */
 router.get("/articles", (req, res) => res.redirect("/admin/berita"));
 router.get("/articles/new", (req, res) => res.redirect("/admin/berita/new"));
 router.get("/articles/edit/:id", (req, res) => res.redirect(`/admin/berita/edit/${req.params.id}`));
-router.post("/articles/save", beritaUpload.single("image"), (req, res, next) => next());
+router.post("/articles/save", beritaUpload.single("image"), saveBeritaHandler);
 router.post("/articles/delete/:id", (req, res) => res.redirect(307, `/admin/berita/delete/${req.params.id}`));
 
 /* =========================
@@ -588,17 +686,17 @@ router.post("/settings", (req, res) => {
       hero_background = ?
     WHERE id = 1
   `).run(
-    req.body.site_name,
-    req.body.site_tagline,
-    req.body.contact_phone,
-    req.body.contact_email,
-    req.body.address,
-    req.body.footer_text,
-    req.body.homepage_title,
-    req.body.homepage_meta_description,
-    req.body.hero_title,
-    req.body.hero_subtitle,
-    req.body.hero_background
+    cleanText(req.body.site_name),
+    cleanText(req.body.site_tagline),
+    cleanText(req.body.contact_phone),
+    cleanText(req.body.contact_email),
+    cleanText(req.body.address),
+    cleanText(req.body.footer_text),
+    cleanText(req.body.homepage_title),
+    cleanText(req.body.homepage_meta_description),
+    cleanText(req.body.hero_title),
+    cleanText(req.body.hero_subtitle),
+    cleanText(req.body.hero_background)
   );
 
   res.redirect("/admin/settings");
