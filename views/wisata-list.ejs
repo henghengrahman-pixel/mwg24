@@ -3,20 +3,44 @@
 <%- include("partials/head") %>
 <body>
   <%- include("partials/header") %>
+
   <section class="page-hero small">
     <div class="container">
       <span class="eyebrow">Daftar Wisata</span>
-      <h1>Tempat Wisata Berastagi</h1>
-      <p>Temukan destinasi wisata Berastagi terbaru, populer, dan cocok untuk keluarga.</p>
+      <h1>Tempat Wisata di Berastagi</h1>
+      <p>
+        Temukan berbagai tempat wisata di Berastagi yang populer, menarik, dan cocok
+        untuk liburan keluarga, pasangan, maupun rombongan.
+      </p>
     </div>
   </section>
 
   <section class="section container">
+    <div class="intro-box reveal">
+      <span class="eyebrow">Destinasi Liburan</span>
+      <h2>Rekomendasi Tempat Wisata Berastagi yang Wajib Dikunjungi</h2>
+      <p>
+        Berastagi dikenal sebagai salah satu destinasi wisata favorit di Sumatera Utara
+        dengan udara sejuk, pemandangan pegunungan, serta banyak pilihan tempat menarik
+        untuk dikunjungi. Mulai dari wisata alam, spot foto, bukit, pasar buah, hingga
+        destinasi keluarga, semuanya bisa kamu temukan di Berastagi.
+      </p>
+      <p>
+        Di halaman ini kamu bisa melihat berbagai rekomendasi tempat wisata di Berastagi
+        lengkap dengan informasi singkat yang memudahkan kamu memilih tujuan liburan
+        yang paling sesuai.
+      </p>
+    </div>
+
     <div class="card-grid">
       <% items.forEach(item => { %>
-        <article class="card">
+        <article class="card reveal">
           <a href="/wisata/<%= item.slug %>">
-            <img src="<%= item.image %>" alt="<%= item.title %>">
+            <img
+              src="<%= item.image %>"
+              alt="<%= item.title %> di Berastagi"
+              loading="lazy"
+            />
             <div class="card-body">
               <h2><%= item.title %></h2>
               <p><%= item.excerpt %></p>
