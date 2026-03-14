@@ -25,15 +25,21 @@ const UPLOADS_DIR =
     ? path.join(process.env.DATA_DIR, "uploads")
     : path.join(__dirname, "uploads");
 
+const PUBLIC_DIR = path.join(__dirname, "public");
 const DB_PATH = path.join(DATA_DIR, "database.sqlite");
 const SESSION_DB_PATH = path.join(DATA_DIR, "sessions.sqlite");
 
 const REQUIRED_DIRS = [
   DATA_DIR,
   UPLOADS_DIR,
+  PUBLIC_DIR,
+  path.join(PUBLIC_DIR, "css"),
+  path.join(PUBLIC_DIR, "js"),
+  path.join(PUBLIC_DIR, "images"),
   path.join(UPLOADS_DIR, "wisata"),
   path.join(UPLOADS_DIR, "villa"),
-  path.join(UPLOADS_DIR, "artikel"),
+  path.join(UPLOADS_DIR, "kuliner"),
+  path.join(UPLOADS_DIR, "berita"),
   path.join(UPLOADS_DIR, "general")
 ];
 
@@ -46,11 +52,12 @@ initDb(DB_PATH);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-app.use("/uploads", express.static(UPLOADS_DIR));
-app.use("/public", express.static(path.join(__dirname, "public")));
-
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.json({ limit: "10mb" }));
+
+// static files
+app.use(express.static(PUBLIC_DIR));
+app.use("/uploads", express.static(UPLOADS_DIR));
 
 app.use(
   session({
@@ -83,7 +90,7 @@ app.use((req, res, next) => {
   res.locals.seoDefaults = {
     title: "Wisata Berastagi – Tempat Wisata Terbaik di Berastagi Sumatera Utara",
     description:
-      "Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, vila dan hotel, kuliner, hingga tips liburan terbaik.",
+      "Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, villa dan hotel, kuliner, berita, hingga tips liburan terbaik.",
     canonical: `${BASE_URL}${req.path}`
   };
 
@@ -112,6 +119,10 @@ app.get("/health", (req, res) => {
 
 app.use((req, res) => {
   res.status(404).render("about", {
+    settings: {
+      site_name: "Wisata Berastagi",
+      site_tagline: "Panduan wisata Berastagi terlengkap"
+    },
     seo: {
       title: "Halaman Tidak Ditemukan | Wisata Berastagi",
       description: "Halaman yang kamu cari tidak tersedia di website Wisata Berastagi.",
