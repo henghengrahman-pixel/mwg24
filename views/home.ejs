@@ -8,10 +8,15 @@
     <div class="container hero-inner">
       <div class="hero-content reveal">
         <span class="eyebrow">Wisata Berastagi</span>
-        <h1><%= settings.hero_title %></h1>
-        <p><%= settings.hero_subtitle %></p>
-        <form class="search-box" action="/cari" method="get">
-          <input type="text" name="q" placeholder="Cari wisata, villa, artikel..." />
+        <h1>Wisata Berastagi – Panduan Lengkap Tempat Wisata, Vila & Hotel, Kuliner, dan Liburan</h1>
+        <p>
+          Temukan rekomendasi wisata Berastagi terbaik, vila dan hotel nyaman, tempat makan favorit,
+          serta panduan liburan lengkap untuk menikmati suasana sejuk dan keindahan alam Berastagi,
+          Sumatera Utara.
+        </p>
+
+        <form class="search-box" action="/cari" method="get" role="search" aria-label="Cari informasi wisata Berastagi">
+          <input type="text" name="q" placeholder="Cari wisata, vila, hotel, artikel..." />
           <button type="submit">Cari Sekarang</button>
         </form>
       </div>
@@ -19,18 +24,43 @@
   </section>
 
   <section class="section container">
+    <div class="intro-box reveal">
+      <span class="eyebrow">Panduan Liburan</span>
+      <h2>Informasi Lengkap Wisata Berastagi untuk Liburan yang Lebih Mudah</h2>
+      <p>
+        Berastagi adalah salah satu destinasi wisata populer di Sumatera Utara yang terkenal dengan udara sejuk,
+        pemandangan pegunungan yang indah, serta banyak pilihan tempat menarik untuk keluarga, pasangan,
+        maupun rombongan wisata. Mulai dari Gunung Sibayak, Bukit Gundaling, pasar buah, hingga berbagai
+        tempat kuliner dan penginapan nyaman, semuanya bisa menjadi pilihan terbaik untuk menghabiskan waktu
+        di dataran tinggi Karo.
+      </p>
+      <p>
+        Melalui WisataBerastagi.com, kamu bisa menemukan informasi tempat wisata di Berastagi, rekomendasi
+        vila dan hotel, tips perjalanan, ide liburan, hingga artikel terbaru yang membantu kamu merencanakan
+        perjalanan dengan lebih praktis. Website ini dibuat agar pengunjung lebih mudah mencari destinasi,
+        membandingkan pilihan penginapan, dan menemukan pengalaman wisata Berastagi yang paling cocok.
+      </p>
+    </div>
+  </section>
+
+  <section class="section container">
     <div class="section-head">
       <div>
-        <span class="eyebrow">Rekomendasi</span>
+        <span class="eyebrow">Destinasi Populer</span>
         <h2>Tempat Wisata Populer di Berastagi</h2>
       </div>
       <a href="/wisata" class="text-link">Lihat semua</a>
     </div>
+
     <div class="card-grid">
       <% featuredWisata.forEach(item => { %>
         <article class="card reveal">
           <a href="/wisata/<%= item.slug %>">
-            <img src="<%= item.image %>" alt="<%= item.title %>" loading="lazy" />
+            <img
+              src="<%= item.image %>"
+              alt="<%= item.title %> di Berastagi"
+              loading="lazy"
+            />
             <div class="card-body">
               <h3><%= item.title %></h3>
               <p><%= item.excerpt %></p>
@@ -48,16 +78,21 @@
     <div class="container">
       <div class="section-head">
         <div>
-          <span class="eyebrow">Penginapan</span>
-          <h2>Villa Pilihan di Berastagi</h2>
+          <span class="eyebrow">Penginapan Terbaik</span>
+          <h2>Vila dan Hotel di Berastagi</h2>
         </div>
         <a href="/villa" class="text-link">Lihat semua</a>
       </div>
+
       <div class="card-grid">
         <% featuredVilla.forEach(item => { %>
           <article class="card reveal">
             <a href="/villa/<%= item.slug %>">
-              <img src="<%= item.image %>" alt="<%= item.title %>" loading="lazy" />
+              <img
+                src="<%= item.image %>"
+                alt="<%= item.title %> di Berastagi"
+                loading="lazy"
+              />
               <div class="card-body">
                 <h3><%= item.title %></h3>
                 <p><%= item.excerpt %></p>
@@ -75,16 +110,21 @@
   <section class="section container">
     <div class="section-head">
       <div>
-        <span class="eyebrow">Artikel SEO</span>
+        <span class="eyebrow">Artikel Terbaru</span>
         <h2>Artikel Wisata Berastagi Terbaru</h2>
       </div>
       <a href="/artikel" class="text-link">Lihat semua</a>
     </div>
+
     <div class="card-grid">
       <% latestArticles.forEach(item => { %>
         <article class="card reveal">
           <a href="/artikel/<%= item.slug %>">
-            <img src="<%= item.image %>" alt="<%= item.title %>" loading="lazy" />
+            <img
+              src="<%= item.image %>"
+              alt="<%= item.title %>"
+              loading="lazy"
+            />
             <div class="card-body">
               <h3><%= item.title %></h3>
               <p><%= item.excerpt %></p>
@@ -95,13 +135,39 @@
     </div>
   </section>
 
+  <section class="section container">
+    <div class="info-grid">
+      <div class="info-card reveal">
+        <span class="eyebrow">Rekomendasi Liburan</span>
+        <h2>Temukan Tempat Wisata, Vila, dan Hotel yang Cocok untuk Kamu</h2>
+        <p>
+          Kami menyajikan berbagai pilihan wisata Berastagi, mulai dari destinasi populer,
+          tempat healing bernuansa alam, hingga penginapan nyaman untuk keluarga dan pasangan.
+        </p>
+      </div>
+
+      <div class="info-card reveal">
+        <span class="eyebrow">Update Informasi</span>
+        <h2>Artikel dan Panduan Wisata Berastagi yang Mudah Dipahami</h2>
+        <p>
+          Baca panduan wisata, tips perjalanan, rekomendasi kuliner, serta informasi terbaru
+          tentang tempat menarik di Berastagi agar rencana liburanmu lebih matang.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <section class="section section-muted">
     <div class="container trust-box reveal">
       <div>
-        <span class="eyebrow">Kenapa Website Ini</span>
-        <h2>Ramah Pengunjung dan Siap SEO</h2>
+        <span class="eyebrow">Kenapa Pilih Kami</span>
+        <h2>Panduan Wisata Berastagi yang Ramah Pengunjung</h2>
       </div>
-      <p>WisataBerastagi dirancang mobile friendly, cepat dibuka, mudah dikelola dari admin panel, dan siap dioptimasi untuk keyword utama <strong>Wisata Berastagi</strong>.</p>
+      <p>
+        WisataBerastagi.com dibuat untuk membantu pengunjung menemukan informasi wisata Berastagi
+        dengan lebih cepat, nyaman, dan jelas. Mulai dari tempat wisata populer, vila dan hotel,
+        hingga artikel panduan liburan, semuanya disusun agar mudah dicari dan enak dibuka di HP maupun desktop.
+      </p>
     </div>
   </section>
 
