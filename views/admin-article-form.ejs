@@ -1,119 +1,145 @@
 <!DOCTYPE html>
 <html lang="id">
 <%- include("partials/head") %>
-
 <body class="admin-page">
   <div class="admin-layout">
-
     <%- include("partials/admin-sidebar") %>
 
     <main class="admin-main">
-
       <div class="admin-head">
-        <h1><%= item ? "Edit Berita" : "Tambah Berita" %></h1>
+        <div>
+          <h1><%= item ? "Edit Berita" : "Tambah Berita" %></h1>
+          <p class="admin-subtitle">
+            Buat berita yang rapi, mudah dibaca, dan SEO-friendly untuk website Wisata Berastagi.
+          </p>
+        </div>
       </div>
 
-      <form action="/admin/berita/save" method="post" enctype="multipart/form-data" class="admin-form">
+      <% if (typeof error !== "undefined" && error) { %>
+        <div class="alert-error"><%= error %></div>
+      <% } %>
 
+      <form action="/admin/berita/save" method="post" enctype="multipart/form-data" class="admin-form">
         <input type="hidden" name="id" value="<%= item?.id || '' %>">
         <input type="hidden" name="current_image" value="<%= item?.image || '' %>">
 
-        <!-- Judul -->
-        <label>Judul Berita</label>
-        <input
-          type="text"
-          name="title"
-          placeholder="Contoh: Tempat Wisata Berastagi yang Wajib Dikunjungi"
-          value="<%= item?.title || '' %>"
-          required
-        />
-
-        <!-- Slug -->
-        <label>Slug (URL)</label>
-        <input
-          type="text"
-          name="slug"
-          placeholder="otomatis jika kosong"
-          value="<%= item?.slug || '' %>"
-        />
-        <small class="form-hint">
-          URL akan menjadi: /berita/slug-anda
-        </small>
-
-        <!-- Kategori -->
-        <label>Kategori</label>
-        <select name="category">
-          <option value="berita" <%= item?.category === "berita" ? "selected" : "" %>>Berita</option>
-          <option value="wisata" <%= item?.category === "wisata" ? "selected" : "" %>>Wisata</option>
-          <option value="kuliner" <%= item?.category === "kuliner" ? "selected" : "" %>>Kuliner</option>
-          <option value="tips" <%= item?.category === "tips" ? "selected" : "" %>>Tips Liburan</option>
-        </select>
-
-        <!-- Excerpt -->
-        <label>Ringkasan Artikel (Excerpt)</label>
-        <textarea
-          name="excerpt"
-          rows="3"
-          placeholder="Ringkasan singkat berita (untuk preview di homepage)"
-        ><%= item?.excerpt || '' %></textarea>
-
-        <!-- Konten -->
-        <label>Konten Berita</label>
-        <textarea
-          name="content"
-          rows="12"
-          placeholder="Tulis isi berita lengkap di sini..."
-          required
-        ><%= item?.content || '' %></textarea>
-
-        <!-- Upload gambar -->
-        <label>Gambar Utama</label>
-
-        <% if(item?.image){ %>
-          <div class="image-preview">
-            <img src="<%= item.image %>" alt="Preview">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label for="title">Judul Berita</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              placeholder="Contoh: Tempat Wisata Berastagi yang Wajib Dikunjungi"
+              value="<%= item?.title || '' %>"
+              required
+            >
           </div>
-        <% } %>
 
-        <input type="file" name="image" accept="image/*">
+          <div class="form-group full">
+            <label for="slug">Slug (URL)</label>
+            <input
+              type="text"
+              id="slug"
+              name="slug"
+              placeholder="otomatis jika kosong"
+              value="<%= item?.slug || '' %>"
+            >
+            <small class="form-hint">URL akan menjadi: /berita/slug-anda</small>
+          </div>
 
-        <small class="form-hint">
-          Upload gambar baru jika ingin mengganti gambar lama.
-        </small>
+          <div class="form-group">
+            <label for="category">Kategori</label>
+            <select id="category" name="category">
+              <option value="berita" <%= item?.category === "berita" || !item?.category ? "selected" : "" %>>Berita</option>
+              <option value="wisata" <%= item?.category === "wisata" ? "selected" : "" %>>Wisata</option>
+              <option value="kuliner" <%= item?.category === "kuliner" ? "selected" : "" %>>Kuliner</option>
+              <option value="tips" <%= item?.category === "tips" ? "selected" : "" %>>Tips Liburan</option>
+            </select>
+          </div>
 
-        <!-- SEO -->
-        <div class="form-divider">Pengaturan SEO</div>
+          <div class="form-group">
+            <label for="published_at">Tanggal Publish</label>
+            <input
+              type="datetime-local"
+              id="published_at"
+              name="published_at"
+              value="<%= item?.published_at ? new Date(item.published_at).toISOString().slice(0,16) : '' %>"
+            >
+            <small class="form-hint">Kosongkan jika ingin memakai waktu sekarang.</small>
+          </div>
 
-        <label>Meta Title</label>
-        <input
-          type="text"
-          name="meta_title"
-          placeholder="Judul SEO (jika kosong otomatis)"
-          value="<%= item?.meta_title || '' %>"
-        />
+          <div class="form-group full">
+            <label for="excerpt">Ringkasan Berita (Excerpt)</label>
+            <textarea
+              id="excerpt"
+              name="excerpt"
+              rows="3"
+              placeholder="Ringkasan singkat berita untuk preview di homepage dan halaman berita"
+            ><%= item?.excerpt || '' %></textarea>
+          </div>
 
-        <label>Meta Description</label>
-        <textarea
-          name="meta_description"
-          rows="3"
-          placeholder="Deskripsi untuk Google"
-        ><%= item?.meta_description || '' %></textarea>
+          <div class="form-group full">
+            <label for="content">Konten Berita</label>
+            <textarea
+              id="content"
+              name="content"
+              rows="12"
+              placeholder="Tulis isi berita lengkap di sini..."
+              required
+            ><%= item?.content || '' %></textarea>
+            <small class="form-hint">
+              Bisa isi dengan teks biasa atau HTML jika nanti editor kamu sudah mendukung format artikel.
+            </small>
+          </div>
 
-        <!-- Button -->
+          <div class="form-group full">
+            <label for="image">Gambar Utama</label>
+
+            <% if (item?.image) { %>
+              <div class="image-preview">
+                <img src="<%= item.image %>" alt="Preview gambar berita">
+              </div>
+            <% } %>
+
+            <input type="file" id="image" name="image" accept="image/*">
+            <small class="form-hint">Upload gambar baru jika ingin mengganti gambar lama.</small>
+          </div>
+
+          <div class="form-divider full">Pengaturan SEO</div>
+
+          <div class="form-group full">
+            <label for="meta_title">Meta Title</label>
+            <input
+              type="text"
+              id="meta_title"
+              name="meta_title"
+              placeholder="Judul SEO (jika kosong otomatis)"
+              value="<%= item?.meta_title || '' %>"
+            >
+          </div>
+
+          <div class="form-group full">
+            <label for="meta_description">Meta Description</label>
+            <textarea
+              id="meta_description"
+              name="meta_description"
+              rows="3"
+              placeholder="Deskripsi untuk Google"
+            ><%= item?.meta_description || '' %></textarea>
+          </div>
+        </div>
+
         <div class="form-actions">
-
           <button type="submit" class="btn-primary">
-            Simpan Berita
+            <%= item ? "Update Berita" : "Simpan Berita" %>
           </button>
 
           <a href="/admin/berita" class="btn-secondary">
             Batal
           </a>
-
         </div>
-
       </form>
-
     </main>
   </div>
 </body>
