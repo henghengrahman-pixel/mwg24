@@ -3,35 +3,53 @@
 <%- include("partials/head") %>
 <body>
   <%- include("partials/header") %>
+
   <section class="page-hero small">
     <div class="container">
       <span class="eyebrow">Pencarian</span>
       <h1>Hasil Pencarian</h1>
-      <p>Kata kunci: <strong><%= q || '-' %></strong></p>
+      <p>
+        Kata kunci:
+        <strong><%= q || '-' %></strong>
+      </p>
     </div>
   </section>
 
   <section class="section container search-wrap">
-    <div>
-      <h2>Wisata</h2>
+    <div class="search-card reveal">
+      <h2>Tempat Wisata</h2>
+
       <% wisata.forEach(item => { %>
         <a href="/wisata/<%= item.slug %>" class="mini-link"><%= item.title %></a>
       <% }) %>
-      <% if (!wisata.length) { %><p>Tidak ada hasil wisata.</p><% } %>
+
+      <% if (!wisata.length) { %>
+        <p>Tidak ada hasil tempat wisata.</p>
+      <% } %>
     </div>
-    <div>
-      <h2>Villa</h2>
+
+    <div class="search-card reveal">
+      <h2>Vila &amp; Hotel</h2>
+
       <% villa.forEach(item => { %>
         <a href="/villa/<%= item.slug %>" class="mini-link"><%= item.title %></a>
       <% }) %>
-      <% if (!villa.length) { %><p>Tidak ada hasil villa.</p><% } %>
+
+      <% if (!villa.length) { %>
+        <p>Tidak ada hasil vila atau hotel.</p>
+      <% } %>
     </div>
-    <div>
+
+    <div class="search-card reveal">
       <h2>Artikel</h2>
+
       <% articles.forEach(item => { %>
         <a href="/artikel/<%= item.slug %>" class="mini-link"><%= item.title %></a>
       <% }) %>
-      <% if (!articles.length) { %><p>Tidak ada hasil artikel.</p><% } %>
+
+      <% if (!articles.length) { %>
+        <p>Tidak ada hasil artikel.</p>
+      <% } %>
     </div>
   </section>
 
