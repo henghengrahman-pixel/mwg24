@@ -170,3 +170,76 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 });
+
+// =========================
+// PREMIUM GALLERY LIGHTBOX
+// =========================
+
+document.addEventListener("DOMContentLoaded", function () {
+  const galleryItems = document.querySelectorAll("[data-gallery-item]");
+  const lightbox = document.getElementById("galleryLightbox");
+  const lightboxImage = document.getElementById("galleryLightboxImage");
+  const lightboxTitle = document.getElementById("galleryLightboxTitle");
+  const lightboxCaption = document.getElementById("galleryLightboxCaption");
+  const closeButtons = document.querySelectorAll("[data-lightbox-close]");
+
+  if (!galleryItems.length || !lightbox || !lightboxImage || !lightboxTitle || !lightboxCaption) {
+    return;
+  }
+
+  function openLightbox(item) {
+    const image = item.getAttribute("data-gallery-image") || "";
+    const title = item.getAttribute("data-gallery-title") || "Galeri Berastagi";
+    const caption = item.getAttribute("data-gallery-caption") || "";
+    const alt = item.getAttribute("data-gallery-alt") || title;
+
+    lightboxImage.src = image;
+    lightboxImage.alt = alt;
+    lightboxTitle.textContent = title;
+    lightboxCaption.textContent = caption;
+
+    lightbox.classList.add("open");
+    lightbox.setAttribute("aria-hidden", "false");
+    document.body.classList.add("lightbox-open");
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove("open");
+    lightbox.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("lightbox-open");
+
+    setTimeout(() => {
+      lightboxImage.src = "";
+      lightboxImage.alt = "";
+      lightboxTitle.textContent = "Galeri Berastagi";
+      lightboxCaption.textContent = "";
+    }, 180);
+  }
+
+  galleryItems.forEach((item) => {
+    item.addEventListener("click", function () {
+      openLightbox(item);
+    });
+
+    item.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openLightbox(item);
+      }
+    });
+
+    if (!item.hasAttribute("tabindex")) {
+      item.setAttribute("tabindex", "0");
+    }
+  });
+
+  closeButtons.forEach((button) => {
+    button.addEventListener("click", closeLightbox);
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && lightbox.classList.contains("open")) {
+      closeLightbox();
+    }
+  });
+});
