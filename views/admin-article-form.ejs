@@ -19,7 +19,7 @@
         <div class="alert-error"><%= error %></div>
       <% } %>
 
-      <form action="/admin/berita/save" method="post" enctype="multipart/form-data" class="admin-form">
+      <form id="articleForm" action="/admin/berita/save" method="post" enctype="multipart/form-data" class="admin-form">
         <input type="hidden" name="id" value="<%= item?.id || '' %>">
         <input type="hidden" name="current_image" value="<%= item?.image || '' %>">
 
@@ -89,7 +89,6 @@
               name="content"
               rows="18"
               placeholder="Tulis isi berita lengkap di sini..."
-              required
             ><%= item?.content || '' %></textarea>
             <small class="form-hint">
               Gunakan toolbar untuk heading, bold, italic, link, list, tabel, dan tambah gambar di tengah artikel.
@@ -165,13 +164,14 @@
   <script>
     const titleInput = document.getElementById("title");
     const slugInput = document.getElementById("slug");
+    const articleForm = document.getElementById("articleForm");
 
     function makeSlug(text) {
       return String(text || "")
         .toLowerCase()
         .trim()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9\\s-]/g, "")
+        .replace(/\\s+/g, "-")
         .replace(/-+/g, "-")
         .replace(/^-|-$/g, "");
     }
@@ -299,6 +299,30 @@
         xhr.send(formData);
       })
     });
+
+    if (articleForm) {
+      articleForm.addEventListener("submit", function (e) {
+        if (window.tinymce) {
+          tinymce.triggerSave();
+        }
+
+        const editorContent = document.getElementById("editor").value.trim();
+        const titleValue = document.getElementById("title").value.trim();
+
+        if (!titleValue) {
+          e.preventDefault();
+          alert("Judul berita wajib diisi.");
+          return;
+        }
+
+        const plainText = editorContent.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+
+        if (!plainText) {
+          e.preventDefault();
+          alert("Konten berita wajib diisi.");
+        }
+      });
+    }
   </script>
 </body>
 </html>
