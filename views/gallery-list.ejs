@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+
+  <section class="page-hero small">
+    <div class="container">
+      <span class="eyebrow">Galeri Wisata</span>
+      <h1>Galeri Keindahan Berastagi</h1>
+      <p>
+        Jelajahi kumpulan foto pilihan yang menampilkan panorama alam, destinasi wisata populer,
+        suasana kota, dan pesona terbaik dari Berastagi, Kabupaten Karo.
+      </p>
+    </div>
+  </section>
+
+  <section class="section home-gallery-section" id="galeri-page">
+    <div class="container">
+      <div class="section-head gallery-head">
+        <div>
+          <span class="eyebrow">Foto Pilihan</span>
+          <h2 class="section-title">Momen dan Panorama Terbaik Berastagi</h2>
+          <div class="section-divider"></div>
+          <p class="gallery-subtext">
+            Setiap foto di halaman ini menggambarkan daya tarik Berastagi yang terkenal dengan udara sejuk,
+            pemandangan pegunungan, wisata alam, dan suasana liburan yang nyaman.
+          </p>
+        </div>
+
+        <a href="/" class="text-link">Kembali ke beranda</a>
+      </div>
+
+      <% if (items && items.length) { %>
+        <div class="premium-gallery-grid">
+          <% items.forEach((item, index) => { %>
+            <article
+              class="premium-gallery-card reveal <%= index === 0 ? 'large' : '' %>"
+              data-gallery-item
+              data-gallery-image="<%= item.image || '/images/default-cover.jpg' %>"
+              data-gallery-title="<%= item.title || 'Galeri Berastagi' %>"
+              data-gallery-caption="<%= item.caption || '' %>"
+              data-gallery-alt="<%= item.alt_text || item.title || 'Galeri Berastagi' %>"
+            >
+              <div class="premium-gallery-media">
+                <img
+                  src="<%= item.image || '/images/default-cover.jpg' %>"
+                  alt="<%= item.alt_text || item.title || 'Galeri Berastagi' %>"
+                  loading="lazy"
+                />
+              </div>
+
+              <div class="premium-gallery-overlay">
+                <div class="premium-gallery-text">
+                  <h3><%= item.title || "Keindahan Berastagi" %></h3>
+                  <% if (item.caption) { %>
+                    <p><%= item.caption %></p>
+                  <% } %>
+                </div>
+
+                <button type="button" class="gallery-zoom-btn" aria-label="Lihat foto galeri">
+                  Lihat Foto
+                </button>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state reveal">
+          <strong>Galeri belum tersedia</strong>
+          <p>Foto galeri akan tampil di sini setelah ditambahkan dari panel admin.</p>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <% if (items && items.length) { %>
+    <div class="gallery-lightbox" id="galleryLightbox" aria-hidden="true">
+      <div class="gallery-lightbox-backdrop" data-lightbox-close></div>
+
+      <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Galeri Berastagi">
+        <button type="button" class="gallery-lightbox-close" data-lightbox-close aria-label="Tutup galeri">
+          &times;
+        </button>
+
+        <div class="gallery-lightbox-image-wrap">
+          <img id="galleryLightboxImage" src="" alt="">
+        </div>
+
+        <div class="gallery-lightbox-content">
+          <h3 id="galleryLightboxTitle">Galeri Berastagi</h3>
+          <p id="galleryLightboxCaption"></p>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>
