@@ -61,6 +61,11 @@ const articleEditorUpload = multer({
   ...uploadOptions
 });
 
+const galleryUpload = multer({
+  storage: storageFor("gallery"),
+  ...uploadOptions
+});
+
 function fileUrl(folder, filename) {
   return `/uploads/${folder}/${filename}`;
 }
@@ -94,6 +99,21 @@ function requireBasicContent(title, content, res, viewName, seoTitle, item = nul
     });
   }
   return null;
+}
+
+function deleteUploadedFileByUrl(filePathUrl) {
+  if (!filePathUrl) return;
+
+  const relativePath = String(filePathUrl).replace(/^\/+/, "");
+  const absolutePath = path.join(dataDir, "..", relativePath);
+
+  if (absolutePath.includes(path.join("uploads", "")) && fs.existsSync(absolutePath)) {
+    try {
+      fs.unlinkSync(absolutePath);
+    } catch (error) {
+      console.error("Gagal menghapus file:", absolutePath, error.message);
+    }
+  }
 }
 
 /* =========================
@@ -175,9 +195,131 @@ router.get("/", (req, res) => {
       villa: db.prepare("SELECT COUNT(*) as total FROM villa").get().total,
       kuliner: db.prepare("SELECT COUNT(*) as total FROM kuliner").get().total,
       berita: db.prepare("SELECT COUNT(*) as total FROM articles").get().total,
+      gallery: db.prepare("SELECT COUNT(*) as total FROM gallery").get().total,
       comments: db.prepare("SELECT COUNT(*) as total FROM comments").get().total
     }
   });
+});
+
+/* =========================
+   GALLERY
+========================= */
+router.get("/gallery", (req, res) => {
+  const items = getDb()
+    .prepare("SELECT * FROM gallery ORDER BY sort_order ASC, id DESC")
+    .all();
+
+  res.render("admin-gallery", {
+    seo: buildSeo({
+      title: "Kelola Galeri | Wisata Berastagi",
+      noindex: true
+    }),
+    items,
+    item: null,
+    error: null
+  });
+});
+
+router.get("/gallery/edit/:id", (req, res) => {
+  const db = getDb();
+  const item = db.prepare("SELECT * FROM gallery WHERE id = ?").get(req.params.id);
+  const items = db.prepare("SELECT * FROM gallery ORDER BY sort_order ASC, id DESC").all();
+
+  if (!item) return res.redirect("/admin/gallery");
+
+  res.render("admin-gallery", {
+    seo: buildSeo({
+      title: "Edit Galeri | Wisata Berastagi",
+      noindex: true
+    }),
+    items,
+    item,
+    error: null
+  });
+});
+
+router.post("/gallery/save", galleryUpload.single("image"), (req, res) => {
+  const db = getDb();
+  const id = req.body.id ? Number(req.body.id) : null;
+  const title = cleanText(req.body.title);
+  const image = fallbackImage(req.body.current_image, req.file, "gallery");
+
+  if (!image) {
+    const items = db.prepare("SELECT * FROM gallery ORDER BY sort_order ASC, id DESC").all();
+    return res.status(400).render("admin-gallery", {
+      seo: buildSeo({
+        title: id ? "Edit Galeri | Wisata Berastagi" : "Kelola Galeri | Wisata Berastagi",
+        noindex: true
+      }),
+      items,
+      item: req.body,
+      error: "Gambar galeri wajib diisi."
+    });
+  }
+
+  const payload = {
+    id,
+    title,
+    slug: makeSlug(req.body.slug || title || `gallery-${Date.now()}`),
+    image,
+    alt_text: cleanText(req.body.alt_text || title),
+    caption: cleanText(req.body.caption),
+    sort_order: Number(req.body.sort_order || 0),
+    is_active: boolToInt(req.body.is_active)
+  };
+
+  if (id) {
+    db.prepare(`
+      UPDATE gallery
+      SET
+        title = @title,
+        slug = @slug,
+        image = @image,
+        alt_text = @alt_text,
+        caption = @caption,
+        sort_order = @sort_order,
+        is_active = @is_active,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = @id
+    `).run(payload);
+  } else {
+    db.prepare(`
+      INSERT INTO gallery (
+        title, slug, image, alt_text, caption, sort_order, is_active
+      ) VALUES (
+        @title, @slug, @image, @alt_text, @caption, @sort_order, @is_active
+      )
+    `).run(payload);
+  }
+
+  res.redirect("/admin/gallery");
+});
+
+router.post("/gallery/toggle/:id", (req, res) => {
+  const db = getDb();
+  const item = db.prepare("SELECT * FROM gallery WHERE id = ?").get(req.params.id);
+
+  if (item) {
+    db.prepare(`
+      UPDATE gallery
+      SET is_active = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(item.is_active ? 0 : 1, req.params.id);
+  }
+
+  res.redirect("/admin/gallery");
+});
+
+router.post("/gallery/delete/:id", (req, res) => {
+  const db = getDb();
+  const item = db.prepare("SELECT * FROM gallery WHERE id = ?").get(req.params.id);
+
+  if (item) {
+    deleteUploadedFileByUrl(item.image);
+    db.prepare("DELETE FROM gallery WHERE id = ?").run(req.params.id);
+  }
+
+  res.redirect("/admin/gallery");
 });
 
 /* =========================
