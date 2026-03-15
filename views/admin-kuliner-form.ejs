@@ -111,19 +111,22 @@
               rows="3"
               placeholder="Ringkasan singkat untuk preview card dan kebutuhan SEO."
             ><%= item?.excerpt || '' %></textarea>
+            <small class="form-hint">Buat ringkasan singkat, padat, dan menarik untuk preview halaman.</small>
           </div>
 
+          <div class="form-divider full">Konten Kuliner</div>
+
           <div class="form-group full">
-            <label for="content">Deskripsi Lengkap</label>
+            <label for="editor">Deskripsi Lengkap</label>
             <textarea
-              id="content"
+              id="editor"
               name="content"
-              rows="10"
+              rows="16"
               placeholder="Tulis deskripsi lengkap kuliner di sini..."
               required
             ><%= item?.content || '' %></textarea>
             <small class="form-hint">
-              Isi deskripsi dengan jelas agar pengunjung lebih tertarik dan SEO lebih kuat.
+              Gunakan toolbar untuk heading, bold, italic, link, list, tabel, dan tambah gambar di tengah artikel.
             </small>
           </div>
 
@@ -138,6 +141,19 @@
 
             <input type="file" id="image" name="image" accept="image/*">
             <small class="form-hint">Upload gambar baru jika ingin mengganti gambar sebelumnya.</small>
+          </div>
+
+          <div class="form-divider full">Panduan Penulisan</div>
+
+          <div class="info-card form-group full">
+            <p><strong>Tips konten kuliner yang bagus:</strong></p>
+            <ul>
+              <li>Tulis pembuka singkat tentang rasa, suasana, dan daya tarik utama kuliner.</li>
+              <li>Gunakan Heading 2 untuk bagian menu favorit, harga, lokasi, dan tips berkunjung.</li>
+              <li>Tambahkan gambar di tengah artikel agar lebih menarik dan lebih enak dibaca.</li>
+              <li>Jelaskan harga, jam buka, dan titik lokasi dengan jelas.</li>
+              <li>Gunakan paragraf pendek agar nyaman dibaca di HP.</li>
+            </ul>
           </div>
 
           <div class="form-divider full">Pengaturan SEO</div>
@@ -186,5 +202,145 @@
       </form>
     </main>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
+  <script>
+    const titleInput = document.getElementById("title");
+    const slugInput = document.getElementById("slug");
+
+    function makeSlug(text) {
+      return String(text || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+
+    if (titleInput && slugInput) {
+      titleInput.addEventListener("input", function () {
+        if (!slugInput.dataset.editedManually || !slugInput.value.trim()) {
+          slugInput.value = makeSlug(titleInput.value);
+        }
+      });
+
+      slugInput.addEventListener("input", function () {
+        slugInput.dataset.editedManually = "true";
+      });
+    }
+
+    tinymce.init({
+      selector: "#editor",
+      height: 560,
+      menubar: false,
+      branding: false,
+      promotion: false,
+      plugins: [
+        "advlist",
+        "autolink",
+        "lists",
+        "link",
+        "image",
+        "charmap",
+        "preview",
+        "anchor",
+        "searchreplace",
+        "visualblocks",
+        "code",
+        "fullscreen",
+        "insertdatetime",
+        "media",
+        "table",
+        "wordcount"
+      ],
+      toolbar:
+        "undo redo | blocks | " +
+        "bold italic underline | forecolor backcolor | " +
+        "alignleft aligncenter alignright alignjustify | " +
+        "bullist numlist outdent indent | " +
+        "link image media table | removeformat code preview fullscreen",
+      block_formats: "Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4",
+      content_style: `
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 16px;
+          line-height: 1.75;
+          color: #183124;
+          padding: 16px;
+        }
+        p {
+          margin: 0 0 16px;
+        }
+        h2, h3, h4 {
+          margin: 24px 0 12px;
+          color: #183124;
+          line-height: 1.3;
+        }
+        ul, ol {
+          margin: 0 0 16px;
+          padding-left: 22px;
+        }
+        img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 12px;
+        }
+        a {
+          color: #24593f;
+        }
+      `,
+      image_title: true,
+      automatic_uploads: true,
+      file_picker_types: "image",
+      relative_urls: false,
+      remove_script_host: false,
+      convert_urls: false,
+      paste_data_images: true,
+      image_caption: true,
+      image_advtab: true,
+      images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/admin/upload-image");
+        xhr.withCredentials = false;
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            progress((e.loaded / e.total) * 100);
+          }
+        };
+
+        xhr.onload = function () {
+          if (xhr.status < 200 || xhr.status >= 300) {
+            reject("HTTP Error: " + xhr.status);
+            return;
+          }
+
+          let json;
+          try {
+            json = JSON.parse(xhr.responseText);
+          } catch (err) {
+            reject("Response upload tidak valid");
+            return;
+          }
+
+          if (!json || typeof json.location !== "string") {
+            reject("Lokasi gambar tidak ditemukan");
+            return;
+          }
+
+          resolve(json.location);
+        };
+
+        xhr.onerror = function () {
+          reject("Upload gambar gagal. Coba lagi.");
+        };
+
+        const formData = new FormData();
+        formData.append("image", blobInfo.blob(), blobInfo.filename());
+        xhr.send(formData);
+      })
+    });
+  </script>
 </body>
 </html>
