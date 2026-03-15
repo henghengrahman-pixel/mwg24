@@ -22,7 +22,21 @@
         <span>Tiket: <%= helpers.formatCurrency(item.ticket_price || 0) %></span>
       </div>
 
-      <p class="detail-content"><%= item.content %></p>
+      <div class="detail-content article-content">
+        <%
+          const rawContent = item.content || "";
+          const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(rawContent);
+        %>
+
+        <% if (hasHtmlTags) { %>
+          <%- rawContent %>
+        <% } else { %>
+          <%- rawContent
+            .split(/\n\s*\n/)
+            .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+            .join("") %>
+        <% } %>
+      </div>
 
       <section class="rating-box" id="rating">
         <h2>Rating Pengunjung</h2>
