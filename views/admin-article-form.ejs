@@ -77,21 +77,22 @@
               rows="3"
               placeholder="Ringkasan singkat berita untuk preview di homepage dan halaman berita"
             ><%= item?.excerpt || '' %></textarea>
+            <small class="form-hint">Buat ringkasan singkat, padat, dan menarik agar klik artikel lebih tinggi.</small>
           </div>
 
           <div class="form-divider full">Konten Artikel</div>
 
           <div class="form-group full">
-            <label for="content">Konten Berita</label>
+            <label for="editor">Konten Berita</label>
             <textarea
               id="editor"
               name="content"
-              rows="16"
+              rows="18"
               placeholder="Tulis isi berita lengkap di sini..."
               required
             ><%= item?.content || '' %></textarea>
             <small class="form-hint">
-              Gunakan toolbar untuk heading, bold, link, list, dan tambah gambar di tengah artikel.
+              Gunakan toolbar untuk heading, bold, link, list, tabel, dan tambah gambar di tengah artikel.
             </small>
           </div>
 
@@ -113,11 +114,11 @@
           <div class="info-card form-group full">
             <p><strong>Tips artikel yang rapi:</strong></p>
             <ul>
-              <li>Pakai judul yang jelas dan mudah dipahami.</li>
-              <li>Gunakan heading untuk membagi isi artikel per bagian.</li>
-              <li>Tambahkan gambar di tengah artikel agar lebih menarik.</li>
-              <li>Gunakan paragraf pendek supaya nyaman dibaca.</li>
-              <li>Tambahkan link internal ke halaman wisata, kuliner, atau villa bila relevan.</li>
+              <li>Pakai judul yang jelas, alami, dan mengandung kata kunci utama.</li>
+              <li>Gunakan Heading 2 untuk subjudul utama dan Heading 3 untuk penjelasan tambahan.</li>
+              <li>Tambahkan gambar di tengah artikel agar lebih menarik dan lebih enak dibaca.</li>
+              <li>Gunakan paragraf pendek supaya nyaman dibaca di HP.</li>
+              <li>Tambahkan link internal ke halaman wisata, kuliner, atau vila bila relevan.</li>
             </ul>
           </div>
 
@@ -132,6 +133,7 @@
               placeholder="Judul SEO (jika kosong otomatis)"
               value="<%= item?.meta_title || '' %>"
             >
+            <small class="form-hint">Usahakan singkat, jelas, dan tetap menarik di hasil pencarian Google.</small>
           </div>
 
           <div class="form-group full">
@@ -142,6 +144,7 @@
               rows="3"
               placeholder="Deskripsi untuk Google"
             ><%= item?.meta_description || '' %></textarea>
+            <small class="form-hint">Disarankan 130–160 karakter dan mengandung kata kunci utama.</small>
           </div>
         </div>
 
@@ -160,11 +163,37 @@
 
   <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
   <script>
+    const titleInput = document.getElementById("title");
+    const slugInput = document.getElementById("slug");
+
+    function makeSlug(text) {
+      return String(text || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+
+    if (titleInput && slugInput) {
+      titleInput.addEventListener("input", function () {
+        if (!slugInput.dataset.editedManually || !slugInput.value.trim()) {
+          slugInput.value = makeSlug(titleInput.value);
+        }
+      });
+
+      slugInput.addEventListener("input", function () {
+        slugInput.dataset.editedManually = "true";
+      });
+    }
+
     tinymce.init({
       selector: "#editor",
-      height: 560,
+      height: 580,
       menubar: false,
       branding: false,
+      promotion: false,
       plugins: [
         "advlist",
         "autolink",
@@ -195,20 +224,29 @@
         body {
           font-family: Arial, Helvetica, sans-serif;
           font-size: 16px;
-          line-height: 1.7;
+          line-height: 1.75;
           color: #183124;
-          padding: 14px;
+          padding: 16px;
         }
-        p { margin: 0 0 16px; }
+        p {
+          margin: 0 0 16px;
+        }
         h2, h3, h4 {
           margin: 24px 0 12px;
           color: #183124;
           line-height: 1.3;
         }
+        ul, ol {
+          margin: 0 0 16px;
+          padding-left: 22px;
+        }
         img {
           max-width: 100%;
           height: auto;
           border-radius: 12px;
+        }
+        a {
+          color: #24593f;
         }
       `,
       image_title: true,
@@ -217,13 +255,18 @@
       relative_urls: false,
       remove_script_host: false,
       convert_urls: false,
+      paste_data_images: true,
+      image_caption: true,
+      image_advtab: true,
       images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/admin/upload-image");
         xhr.withCredentials = false;
 
         xhr.upload.onprogress = (e) => {
-          progress(e.loaded / e.total * 100);
+          if (e.lengthComputable) {
+            progress((e.loaded / e.total) * 100);
+          }
         };
 
         xhr.onload = function () {
