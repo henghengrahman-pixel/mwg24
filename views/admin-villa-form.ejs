@@ -4,60 +4,358 @@
 <body class="admin-page">
   <div class="admin-layout">
     <%- include("partials/admin-sidebar") %>
+
     <main class="admin-main">
-      <h1><%= item ? 'Edit Villa' : 'Tambah Villa' %></h1>
+      <div class="admin-head">
+        <div>
+          <h1><%= item ? "Edit Villa" : "Tambah Villa" %></h1>
+          <p class="admin-subtitle">
+            Kelola data villa dan hotel Berastagi dengan konten yang rapi, menarik, dan ramah SEO.
+          </p>
+        </div>
+      </div>
+
+      <% if (typeof error !== "undefined" && error) { %>
+        <div class="alert-error"><%= error %></div>
+      <% } %>
 
       <form action="/admin/villa/save" method="post" enctype="multipart/form-data" class="admin-form">
         <input type="hidden" name="id" value="<%= item?.id || '' %>" />
         <input type="hidden" name="current_image" value="<%= item?.image || '' %>" />
 
-        <label>Judul</label>
-        <input type="text" name="title" value="<%= item?.title || '' %>" required />
+        <div class="form-grid">
+          <div class="form-group full">
+            <label for="title">Judul Villa / Hotel</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value="<%= item?.title || '' %>"
+              placeholder="Contoh: Villa Sejuk View Gunung Berastagi"
+              required
+            />
+          </div>
 
-        <label>Slug</label>
-        <input type="text" name="slug" value="<%= item?.slug || '' %>" />
+          <div class="form-group full">
+            <label for="slug">Slug (URL)</label>
+            <input
+              type="text"
+              id="slug"
+              name="slug"
+              value="<%= item?.slug || '' %>"
+              placeholder="otomatis jika kosong"
+            />
+            <small class="form-hint">URL akan menjadi: /villa/slug-anda</small>
+          </div>
 
-        <label>Excerpt</label>
-        <textarea name="excerpt" rows="3"><%= item?.excerpt || '' %></textarea>
+          <div class="form-group full">
+            <label for="excerpt">Excerpt / Ringkasan</label>
+            <textarea
+              id="excerpt"
+              name="excerpt"
+              rows="3"
+              placeholder="Ringkasan singkat untuk preview card dan halaman kategori"
+            ><%= item?.excerpt || '' %></textarea>
+          </div>
 
-        <label>Konten</label>
-        <textarea name="content" rows="7" required><%= item?.content || '' %></textarea>
+          <div class="form-divider full">Konten Penginapan</div>
 
-        <label>Gambar</label>
-        <input type="file" name="image" accept="image/*" />
+          <div class="form-group full">
+            <label for="editor">Isi Konten</label>
+            <textarea
+              id="editor"
+              name="content"
+              rows="16"
+              placeholder="Tulis deskripsi lengkap villa atau hotel di sini..."
+              required
+            ><%= item?.content || '' %></textarea>
+            <small class="form-hint">
+              Gunakan toolbar untuk heading, paragraf, link, list, dan tambah gambar di tengah konten.
+            </small>
+          </div>
 
-        <label>Harga</label>
-        <input type="text" name="price" value="<%= item?.price || '' %>" />
+          <div class="form-group full">
+            <label for="image">Gambar Utama</label>
 
-        <label>Lokasi</label>
-        <input type="text" name="location" value="<%= item?.location || '' %>" />
+            <% if (item?.image) { %>
+              <div class="image-preview">
+                <img src="<%= item.image %>" alt="Preview gambar villa atau hotel" />
+              </div>
+            <% } %>
 
-        <label>Fasilitas</label>
-        <input type="text" name="facilities" value="<%= item?.facilities || '' %>" />
+            <input type="file" id="image" name="image" accept="image/*" />
+            <small class="form-hint">Upload gambar baru jika ingin mengganti gambar utama lama.</small>
+          </div>
 
-        <label>Link Booking</label>
-        <input type="text" name="booking_url" value="<%= item?.booking_url || '' %>" />
+          <div class="form-divider full">Informasi Penginapan</div>
 
-        <label>Kontak</label>
-        <input type="text" name="contact_phone" value="<%= item?.contact_phone || '' %>" />
+          <div class="form-group">
+            <label for="price">Harga</label>
+            <input
+              type="text"
+              id="price"
+              name="price"
+              value="<%= item?.price || '' %>"
+              placeholder="Contoh: 450000"
+            />
+          </div>
 
-        <label>Link Maps</label>
-        <input type="text" name="maps_url" value="<%= item?.maps_url || '' %>" />
+          <div class="form-group">
+            <label for="location">Lokasi</label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value="<%= item?.location || '' %>"
+              placeholder="Contoh: Jalan Jamin Ginting, Berastagi"
+            />
+          </div>
 
-        <label>Meta Title</label>
-        <input type="text" name="meta_title" value="<%= item?.meta_title || '' %>" />
+          <div class="form-group full">
+            <label for="facilities">Fasilitas</label>
+            <input
+              type="text"
+              id="facilities"
+              name="facilities"
+              value="<%= item?.facilities || '' %>"
+              placeholder="Contoh: Wifi, Parkir, Air Panas, Sarapan"
+            />
+            <small class="form-hint">Pisahkan fasilitas dengan koma agar mudah dibaca.</small>
+          </div>
 
-        <label>Meta Description</label>
-        <textarea name="meta_description" rows="3"><%= item?.meta_description || '' %></textarea>
+          <div class="form-group">
+            <label for="booking_url">Link Booking</label>
+            <input
+              type="url"
+              id="booking_url"
+              name="booking_url"
+              value="<%= item?.booking_url || '' %>"
+              placeholder="https://..."
+            />
+          </div>
 
-        <label class="checkbox-line">
-          <input type="checkbox" name="is_featured" value="1" <%= item?.is_featured ? 'checked' : '' %> />
-          Jadikan unggulan
-        </label>
+          <div class="form-group">
+            <label for="contact_phone">Kontak</label>
+            <input
+              type="text"
+              id="contact_phone"
+              name="contact_phone"
+              value="<%= item?.contact_phone || '' %>"
+              placeholder="Contoh: 0812-xxxx-xxxx"
+            />
+          </div>
 
-        <button type="submit">Simpan</button>
+          <div class="form-group full">
+            <label for="maps_url">Link Maps</label>
+            <input
+              type="url"
+              id="maps_url"
+              name="maps_url"
+              value="<%= item?.maps_url || '' %>"
+              placeholder="https://maps.google.com/..."
+            />
+          </div>
+
+          <div class="form-group full">
+            <label class="checkbox-line">
+              <input
+                type="checkbox"
+                name="is_featured"
+                value="1"
+                <%= item?.is_featured ? "checked" : "" %>
+              />
+              Jadikan unggulan
+            </label>
+          </div>
+
+          <div class="form-divider full">Panduan Penulisan</div>
+
+          <div class="info-card form-group full">
+            <p><strong>Tips konten villa / hotel yang bagus:</strong></p>
+            <ul>
+              <li>Tulis pembuka singkat tentang keunggulan utama penginapan.</li>
+              <li>Gunakan Heading 2 untuk bagian fasilitas, lokasi, harga, dan alasan menginap.</li>
+              <li>Tambahkan gambar di tengah artikel agar halaman lebih menarik.</li>
+              <li>Masukkan info harga, lokasi, maps, dan link booking dengan jelas.</li>
+              <li>Gunakan paragraf pendek agar nyaman dibaca di HP.</li>
+            </ul>
+          </div>
+
+          <div class="form-divider full">Pengaturan SEO</div>
+
+          <div class="form-group full">
+            <label for="meta_title">Meta Title</label>
+            <input
+              type="text"
+              id="meta_title"
+              name="meta_title"
+              value="<%= item?.meta_title || '' %>"
+              placeholder="Judul SEO (jika kosong otomatis)"
+            />
+          </div>
+
+          <div class="form-group full">
+            <label for="meta_description">Meta Description</label>
+            <textarea
+              id="meta_description"
+              name="meta_description"
+              rows="3"
+              placeholder="Deskripsi singkat untuk Google"
+            ><%= item?.meta_description || '' %></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">
+            <%= item ? "Update Villa" : "Simpan Villa" %>
+          </button>
+
+          <a href="/admin/villa" class="btn-secondary">
+            Batal
+          </a>
+        </div>
       </form>
     </main>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
+  <script>
+    const titleInput = document.getElementById("title");
+    const slugInput = document.getElementById("slug");
+
+    function makeSlug(text) {
+      return String(text || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+
+    if (titleInput && slugInput) {
+      titleInput.addEventListener("input", function () {
+        if (!slugInput.dataset.editedManually || !slugInput.value.trim()) {
+          slugInput.value = makeSlug(titleInput.value);
+        }
+      });
+
+      slugInput.addEventListener("input", function () {
+        slugInput.dataset.editedManually = "true";
+      });
+    }
+
+    tinymce.init({
+      selector: "#editor",
+      height: 560,
+      menubar: false,
+      branding: false,
+      promotion: false,
+      plugins: [
+        "advlist",
+        "autolink",
+        "lists",
+        "link",
+        "image",
+        "charmap",
+        "preview",
+        "anchor",
+        "searchreplace",
+        "visualblocks",
+        "code",
+        "fullscreen",
+        "insertdatetime",
+        "media",
+        "table",
+        "wordcount"
+      ],
+      toolbar:
+        "undo redo | blocks | " +
+        "bold italic underline | forecolor backcolor | " +
+        "alignleft aligncenter alignright alignjustify | " +
+        "bullist numlist outdent indent | " +
+        "link image media table | removeformat code preview fullscreen",
+      block_formats: "Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4",
+      content_style: `
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 16px;
+          line-height: 1.75;
+          color: #183124;
+          padding: 16px;
+        }
+        p {
+          margin: 0 0 16px;
+        }
+        h2, h3, h4 {
+          margin: 24px 0 12px;
+          color: #183124;
+          line-height: 1.3;
+        }
+        ul, ol {
+          margin: 0 0 16px;
+          padding-left: 22px;
+        }
+        img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 12px;
+        }
+        a {
+          color: #24593f;
+        }
+      `,
+      image_title: true,
+      automatic_uploads: true,
+      file_picker_types: "image",
+      relative_urls: false,
+      remove_script_host: false,
+      convert_urls: false,
+      paste_data_images: true,
+      image_caption: true,
+      image_advtab: true,
+      images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/admin/upload-image");
+        xhr.withCredentials = false;
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            progress((e.loaded / e.total) * 100);
+          }
+        };
+
+        xhr.onload = function () {
+          if (xhr.status < 200 || xhr.status >= 300) {
+            reject("HTTP Error: " + xhr.status);
+            return;
+          }
+
+          let json;
+          try {
+            json = JSON.parse(xhr.responseText);
+          } catch (err) {
+            reject("Response upload tidak valid");
+            return;
+          }
+
+          if (!json || typeof json.location !== "string") {
+            reject("Lokasi gambar tidak ditemukan");
+            return;
+          }
+
+          resolve(json.location);
+        };
+
+        xhr.onerror = function () {
+          reject("Upload gambar gagal. Coba lagi.");
+        };
+
+        const formData = new FormData();
+        formData.append("image", blobInfo.blob(), blobInfo.filename());
+        xhr.send(formData);
+      })
+    });
+  </script>
 </body>
 </html>
