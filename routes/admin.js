@@ -14,6 +14,8 @@ const dataDir =
     ? path.join(process.env.DATA_DIR, "uploads")
     : path.join(__dirname, "..", "uploads");
 
+fs.mkdirSync(dataDir, { recursive: true });
+
 function storageFor(folderName) {
   return multer.diskStorage({
     destination(req, file, cb) {
@@ -22,7 +24,7 @@ function storageFor(folderName) {
       cb(null, dir);
     },
     filename(req, file, cb) {
-      const ext = path.extname(file.originalname || ".jpg");
+      const ext = path.extname(file.originalname || ".jpg").toLowerCase() || ".jpg";
       cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
     }
   });
@@ -50,6 +52,11 @@ const kulinerUpload = multer({
 });
 
 const beritaUpload = multer({
+  storage: storageFor("berita"),
+  ...uploadOptions
+});
+
+const articleEditorUpload = multer({
   storage: storageFor("berita"),
   ...uploadOptions
 });
@@ -136,6 +143,21 @@ router.get("/logout", (req, res) => {
 });
 
 router.use(requireAdmin);
+
+/* =========================
+   UPLOAD IMAGE UNTUK EDITOR
+========================= */
+router.post("/upload-image", articleEditorUpload.single("image"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({
+      error: "Gambar tidak ditemukan"
+    });
+  }
+
+  return res.json({
+    location: fileUrl("berita", req.file.filename)
+  });
+});
 
 /* =========================
    DASHBOARD
