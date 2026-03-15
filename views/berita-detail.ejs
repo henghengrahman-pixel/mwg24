@@ -30,7 +30,19 @@
       <% } %>
 
       <div class="detail-content article-content">
-        <%- item.content %>
+        <%
+          const rawContent = item.content || "";
+          const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(rawContent);
+        %>
+
+        <% if (hasHtmlTags) { %>
+          <%- rawContent %>
+        <% } else { %>
+          <%- rawContent
+            .split(/\n\s*\n/)
+            .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+            .join("") %>
+        <% } %>
       </div>
 
       <section class="comment-box" id="ulasan">
