@@ -281,6 +281,79 @@
     </div>
   </section>
 
+  <% if (galleryItems && galleryItems.length) { %>
+    <section class="section home-gallery-section" id="galeri-berastagi">
+      <div class="container">
+        <div class="section-head gallery-head">
+          <div>
+            <span class="eyebrow">Galeri Premium</span>
+            <h2 class="section-title">Keindahan Berastagi dalam Galeri Foto</h2>
+            <div class="section-divider"></div>
+            <p class="gallery-subtext">
+              Nikmati suasana Berastagi lewat kumpulan foto pilihan yang menampilkan panorama alam,
+              destinasi wisata, dan sudut terbaik dari dataran tinggi Karo.
+            </p>
+          </div>
+
+          <a href="/galeri" class="text-link">Lihat semua galeri</a>
+        </div>
+
+        <div class="premium-gallery-grid">
+          <% galleryItems.forEach((item, index) => { %>
+            <article
+              class="premium-gallery-card reveal <%= index === 0 ? 'large' : '' %>"
+              data-gallery-item
+              data-gallery-image="<%= normalizeImagePath(item.image) %>"
+              data-gallery-title="<%= item.title || 'Galeri Berastagi' %>"
+              data-gallery-caption="<%= item.caption || '' %>"
+              data-gallery-alt="<%= item.alt_text || item.title || 'Galeri Berastagi' %>"
+            >
+              <div class="premium-gallery-media">
+                <img
+                  src="<%= normalizeImagePath(item.image) %>"
+                  alt="<%= item.alt_text || item.title || 'Galeri Berastagi' %>"
+                  loading="lazy"
+                />
+              </div>
+
+              <div class="premium-gallery-overlay">
+                <div class="premium-gallery-text">
+                  <h3><%= item.title || "Keindahan Berastagi" %></h3>
+                  <% if (item.caption) { %>
+                    <p><%= item.caption %></p>
+                  <% } %>
+                </div>
+
+                <button type="button" class="gallery-zoom-btn" aria-label="Lihat foto galeri">
+                  Lihat Foto
+                </button>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      </div>
+    </section>
+
+    <div class="gallery-lightbox" id="galleryLightbox" aria-hidden="true">
+      <div class="gallery-lightbox-backdrop" data-lightbox-close></div>
+
+      <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Galeri Berastagi">
+        <button type="button" class="gallery-lightbox-close" data-lightbox-close aria-label="Tutup galeri">
+          &times;
+        </button>
+
+        <div class="gallery-lightbox-image-wrap">
+          <img id="galleryLightboxImage" src="" alt="">
+        </div>
+
+        <div class="gallery-lightbox-content">
+          <h3 id="galleryLightboxTitle">Galeri Berastagi</h3>
+          <p id="galleryLightboxCaption"></p>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
   <%- include("partials/footer", { settings }) %>
 </body>
 </html>
