@@ -54,6 +54,31 @@ function safeDate(value) {
   }
 }
 
+function getActiveGallery(limit = null) {
+  const db = getDb();
+
+  if (limit) {
+    return db
+      .prepare(`
+        SELECT *
+        FROM gallery
+        WHERE is_active = 1
+        ORDER BY sort_order ASC, id DESC
+        LIMIT ?
+      `)
+      .all(limit);
+  }
+
+  return db
+    .prepare(`
+      SELECT *
+      FROM gallery
+      WHERE is_active = 1
+      ORDER BY sort_order ASC, id DESC
+    `)
+    .all();
+}
+
 /* =========================
    HOME
 ========================= */
@@ -77,12 +102,27 @@ router.get("/", (req, res) => {
     .prepare("SELECT * FROM articles ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT 6")
     .all();
 
+  const galleryItems = getActiveGallery(8);
+
+  const gallerySchema =
+    galleryItems.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ImageGallery",
+          name: "Galeri Keindahan Berastagi",
+          description: "Kumpulan foto pemandangan, wisata, dan suasana terbaik di Berastagi.",
+          url: `${res.locals.baseUrl}/#galeri-berastagi`,
+          image: galleryItems.map((item) => `${res.locals.baseUrl}${item.image}`)
+        }
+      : null;
+
   res.render("home", {
     settings,
     featuredWisata,
     featuredVilla,
     latestKuliner,
     latestBerita,
+    galleryItems,
     seo: buildSeo({
       title:
         settings?.homepage_title ||
@@ -91,13 +131,50 @@ router.get("/", (req, res) => {
         settings?.homepage_meta_description ||
         "Temukan panduan lengkap wisata Berastagi: tempat wisata populer, vila dan hotel, kuliner favorit, berita terbaru, serta tips liburan terbaik di Berastagi, Sumatera Utara.",
       canonical: `${res.locals.baseUrl}/`,
-      jsonLd: JSON.stringify([
-        websiteSchema(res.locals.baseUrl),
-        localBusinessSchema(res.locals.baseUrl, settings),
-        breadcrumbSchema([{ name: "Home", url: `${res.locals.baseUrl}/` }])
-      ])
+      jsonLd: JSON.stringify(
+        [
+          websiteSchema(res.locals.baseUrl),
+          localBusinessSchema(res.locals.baseUrl, settings),
+          breadcrumbSchema([{ name: "Home", url: `${res.locals.baseUrl}/` }]),
+          gallerySchema
+        ].filter(Boolean)
+      )
     }),
     helpers: { formatCurrency }
+  });
+});
+
+/* =========================
+   GALLERY
+========================= */
+router.get("/galeri", (req, res) => {
+  const settings = getSettings();
+  const galleryItems = getActiveGallery();
+
+  res.render("gallery-list", {
+    settings,
+    items: galleryItems,
+    seo: buildSeo({
+      title: "Galeri Keindahan Berastagi | Wisata Berastagi",
+      description:
+        "Lihat galeri foto keindahan Berastagi, mulai dari pegunungan, wisata populer, suasana kota, hingga panorama alam terbaik di Kabupaten Karo.",
+      canonical: `${res.locals.baseUrl}/galeri`,
+      image: galleryItems.length ? safeImage(galleryItems[0]) : "/images/default-cover.jpg",
+      jsonLd: JSON.stringify([
+        breadcrumbSchema([
+          { name: "Home", url: `${res.locals.baseUrl}/` },
+          { name: "Galeri", url: `${res.locals.baseUrl}/galeri` }
+        ]),
+        {
+          "@context": "https://schema.org",
+          "@type": "ImageGallery",
+          name: "Galeri Keindahan Berastagi",
+          description: "Galeri foto wisata dan panorama terbaik di Berastagi.",
+          url: `${res.locals.baseUrl}/galeri`,
+          image: galleryItems.map((item) => `${res.locals.baseUrl}${item.image}`)
+        }
+      ])
+    })
   });
 });
 
@@ -621,7 +698,7 @@ router.get("/tentang", (req, res) => {
     seo: buildSeo({
       title: "Tentang Kami | Wisata Berastagi",
       description:
-        "Tentang Wisata Berastagi, website panduan wisata Berastagi yang membahas tempat wisata, villa dan hotel, kuliner, berita, serta tips liburan.",
+        "Tentang Wisata Berastagi, website panduan wisata Berastagi yang membahas tempat wisata, villa dan hotel, kuliner, berita terbaru, dan tips liburan.",
       canonical: `${res.locals.baseUrl}/tentang`,
       jsonLd: JSON.stringify([
         breadcrumbSchema([
@@ -725,6 +802,7 @@ router.get("/sitemap.xml", (req, res) => {
     { loc: `${res.locals.baseUrl}/villa`, lastmod: now },
     { loc: `${res.locals.baseUrl}/kuliner`, lastmod: now },
     { loc: `${res.locals.baseUrl}/berita`, lastmod: now },
+    { loc: `${res.locals.baseUrl}/galeri`, lastmod: now },
     { loc: `${res.locals.baseUrl}/tentang`, lastmod: now },
     { loc: `${res.locals.baseUrl}/kontak`, lastmod: now },
 
