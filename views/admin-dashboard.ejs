@@ -10,7 +10,7 @@
         <div>
           <h1>Dashboard Admin</h1>
           <p class="admin-subtitle">
-            Kelola data wisata, villa, kuliner, berita, komentar, dan pengaturan website Wisata Berastagi.
+            Kelola data wisata, villa, kuliner, berita, galeri, komentar, dan pengaturan website Wisata Berastagi.
           </p>
         </div>
       </div>
@@ -37,6 +37,11 @@
         </div>
 
         <div class="stat-card">
+          <strong><%= stats.gallery || 0 %></strong>
+          <span>Data Galeri</span>
+        </div>
+
+        <div class="stat-card">
           <strong><%= stats.comments || 0 %></strong>
           <span>Komentar</span>
         </div>
@@ -56,6 +61,7 @@
             <a href="/admin/villa" class="btn-secondary">Kelola Villa</a>
             <a href="/admin/kuliner" class="btn-secondary">Kelola Kuliner</a>
             <a href="/admin/berita" class="btn-secondary">Kelola Berita</a>
+            <a href="/admin/gallery" class="btn-secondary">Kelola Galeri</a>
             <a href="/admin/comments" class="btn-secondary">Komentar</a>
             <a href="/admin/settings" class="btn-secondary">Pengaturan</a>
           </div>
