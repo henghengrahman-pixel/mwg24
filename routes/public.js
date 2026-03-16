@@ -102,7 +102,6 @@ router.get("/", (req, res) => {
     .prepare(`
       SELECT *
       FROM articles
-      WHERE status = 'publish'
       ORDER BY COALESCE(published_at, created_at) DESC, id DESC
       LIMIT 6
     `)
@@ -581,7 +580,6 @@ router.get("/berita", (req, res) => {
     .prepare(`
       SELECT *
       FROM articles
-      WHERE status = 'publish'
       ORDER BY COALESCE(published_at, created_at) DESC, id DESC
     `)
     .all();
@@ -608,7 +606,7 @@ router.get("/berita/:slug", (req, res) => {
   const db = getDb();
   const settings = getSettings();
   const item = db
-    .prepare("SELECT * FROM articles WHERE slug = ? AND status = 'publish'")
+    .prepare("SELECT * FROM articles WHERE slug = ?")
     .get(req.params.slug);
 
   if (!item) return res.redirect("/berita");
@@ -618,7 +616,7 @@ router.get("/berita/:slug", (req, res) => {
     .prepare(`
       SELECT *
       FROM articles
-      WHERE id != ? AND status = 'publish'
+      WHERE id != ?
       ORDER BY COALESCE(published_at, created_at) DESC, id DESC
       LIMIT 4
     `)
@@ -674,7 +672,7 @@ router.get("/berita/:slug", (req, res) => {
 router.post("/berita/:slug/comment", (req, res) => {
   const db = getDb();
   const item = db
-    .prepare("SELECT * FROM articles WHERE slug = ? AND status = 'publish'")
+    .prepare("SELECT * FROM articles WHERE slug = ?")
     .get(req.params.slug);
 
   if (!item) return res.redirect("/berita");
@@ -786,7 +784,7 @@ router.get("/cari", (req, res) => {
       .prepare(`
         SELECT *
         FROM articles
-        WHERE status = 'publish' AND (title LIKE ? OR content LIKE ?)
+        WHERE title LIKE ? OR content LIKE ?
         ORDER BY COALESCE(published_at, created_at) DESC, id DESC
       `)
       .all(like, like);
@@ -821,7 +819,7 @@ router.get("/sitemap.xml", (req, res) => {
   const villa = db.prepare("SELECT slug, updated_at FROM villa").all();
   const kuliner = db.prepare("SELECT slug, updated_at FROM kuliner").all();
   const berita = db
-    .prepare("SELECT slug, updated_at, created_at, published_at FROM articles WHERE status = 'publish'")
+    .prepare("SELECT slug, updated_at, created_at, published_at FROM articles")
     .all();
 
   const urls = [
