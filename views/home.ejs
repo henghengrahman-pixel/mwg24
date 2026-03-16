@@ -18,34 +18,34 @@
 
   <section
     class="hero"
-    style="background-image:linear-gradient(rgba(16,46,31,.56), rgba(16,46,31,.56)), url('<%= heroBg %>')"
+    style="background-image:linear-gradient(rgba(16,46,31,.58), rgba(16,46,31,.58)), url('<%= heroBg %>')"
   >
     <div class="container hero-inner">
       <div class="hero-content reveal">
         <span class="eyebrow"><%= settings?.site_name || "Wisata Berastagi" %></span>
 
         <h1>
-          <%= settings?.hero_title || "Wisata Berastagi – Tempat Wisata, Villa, Kuliner, dan Berita Terbaru" %>
+          <%= settings?.hero_title || "Wisata Berastagi – Tempat Wisata, Villa, Hotel, Kuliner & Panduan Liburan" %>
         </h1>
 
         <p>
-          <%= settings?.hero_subtitle || "Temukan wisata Berastagi terbaik mulai dari tempat wisata populer, villa dan hotel nyaman, kuliner favorit, hingga berita dan panduan liburan lengkap di Berastagi, Sumatera Utara." %>
+          <%= settings?.hero_subtitle || "Temukan tempat wisata Berastagi populer, villa dan hotel nyaman, kuliner khas Karo, serta berita dan panduan liburan lengkap untuk menikmati suasana terbaik di Berastagi, Kabupaten Karo, Sumatera Utara." %>
         </p>
 
         <form class="search-box" action="/cari" method="get" role="search" aria-label="Cari informasi wisata Berastagi">
           <input
             type="text"
             name="q"
-            placeholder="Cari wisata, villa, kuliner, berita..."
+            placeholder="Cari tempat wisata, villa, kuliner, berita..."
           />
           <button type="submit">Cari Sekarang</button>
         </form>
 
         <div class="meta-row" style="margin-top:18px; flex-wrap:wrap;">
-          <a href="/wisata" class="btn-secondary">Lihat Wisata</a>
-          <a href="/villa" class="btn-secondary">Lihat Villa</a>
-          <a href="/kuliner" class="btn-secondary">Lihat Kuliner</a>
-          <a href="/berita" class="btn-secondary">Lihat Berita</a>
+          <a href="/wisata" class="btn-secondary">Tempat Wisata</a>
+          <a href="/villa" class="btn-secondary">Villa & Hotel</a>
+          <a href="/kuliner" class="btn-secondary">Kuliner</a>
+          <a href="/berita" class="btn-secondary">Berita</a>
         </div>
       </div>
     </div>
@@ -54,20 +54,18 @@
   <section class="section">
     <div class="container">
       <div class="intro-box reveal">
-        <span class="eyebrow">Panduan Liburan</span>
-        <h2>Panduan Lengkap Wisata Berastagi untuk Liburan yang Lebih Mudah</h2>
+        <span class="eyebrow">Panduan Liburan Berastagi</span>
+        <h2>Panduan Wisata Berastagi Lengkap untuk Liburan yang Lebih Mudah dan Menyenangkan</h2>
         <p>
-          Wisata Berastagi menjadi salah satu pilihan liburan favorit di Sumatera Utara karena menawarkan
-          udara yang sejuk, pemandangan gunung yang indah, dan banyak destinasi menarik untuk keluarga,
-          pasangan, maupun rombongan. Mulai dari Bukit Gundaling, Gunung Sibayak, Pasar Buah Berastagi,
-          hingga berbagai tempat makan dan penginapan nyaman, semuanya bisa menjadi pilihan terbaik
-          untuk menghabiskan waktu di dataran tinggi Karo.
+          Berastagi menjadi salah satu destinasi wisata favorit di Sumatera Utara karena terkenal dengan udara sejuk,
+          pemandangan pegunungan, serta banyak pilihan tempat menarik untuk keluarga, pasangan, maupun rombongan.
+          Mulai dari Bukit Gundaling, Gunung Sibayak, Pasar Buah Berastagi, hingga berbagai tempat makan dan
+          penginapan nyaman, semuanya membuat liburan di Berastagi terasa lebih seru dan berkesan.
         </p>
         <p>
-          Melalui website ini, pengunjung bisa menemukan informasi lengkap tentang wisata Berastagi,
-          mulai dari tempat wisata di Berastagi, rekomendasi villa dan hotel, kuliner favorit,
-          berita terbaru, panduan perjalanan, hingga ide liburan yang membantu merencanakan perjalanan
-          dengan lebih praktis dan nyaman.
+          Di sini kamu bisa menemukan informasi wisata Berastagi yang lebih lengkap dan mudah dipahami, mulai dari
+          tempat wisata populer, rekomendasi villa dan hotel, kuliner khas Karo, berita terbaru, hingga tips liburan
+          yang membantu perjalanan ke Berastagi jadi lebih praktis, nyaman, dan menyenangkan.
         </p>
       </div>
     </div>
@@ -96,7 +94,7 @@
                 />
                 <div class="card-body">
                   <h3><%= item.title %></h3>
-                  <p><%= item.excerpt || "Temukan informasi lengkap tempat wisata menarik di Berastagi." %></p>
+                  <p><%= item.excerpt || "Temukan informasi lengkap tempat wisata menarik di Berastagi untuk liburan yang lebih seru dan nyaman." %></p>
                   <div class="meta-row">
                     <span><%= item.location || "Berastagi" %></span>
                   </div>
@@ -138,7 +136,7 @@
                 />
                 <div class="card-body">
                   <h3><%= item.title %></h3>
-                  <p><%= item.excerpt || "Temukan villa dan hotel nyaman di Berastagi untuk liburanmu." %></p>
+                  <p><%= item.excerpt || "Temukan pilihan villa dan hotel di Berastagi yang nyaman untuk keluarga, pasangan, maupun rombongan." %></p>
                   <div class="meta-row">
                     <strong><%= item.price ? helpers.formatCurrency(item.price) : "Hubungi untuk harga" %></strong>
                   </div>
@@ -162,7 +160,7 @@
       <div class="section-head">
         <div>
           <span class="eyebrow">Kuliner Favorit</span>
-          <h2 class="section-title">Kuliner Berastagi Terbaru</h2>
+          <h2 class="section-title">Kuliner Berastagi yang Wajib Dicoba</h2>
           <div class="section-divider"></div>
         </div>
         <a href="/kuliner" class="text-link">Lihat semua</a>
@@ -180,7 +178,7 @@
                 />
                 <div class="card-body">
                   <h3><%= item.title %></h3>
-                  <p><%= item.excerpt || "Temukan kuliner populer dan tempat makan favorit di Berastagi." %></p>
+                  <p><%= item.excerpt || "Temukan kuliner populer dan tempat makan favorit di Berastagi yang cocok dinikmati saat liburan." %></p>
                   <div class="meta-row">
                     <span><%= item.location || "Berastagi" %></span>
                   </div>
@@ -225,7 +223,7 @@
                     <span class="card-tag"><%= item.category %></span>
                   <% } %>
                   <h3><%= item.title %></h3>
-                  <p><%= item.excerpt || "Baca berita terbaru seputar wisata, kuliner, villa, dan tips liburan di Berastagi." %></p>
+                  <p><%= item.excerpt || "Baca berita terbaru seputar wisata, kuliner, villa, hotel, dan tips liburan di Berastagi." %></p>
                   <span class="read-more">Baca Berita</span>
                 </div>
               </a>
@@ -246,20 +244,20 @@
       <div class="info-grid">
         <div class="info-card reveal">
           <span class="eyebrow">Rekomendasi Liburan</span>
-          <h2>Temukan Wisata Berastagi, Villa, dan Hotel yang Cocok untuk Kamu</h2>
+          <h2>Temukan Tempat Wisata Berastagi, Villa, dan Hotel yang Cocok untuk Liburanmu</h2>
           <p>
-            Kami menyajikan berbagai pilihan wisata Berastagi, mulai dari destinasi populer,
-            tempat healing bernuansa alam, hingga penginapan nyaman untuk keluarga dan pasangan
-            yang ingin menikmati liburan di Berastagi.
+            Jelajahi berbagai pilihan wisata Berastagi, mulai dari destinasi alam, tempat healing,
+            spot favorit keluarga, hingga villa dan hotel nyaman yang cocok untuk menikmati udara sejuk
+            dan suasana khas dataran tinggi Karo.
           </p>
         </div>
 
         <div class="info-card reveal">
-          <span class="eyebrow">Update Informasi</span>
-          <h2>Kuliner dan Berita Wisata Berastagi yang Mudah Dipahami</h2>
+          <span class="eyebrow">Informasi Terbaru</span>
+          <h2>Kuliner, Berita, dan Panduan Wisata Berastagi yang Lebih Mudah Dipahami</h2>
           <p>
-            Baca panduan wisata Berastagi, tips perjalanan, rekomendasi kuliner, serta berita terbaru
-            tentang tempat menarik di Berastagi agar rencana liburanmu lebih matang dan nyaman.
+            Dapatkan informasi kuliner khas Karo, berita wisata Berastagi terbaru, tips perjalanan,
+            dan panduan liburan yang membantu kamu merencanakan perjalanan dengan lebih nyaman dan terarah.
           </p>
         </div>
       </div>
@@ -269,13 +267,13 @@
   <section class="section section-muted">
     <div class="container">
       <div class="trust-box reveal">
-        <span class="eyebrow">Kenapa Pilih Kami</span>
-        <h2>Panduan Wisata Berastagi yang Ramah Pengunjung</h2>
+        <span class="eyebrow">Panduan Wisata Berastagi</span>
+        <h2>Informasi Wisata Berastagi yang Mudah Dicari dan Mudah Dipahami</h2>
         <p>
-          Website ini dibuat untuk membantu pengunjung menemukan informasi wisata Berastagi
-          dengan lebih cepat, nyaman, dan jelas. Mulai dari tempat wisata populer, villa dan hotel,
-          kuliner favorit, hingga berita dan panduan liburan, semuanya disusun agar mudah dicari
-          dan enak dibuka di HP maupun desktop.
+          Temukan tempat wisata Berastagi populer, villa dan hotel nyaman, kuliner khas Karo,
+          serta berita dan tips liburan yang membantu perjalanan jadi lebih mudah, nyaman, dan menyenangkan.
+          Semua informasi disusun agar pengunjung lebih cepat menemukan destinasi terbaik dan merencanakan
+          liburan ke Berastagi dengan lebih praktis.
         </p>
       </div>
     </div>
@@ -286,12 +284,12 @@
       <div class="container">
         <div class="section-head gallery-head">
           <div>
-            <span class="eyebrow">Galeri Premium</span>
+            <span class="eyebrow">Galeri Berastagi</span>
             <h2 class="section-title">Keindahan Berastagi dalam Galeri Foto</h2>
             <div class="section-divider"></div>
             <p class="gallery-subtext">
-              Nikmati suasana Berastagi lewat kumpulan foto pilihan yang menampilkan panorama alam,
-              destinasi wisata, dan sudut terbaik dari dataran tinggi Karo.
+              Nikmati panorama alam, suasana sejuk, dan sudut terbaik Berastagi melalui kumpulan foto pilihan
+              yang menampilkan pesona dataran tinggi Karo.
             </p>
           </div>
 
