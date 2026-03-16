@@ -5,6 +5,7 @@
   <%
     const safeSettings = settings || {};
     const safeSeo = seo || {};
+    const normalizedBaseUrl = String(baseUrl || "").replace(/\/+$/, "");
     const siteName = safeSettings.site_name || "Wisata Berastagi";
 
     const defaultTitle =
@@ -16,17 +17,23 @@
       "Panduan wisata Berastagi terlengkap untuk menemukan tempat wisata Berastagi populer, villa dan hotel terbaik, kuliner khas Karo, berita terbaru, serta tips liburan ke Berastagi Kabupaten Karo Sumatera Utara.";
 
     const canonicalPath = path || "";
-    const canonicalUrl = safeSeo.canonical || `${baseUrl}${canonicalPath}`;
+    const canonicalUrl = safeSeo.canonical || `${normalizedBaseUrl}${canonicalPath}`;
 
     const rawImage =
       safeSeo.image ||
       safeSettings.hero_background ||
-     "/images/wisata-berastagi-cover.jpg";
+      "/images/wisata-berastagi-cover.jpg";
 
-    const normalizedImagePath = rawImage.startsWith("/") ? rawImage : `/${rawImage}`;
+    const normalizedImagePath =
+      /^https?:\/\//i.test(rawImage)
+        ? rawImage
+        : rawImage.startsWith("/")
+        ? rawImage
+        : `/${rawImage}`;
+
     const imageUrl = /^https?:\/\//i.test(rawImage)
       ? rawImage
-      : `${baseUrl}${normalizedImagePath}`;
+      : `${normalizedBaseUrl}${normalizedImagePath}`;
 
     const pageTitle = safeSeo.title || defaultTitle;
     const pageDescription = safeSeo.description || defaultDescription;
@@ -39,7 +46,7 @@
       safeSettings.logo && /^https?:\/\//i.test(safeSettings.logo)
         ? safeSettings.logo
         : safeSettings.logo
-        ? `${baseUrl}${safeSettings.logo.startsWith("/") ? safeSettings.logo : "/" + safeSettings.logo}`
+        ? `${normalizedBaseUrl}${safeSettings.logo.startsWith("/") ? safeSettings.logo : "/" + safeSettings.logo}`
         : imageUrl;
   %>
 
@@ -70,16 +77,18 @@
   <meta property="og:image" content="<%= imageUrl %>">
   <meta property="og:image:secure_url" content="<%= imageUrl %>">
   <meta property="og:image:alt" content="<%= pageTitle %>">
+  <meta property="og:image:type" content="image/jpeg">
 
   <!-- TWITTER -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="<%= pageTitle %>">
   <meta name="twitter:description" content="<%= pageDescription %>">
   <meta name="twitter:image" content="<%= imageUrl %>">
+  <meta name="twitter:image:alt" content="<%= pageTitle %>">
   <meta name="twitter:url" content="<%= canonicalUrl %>">
 
   <!-- PRECONNECT -->
-  <link rel="preconnect" href="<%= baseUrl %>" crossorigin>
+  <link rel="preconnect" href="<%= normalizedBaseUrl %>" crossorigin>
 
   <!-- CSS -->
   <link rel="stylesheet" href="/css/style.css">
@@ -97,22 +106,22 @@
         "@graph": [
           {
             "@type": "WebSite",
-            "@id": "<%= baseUrl %>/#website",
+            "@id": "<%= normalizedBaseUrl %>/#website",
             "name": "<%= siteName %>",
-            "url": "<%= baseUrl %>",
+            "url": "<%= normalizedBaseUrl %>",
             "description": "<%= defaultDescription %>",
             "inLanguage": "id-ID",
             "potentialAction": {
               "@type": "SearchAction",
-              "target": "<%= baseUrl %>/cari?q={search_term_string}",
+              "target": "<%= normalizedBaseUrl %>/cari?q={search_term_string}",
               "query-input": "required name=search_term_string"
             }
           },
           {
             "@type": "Organization",
-            "@id": "<%= baseUrl %>/#organization",
+            "@id": "<%= normalizedBaseUrl %>/#organization",
             "name": "<%= siteName %>",
-            "url": "<%= baseUrl %>",
+            "url": "<%= normalizedBaseUrl %>",
             "logo": {
               "@type": "ImageObject",
               "url": "<%= organizationLogo %>"
@@ -125,10 +134,10 @@
             "name": "<%= pageTitle %>",
             "description": "<%= pageDescription %>",
             "isPartOf": {
-              "@id": "<%= baseUrl %>/#website"
+              "@id": "<%= normalizedBaseUrl %>/#website"
             },
             "about": {
-              "@id": "<%= baseUrl %>/#organization"
+              "@id": "<%= normalizedBaseUrl %>/#organization"
             },
             "inLanguage": "id-ID",
             "primaryImageOfPage": {
