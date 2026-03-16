@@ -6,25 +6,47 @@
     const safeSettings = settings || {};
     const safeSeo = seo || {};
     const siteName = safeSettings.site_name || "Wisata Berastagi";
-    const defaultTitle = `${siteName} – Tempat Wisata, Villa, Kuliner, dan Berita Terbaru`;
+
+    const defaultTitle =
+      safeSettings.homepage_meta_title ||
+      "Wisata Berastagi – Tempat Wisata, Villa, Hotel, Kuliner & Panduan Liburan";
+
     const defaultDescription =
       safeSettings.homepage_meta_description ||
-      "Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, villa dan hotel, kuliner, berita terbaru, hingga tips liburan terbaik.";
-    const canonicalUrl = safeSeo.canonical || `${baseUrl}${path || ""}`;
-    const rawImage = safeSeo.image || safeSettings.hero_background || "/images/default-cover.jpg";
-    const imageUrl = /^https?:\/\//i.test(rawImage) ? rawImage : `${baseUrl}${rawImage}`;
+      "Panduan wisata Berastagi terlengkap untuk menemukan tempat wisata Berastagi populer, villa dan hotel terbaik, kuliner khas Karo, berita terbaru, serta tips liburan ke Berastagi Kabupaten Karo Sumatera Utara.";
+
+    const canonicalPath = path || "";
+    const canonicalUrl = safeSeo.canonical || `${baseUrl}${canonicalPath}`;
+
+    const rawImage =
+      safeSeo.image ||
+      safeSettings.hero_background ||
+     "/images/wisata-berastagi-cover.jpg";
+
+    const normalizedImagePath = rawImage.startsWith("/") ? rawImage : `/${rawImage}`;
+    const imageUrl = /^https?:\/\//i.test(rawImage)
+      ? rawImage
+      : `${baseUrl}${normalizedImagePath}`;
+
     const pageTitle = safeSeo.title || defaultTitle;
     const pageDescription = safeSeo.description || defaultDescription;
     const pageType = safeSeo.type || "website";
+    const pageKeywords =
+      safeSeo.keywords ||
+      "wisata berastagi, tempat wisata berastagi, villa berastagi, hotel berastagi, kuliner berastagi, liburan berastagi, wisata karo, tempat wisata karo, berita berastagi, penginapan berastagi";
+
+    const organizationLogo =
+      safeSettings.logo && /^https?:\/\//i.test(safeSettings.logo)
+        ? safeSettings.logo
+        : safeSettings.logo
+        ? `${baseUrl}${safeSettings.logo.startsWith("/") ? safeSettings.logo : "/" + safeSettings.logo}`
+        : imageUrl;
   %>
 
   <title><%= pageTitle %></title>
-
   <meta name="description" content="<%= pageDescription %>">
-  <meta
-    name="robots"
-    content="<%= safeSeo.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large' %>"
-  >
+  <meta name="keywords" content="<%= pageKeywords %>">
+  <meta name="robots" content="<%= safeSeo.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large' %>">
   <meta name="author" content="<%= siteName %>">
   <meta name="theme-color" content="#1e5b3a">
 
@@ -32,8 +54,8 @@
 
   <!-- FAVICON -->
   <link rel="icon" href="/favicon/favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon/favicon-48x48.png">
   <link rel="icon" type="image/png" sizes="64x64" href="/favicon/favicon-64x64.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon/favicon-180x180.png">
@@ -46,6 +68,7 @@
   <meta property="og:type" content="<%= pageType %>">
   <meta property="og:url" content="<%= canonicalUrl %>">
   <meta property="og:image" content="<%= imageUrl %>">
+  <meta property="og:image:secure_url" content="<%= imageUrl %>">
   <meta property="og:image:alt" content="<%= pageTitle %>">
 
   <!-- TWITTER -->
@@ -56,7 +79,7 @@
   <meta name="twitter:url" content="<%= canonicalUrl %>">
 
   <!-- PRECONNECT -->
-  <link rel="preconnect" href="<%= baseUrl %>">
+  <link rel="preconnect" href="<%= baseUrl %>" crossorigin>
 
   <!-- CSS -->
   <link rel="stylesheet" href="/css/style.css">
@@ -64,23 +87,56 @@
   <!-- JS -->
   <script defer src="/js/main.js"></script>
 
-  <!-- JSON LD SEO -->
+  <!-- JSON-LD SEO -->
   <% if (safeSeo.jsonLd) { %>
     <script type="application/ld+json"><%- safeSeo.jsonLd %></script>
   <% } else { %>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "<%= siteName %>",
-        "url": "<%= baseUrl %>",
-        "description": "<%= defaultDescription %>",
-        "inLanguage": "id-ID",
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": "<%= baseUrl %>/cari?q={search_term_string}",
-          "query-input": "required name=search_term_string"
-        }
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "<%= baseUrl %>/#website",
+            "name": "<%= siteName %>",
+            "url": "<%= baseUrl %>",
+            "description": "<%= defaultDescription %>",
+            "inLanguage": "id-ID",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "<%= baseUrl %>/cari?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "<%= baseUrl %>/#organization",
+            "name": "<%= siteName %>",
+            "url": "<%= baseUrl %>",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "<%= organizationLogo %>"
+            }
+          },
+          {
+            "@type": "WebPage",
+            "@id": "<%= canonicalUrl %>#webpage",
+            "url": "<%= canonicalUrl %>",
+            "name": "<%= pageTitle %>",
+            "description": "<%= pageDescription %>",
+            "isPartOf": {
+              "@id": "<%= baseUrl %>/#website"
+            },
+            "about": {
+              "@id": "<%= baseUrl %>/#organization"
+            },
+            "inLanguage": "id-ID",
+            "primaryImageOfPage": {
+              "@type": "ImageObject",
+              "url": "<%= imageUrl %>"
+            }
+          }
+        ]
       }
     </script>
   <% } %>
