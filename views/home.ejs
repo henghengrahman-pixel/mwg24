@@ -5,13 +5,13 @@
   <%- include("partials/header") %>
 
   <%
-    const heroBgRaw = settings?.hero_background || "/images/default-cover.jpg";
+    const heroBgRaw = settings?.hero_background || "/images/wisata-berastagi-cover.jpg";
     const heroBg = heroBgRaw.startsWith("/public/")
       ? heroBgRaw.replace("/public", "")
       : heroBgRaw;
 
     function normalizeImagePath(src) {
-      if (!src) return "/images/default-cover.jpg";
+      if (!src) return "/images/wisata-berastagi-cover.jpg";
       return src.startsWith("/public/") ? src.replace("/public", "") : src;
     }
   %>
