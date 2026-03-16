@@ -43,7 +43,7 @@ function safeDescription(item, fallbackText) {
 }
 
 function safeImage(item) {
-  return item?.image || "/images/default-cover.jpg";
+  return item?.image || "/images/wisata-berastagi-cover.jpg";
 }
 
 function safeDate(value) {
@@ -99,7 +99,13 @@ router.get("/", (req, res) => {
     .all();
 
   const latestBerita = db
-    .prepare("SELECT * FROM articles ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT 6")
+    .prepare(`
+      SELECT *
+      FROM articles
+      WHERE status = 'publish'
+      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+      LIMIT 6
+    `)
     .all();
 
   const galleryItems = getActiveGallery(8);
@@ -126,10 +132,10 @@ router.get("/", (req, res) => {
     seo: buildSeo({
       title:
         settings?.homepage_title ||
-        "Wisata Berastagi Terlengkap 2026 | Tempat Wisata, Vila, Kuliner & Berita",
+        "Wisata Berastagi – Tempat Wisata, Villa, Hotel, Kuliner & Panduan Liburan",
       description:
         settings?.homepage_meta_description ||
-        "Temukan panduan lengkap wisata Berastagi: tempat wisata populer, vila dan hotel, kuliner favorit, berita terbaru, serta tips liburan terbaik di Berastagi, Sumatera Utara.",
+        "Panduan lengkap wisata Berastagi untuk menemukan tempat wisata populer, villa dan hotel terbaik, kuliner khas Karo, berita terbaru, serta tips liburan ke Berastagi Kabupaten Karo Sumatera Utara.",
       canonical: `${res.locals.baseUrl}/`,
       jsonLd: JSON.stringify(
         [
@@ -159,7 +165,7 @@ router.get("/galeri", (req, res) => {
       description:
         "Lihat galeri foto keindahan Berastagi, mulai dari pegunungan, wisata populer, suasana kota, hingga panorama alam terbaik di Kabupaten Karo.",
       canonical: `${res.locals.baseUrl}/galeri`,
-      image: galleryItems.length ? safeImage(galleryItems[0]) : "/images/default-cover.jpg",
+      image: galleryItems.length ? safeImage(galleryItems[0]) : "/images/wisata-berastagi-cover.jpg",
       jsonLd: JSON.stringify([
         breadcrumbSchema([
           { name: "Home", url: `${res.locals.baseUrl}/` },
@@ -190,7 +196,7 @@ router.get("/wisata", (req, res) => {
     settings,
     items,
     seo: buildSeo({
-      title: "Tempat Wisata di Berastagi Terbaru | Wisata Berastagi",
+      title: "Tempat Wisata di Berastagi | Wisata Berastagi",
       description:
         "Temukan tempat wisata di Berastagi yang populer, menarik, dan cocok untuk keluarga, pasangan, maupun rombongan liburan.",
       canonical: `${res.locals.baseUrl}/wisata`,
@@ -319,14 +325,14 @@ router.get("/villa", (req, res) => {
     settings,
     items,
     seo: buildSeo({
-      title: "Vila dan Hotel di Berastagi | Wisata Berastagi",
+      title: "Villa dan Hotel di Berastagi | Wisata Berastagi",
       description:
-        "Temukan rekomendasi vila dan hotel di Berastagi yang nyaman, bersih, dan cocok untuk keluarga, pasangan, maupun rombongan.",
+        "Temukan rekomendasi villa dan hotel di Berastagi yang nyaman, bersih, dan cocok untuk keluarga, pasangan, maupun rombongan.",
       canonical: `${res.locals.baseUrl}/villa`,
       jsonLd: JSON.stringify([
         breadcrumbSchema([
           { name: "Home", url: `${res.locals.baseUrl}/` },
-          { name: "Vila & Hotel", url: `${res.locals.baseUrl}/villa` }
+          { name: "Villa & Hotel", url: `${res.locals.baseUrl}/villa` }
         ])
       ])
     }),
@@ -355,10 +361,10 @@ router.get("/villa/:slug", (req, res) => {
     related,
     avg: avgRating(ratings),
     seo: buildSeo({
-      title: item.meta_title || `${item.title} | Vila & Hotel di Berastagi`,
+      title: item.meta_title || `${item.title} | Villa & Hotel di Berastagi`,
       description: safeDescription(
         item,
-        `${item.title} adalah salah satu pilihan vila dan hotel di Berastagi yang bisa dipertimbangkan untuk liburan.`
+        `${item.title} adalah salah satu pilihan villa dan hotel di Berastagi yang bisa dipertimbangkan untuk liburan.`
       ),
       canonical: `${res.locals.baseUrl}/villa/${item.slug}`,
       type: "article",
@@ -366,7 +372,7 @@ router.get("/villa/:slug", (req, res) => {
       jsonLd: JSON.stringify([
         breadcrumbSchema([
           { name: "Home", url: `${res.locals.baseUrl}/` },
-          { name: "Vila & Hotel", url: `${res.locals.baseUrl}/villa` },
+          { name: "Villa & Hotel", url: `${res.locals.baseUrl}/villa` },
           { name: item.title, url: `${res.locals.baseUrl}/villa/${item.slug}` }
         ]),
         {
@@ -450,7 +456,7 @@ router.get("/kuliner", (req, res) => {
     seo: buildSeo({
       title: "Kuliner Berastagi Terbaru & Terfavorit | Wisata Berastagi",
       description:
-        "Temukan rekomendasi kuliner Berastagi yang enak, populer, viral, dan wajib dicoba saat liburan ke Berastagi.",
+        "Temukan rekomendasi kuliner Berastagi yang enak, populer, dan wajib dicoba saat liburan ke Berastagi.",
       canonical: `${res.locals.baseUrl}/kuliner`,
       jsonLd: JSON.stringify([
         breadcrumbSchema([
@@ -572,7 +578,12 @@ router.get("/berita", (req, res) => {
   const db = getDb();
   const settings = getSettings();
   const items = db
-    .prepare("SELECT * FROM articles ORDER BY COALESCE(published_at, created_at) DESC, id DESC")
+    .prepare(`
+      SELECT *
+      FROM articles
+      WHERE status = 'publish'
+      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+    `)
     .all();
 
   res.render("berita-list", {
@@ -596,13 +607,21 @@ router.get("/berita", (req, res) => {
 router.get("/berita/:slug", (req, res) => {
   const db = getDb();
   const settings = getSettings();
-  const item = db.prepare("SELECT * FROM articles WHERE slug = ?").get(req.params.slug);
+  const item = db
+    .prepare("SELECT * FROM articles WHERE slug = ? AND status = 'publish'")
+    .get(req.params.slug);
 
   if (!item) return res.redirect("/berita");
 
   const comments = getComments("berita", item.id);
   const related = db
-    .prepare("SELECT * FROM articles WHERE id != ? ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT 4")
+    .prepare(`
+      SELECT *
+      FROM articles
+      WHERE id != ? AND status = 'publish'
+      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+      LIMIT 4
+    `)
     .all(item.id);
 
   res.render("berita-detail", {
@@ -641,7 +660,7 @@ router.get("/berita/:slug", (req, res) => {
             name: settings?.site_name || "Wisata Berastagi",
             logo: {
               "@type": "ImageObject",
-              url: `${res.locals.baseUrl}${settings?.hero_background || "/images/default-cover.jpg"}`
+              url: `${res.locals.baseUrl}${settings?.hero_background || "/images/wisata-berastagi-cover.jpg"}`
             }
           },
           datePublished: safeDate(item.published_at || item.created_at),
@@ -654,7 +673,9 @@ router.get("/berita/:slug", (req, res) => {
 
 router.post("/berita/:slug/comment", (req, res) => {
   const db = getDb();
-  const item = db.prepare("SELECT * FROM articles WHERE slug = ?").get(req.params.slug);
+  const item = db
+    .prepare("SELECT * FROM articles WHERE slug = ? AND status = 'publish'")
+    .get(req.params.slug);
 
   if (!item) return res.redirect("/berita");
 
@@ -762,7 +783,12 @@ router.get("/cari", (req, res) => {
       .all(like, like);
 
     berita = db
-      .prepare("SELECT * FROM articles WHERE title LIKE ? OR content LIKE ? ORDER BY COALESCE(published_at, created_at) DESC, id DESC")
+      .prepare(`
+        SELECT *
+        FROM articles
+        WHERE status = 'publish' AND (title LIKE ? OR content LIKE ?)
+        ORDER BY COALESCE(published_at, created_at) DESC, id DESC
+      `)
       .all(like, like);
   }
 
@@ -794,7 +820,9 @@ router.get("/sitemap.xml", (req, res) => {
   const wisata = db.prepare("SELECT slug, updated_at FROM wisata").all();
   const villa = db.prepare("SELECT slug, updated_at FROM villa").all();
   const kuliner = db.prepare("SELECT slug, updated_at FROM kuliner").all();
-  const berita = db.prepare("SELECT slug, updated_at, created_at, published_at FROM articles").all();
+  const berita = db
+    .prepare("SELECT slug, updated_at, created_at, published_at FROM articles WHERE status = 'publish'")
+    .all();
 
   const urls = [
     { loc: `${res.locals.baseUrl}/`, lastmod: now },
