@@ -1,6 +1,7 @@
 <header class="site-header">
   <div class="container nav-wrap">
 
+    <!-- LOGO -->
     <a href="/" class="logo-text">
       <strong class="site-title">
         <%= settings?.site_name || "Wisata Berastagi" %>
@@ -10,6 +11,7 @@
       </small>
     </a>
 
+    <!-- TOGGLE MOBILE -->
     <button
       class="menu-toggle"
       aria-label="Buka menu"
@@ -18,7 +20,9 @@
       ☰
     </button>
 
+    <!-- NAVIGATION -->
     <nav class="main-nav" id="mainNav">
+
       <a href="/" class="<%= (path || '') === '/' ? 'active' : '' %>">
         Home
       </a>
@@ -39,13 +43,15 @@
         Berita
       </a>
 
-      <a href="/tentang" class="<%= (path || '') === '/tentang' ? 'active' : '' %>">
+      <!-- HALAMAN PENTING (FIX) -->
+      <a href="/about" class="<%= (path || '') === '/about' ? 'active' : '' %>">
         Tentang
       </a>
 
-      <a href="/kontak" class="<%= (path || '') === '/kontak' ? 'active' : '' %>">
+      <a href="/contact" class="<%= (path || '') === '/contact' ? 'active' : '' %>">
         Kontak
       </a>
+
     </nav>
 
   </div>
