@@ -707,22 +707,23 @@ router.post("/artikel/:slug/comment", (req, res) => {
 });
 
 /* =========================
-   HALAMAN STATIS
+   HALAMAN STATIS BARU
 ========================= */
-router.get("/tentang", (req, res) => {
+router.get("/about", (req, res) => {
   const settings = getSettings();
 
   res.render("about", {
     settings,
+    path: "/about",
     seo: buildSeo({
       title: "Tentang Kami | Wisata Berastagi",
       description:
         "Tentang Wisata Berastagi, website panduan wisata Berastagi yang membahas tempat wisata, villa dan hotel, kuliner, berita terbaru, dan tips liburan.",
-      canonical: `${res.locals.baseUrl}/tentang`,
+      canonical: `${res.locals.baseUrl}/about`,
       jsonLd: JSON.stringify([
         breadcrumbSchema([
           { name: "Home", url: `${res.locals.baseUrl}/` },
-          { name: "Tentang", url: `${res.locals.baseUrl}/tentang` }
+          { name: "Tentang Kami", url: `${res.locals.baseUrl}/about` }
         ])
       ])
     }),
@@ -732,24 +733,80 @@ router.get("/tentang", (req, res) => {
   });
 });
 
-router.get("/kontak", (req, res) => {
+router.get("/contact", (req, res) => {
   const settings = getSettings();
 
   res.render("contact", {
     settings,
+    path: "/contact",
     seo: buildSeo({
       title: "Kontak Kami | Wisata Berastagi",
       description:
         "Hubungi Wisata Berastagi untuk promosi, kerja sama, informasi wisata, villa dan hotel, kuliner, maupun pertanyaan lainnya.",
-      canonical: `${res.locals.baseUrl}/kontak`,
+      canonical: `${res.locals.baseUrl}/contact`,
       jsonLd: JSON.stringify([
         breadcrumbSchema([
           { name: "Home", url: `${res.locals.baseUrl}/` },
-          { name: "Kontak", url: `${res.locals.baseUrl}/kontak` }
+          { name: "Kontak", url: `${res.locals.baseUrl}/contact` }
         ])
       ])
     })
   });
+});
+
+router.get("/privacy-policy", (req, res) => {
+  const settings = getSettings();
+
+  res.render("privacy", {
+    settings,
+    path: "/privacy-policy",
+    seo: buildSeo({
+      title: "Privacy Policy | Wisata Berastagi",
+      description:
+        "Baca kebijakan privasi Wisata Berastagi mengenai penggunaan data, cookie, dan layanan pihak ketiga seperti Google AdSense.",
+      canonical: `${res.locals.baseUrl}/privacy-policy`,
+      noindex: false,
+      jsonLd: JSON.stringify([
+        breadcrumbSchema([
+          { name: "Home", url: `${res.locals.baseUrl}/` },
+          { name: "Privacy Policy", url: `${res.locals.baseUrl}/privacy-policy` }
+        ])
+      ])
+    })
+  });
+});
+
+router.get("/disclaimer", (req, res) => {
+  const settings = getSettings();
+
+  res.render("disclaimer", {
+    settings,
+    path: "/disclaimer",
+    seo: buildSeo({
+      title: "Disclaimer | Wisata Berastagi",
+      description:
+        "Baca disclaimer Wisata Berastagi terkait informasi, ulasan, akurasi data, dan tanggung jawab penggunaan konten di website ini.",
+      canonical: `${res.locals.baseUrl}/disclaimer`,
+      noindex: false,
+      jsonLd: JSON.stringify([
+        breadcrumbSchema([
+          { name: "Home", url: `${res.locals.baseUrl}/` },
+          { name: "Disclaimer", url: `${res.locals.baseUrl}/disclaimer` }
+        ])
+      ])
+    })
+  });
+});
+
+/* =========================
+   REDIRECT ROUTE LAMA
+========================= */
+router.get("/tentang", (req, res) => {
+  return res.redirect(301, "/about");
+});
+
+router.get("/kontak", (req, res) => {
+  return res.redirect(301, "/contact");
 });
 
 /* =========================
@@ -829,8 +886,10 @@ router.get("/sitemap.xml", (req, res) => {
     { loc: `${res.locals.baseUrl}/kuliner`, lastmod: now },
     { loc: `${res.locals.baseUrl}/berita`, lastmod: now },
     { loc: `${res.locals.baseUrl}/galeri`, lastmod: now },
-    { loc: `${res.locals.baseUrl}/tentang`, lastmod: now },
-    { loc: `${res.locals.baseUrl}/kontak`, lastmod: now },
+    { loc: `${res.locals.baseUrl}/about`, lastmod: now },
+    { loc: `${res.locals.baseUrl}/contact`, lastmod: now },
+    { loc: `${res.locals.baseUrl}/privacy-policy`, lastmod: now },
+    { loc: `${res.locals.baseUrl}/disclaimer`, lastmod: now },
 
     ...wisata.map((item) => ({
       loc: `${res.locals.baseUrl}/wisata/${item.slug}`,
