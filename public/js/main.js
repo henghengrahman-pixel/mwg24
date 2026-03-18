@@ -1,17 +1,34 @@
 // =========================
-// MOBILE MENU
+// HELPERS
 // =========================
-
-function toggleMenu() {
-  const nav = document.getElementById("mainNav");
-  if (!nav) return;
-
-  nav.classList.toggle("open");
+function $(selector, parent = document) {
+  return parent.querySelector(selector);
 }
 
+function $$(selector, parent = document) {
+  return parent.querySelectorAll(selector);
+}
+
+// =========================
+// MOBILE MENU (UPGRADE)
+// =========================
+function toggleMenu() {
+  const nav = $("#mainNav");
+  const toggle = $(".menu-toggle");
+
+  if (!nav || !toggle) return;
+
+  const isOpen = nav.classList.toggle("open");
+
+  toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+
+  document.body.style.overflow = isOpen ? "hidden" : "";
+}
+
+// close menu when click outside
 document.addEventListener("click", function (e) {
-  const nav = document.getElementById("mainNav");
-  const toggle = document.querySelector(".menu-toggle");
+  const nav = $("#mainNav");
+  const toggle = $(".menu-toggle");
 
   if (!nav || !toggle) return;
 
@@ -21,36 +38,51 @@ document.addEventListener("click", function (e) {
     !toggle.contains(e.target)
   ) {
     nav.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
   }
 });
 
+// close when click menu link
 document.addEventListener("DOMContentLoaded", function () {
-  const nav = document.getElementById("mainNav");
+  const nav = $("#mainNav");
+  const toggle = $(".menu-toggle");
 
-  if (nav) {
-    nav.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", function () {
-        nav.classList.remove("open");
-      });
-    });
-  }
-});
-
-window.addEventListener("resize", function () {
-  const nav = document.getElementById("mainNav");
   if (!nav) return;
 
-  if (window.innerWidth > 900) {
-    nav.classList.remove("open");
-  }
+  nav.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", function () {
+      nav.classList.remove("open");
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
+    });
+  });
+});
+
+// debounce resize
+let resizeTimer;
+window.addEventListener("resize", function () {
+  clearTimeout(resizeTimer);
+
+  resizeTimer = setTimeout(() => {
+    const nav = $("#mainNav");
+    const toggle = $(".menu-toggle");
+
+    if (!nav) return;
+
+    if (window.innerWidth > 900) {
+      nav.classList.remove("open");
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
+    }
+  }, 120);
 });
 
 // =========================
-// REVEAL ANIMATION
+// REVEAL ANIMATION (SMOOTH)
 // =========================
-
 document.addEventListener("DOMContentLoaded", function () {
-  const reveals = document.querySelectorAll(".reveal");
+  const reveals = $$(".reveal");
 
   if (!reveals.length) return;
 
@@ -65,7 +97,8 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       },
       {
-        threshold: 0.14
+        threshold: 0.15,
+        rootMargin: "0px 0px -40px 0px"
       }
     );
 
@@ -76,9 +109,8 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // =========================
-// AUTO SLUG GENERATOR
+// SLUG GENERATOR (IMPROVED)
 // =========================
-
 function slugifyText(text) {
   return String(text || "")
     .toLowerCase()
@@ -92,38 +124,37 @@ function slugifyText(text) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  const titleInput = document.querySelector('input[name="title"]');
-  const slugInput = document.querySelector('input[name="slug"]');
+  const titleInput = $('input[name="title"]');
+  const slugInput = $('input[name="slug"]');
 
   if (!titleInput || !slugInput) return;
 
-  let slugEditedManually = Boolean(slugInput.value && slugInput.value.trim());
+  let manual = Boolean(slugInput.value.trim());
 
-  slugInput.addEventListener("input", function () {
-    slugEditedManually = Boolean(slugInput.value.trim());
+  slugInput.addEventListener("input", () => {
+    manual = Boolean(slugInput.value.trim());
   });
 
-  titleInput.addEventListener("input", function () {
-    if (!slugEditedManually) {
+  titleInput.addEventListener("input", () => {
+    if (!manual) {
       slugInput.value = slugifyText(titleInput.value);
     }
   });
 });
 
 // =========================
-// IMAGE PREVIEW FOR ADMIN FORM
+// IMAGE PREVIEW (CLEAN)
 // =========================
-
 document.addEventListener("DOMContentLoaded", function () {
-  const fileInput = document.querySelector('input[type="file"][name="image"]');
+  const fileInput = $('input[type="file"][name="image"]');
   if (!fileInput) return;
 
   fileInput.addEventListener("change", function (event) {
-    const file = event.target.files && event.target.files[0];
+    const file = event.target.files?.[0];
     if (!file) return;
 
-    let previewBox = document.querySelector(".image-preview");
-    let previewImg = previewBox ? previewBox.querySelector("img") : null;
+    let previewBox = $(".image-preview");
+    let previewImg = previewBox?.querySelector("img");
 
     if (!previewBox) {
       previewBox = document.createElement("div");
@@ -137,11 +168,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     const reader = new FileReader();
-    reader.onload = function (e) {
-      if (previewImg) {
-        previewImg.src = e.target.result;
-      }
+    reader.onload = (e) => {
+      if (previewImg) previewImg.src = e.target.result;
     };
+
     reader.readAsDataURL(file);
   });
 });
@@ -149,82 +179,67 @@ document.addEventListener("DOMContentLoaded", function () {
 // =========================
 // TEXTAREA AUTO RESIZE
 // =========================
-
 document.addEventListener("DOMContentLoaded", function () {
-  const textareas = document.querySelectorAll("textarea");
-
-  if (!textareas.length) return;
+  const textareas = $$("textarea");
 
   textareas.forEach((textarea) => {
+    if (textarea.classList.contains("no-autoresize")) return;
+
     const resize = () => {
       textarea.style.height = "auto";
-      textarea.style.height = `${textarea.scrollHeight}px`;
+      textarea.style.height = textarea.scrollHeight + "px";
     };
-
-    if (textarea.classList.contains("no-autoresize")) return;
 
     textarea.addEventListener("input", resize);
 
-    if (textarea.value.trim()) {
-      resize();
-    }
+    if (textarea.value.trim()) resize();
   });
 });
 
 // =========================
-// PREMIUM GALLERY LIGHTBOX
+// PREMIUM GALLERY LIGHTBOX (UPGRADE)
 // =========================
-
 document.addEventListener("DOMContentLoaded", function () {
-  const galleryItems = document.querySelectorAll("[data-gallery-item]");
-  const lightbox = document.getElementById("galleryLightbox");
-  const lightboxImage = document.getElementById("galleryLightboxImage");
-  const lightboxTitle = document.getElementById("galleryLightboxTitle");
-  const lightboxCaption = document.getElementById("galleryLightboxCaption");
-  const closeButtons = document.querySelectorAll("[data-lightbox-close]");
+  const galleryItems = $$("[data-gallery-item]");
+  const lightbox = $("#galleryLightbox");
+  const img = $("#galleryLightboxImage");
+  const title = $("#galleryLightboxTitle");
+  const caption = $("#galleryLightboxCaption");
+  const closes = $$("[data-lightbox-close]");
 
-  if (!galleryItems.length || !lightbox || !lightboxImage || !lightboxTitle || !lightboxCaption) {
-    return;
-  }
+  if (!galleryItems.length || !lightbox) return;
 
-  function openLightbox(item) {
-    const image = item.getAttribute("data-gallery-image") || "";
-    const title = item.getAttribute("data-gallery-title") || "Galeri Berastagi";
-    const caption = item.getAttribute("data-gallery-caption") || "";
-    const alt = item.getAttribute("data-gallery-alt") || title;
-
-    lightboxImage.src = image;
-    lightboxImage.alt = alt;
-    lightboxTitle.textContent = title;
-    lightboxCaption.textContent = caption;
+  function open(item) {
+    img.src = item.dataset.galleryImage || "";
+    img.alt = item.dataset.galleryAlt || "Galeri Berastagi";
+    title.textContent = item.dataset.galleryTitle || "Galeri Berastagi";
+    caption.textContent = item.dataset.galleryCaption || "";
 
     lightbox.classList.add("open");
     lightbox.setAttribute("aria-hidden", "false");
     document.body.classList.add("lightbox-open");
   }
 
-  function closeLightbox() {
+  function close() {
     lightbox.classList.remove("open");
     lightbox.setAttribute("aria-hidden", "true");
     document.body.classList.remove("lightbox-open");
 
     setTimeout(() => {
-      lightboxImage.src = "";
-      lightboxImage.alt = "";
-      lightboxTitle.textContent = "Galeri Berastagi";
-      lightboxCaption.textContent = "";
-    }, 180);
+      img.src = "";
+      img.alt = "";
+      title.textContent = "Galeri Berastagi";
+      caption.textContent = "";
+    }, 150);
   }
 
   galleryItems.forEach((item) => {
-    item.addEventListener("click", function () {
-      openLightbox(item);
-    });
+    item.addEventListener("click", () => open(item));
 
-    item.addEventListener("keydown", function (e) {
+    item.addEventListener("keydown", (e) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        openLightbox(item);
+        open(item);
       }
     });
 
@@ -233,13 +248,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  closeButtons.forEach((button) => {
-    button.addEventListener("click", closeLightbox);
-  });
+  closes.forEach((btn) => btn.addEventListener("click", close));
 
-  document.addEventListener("keydown", function (e) {
+  document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && lightbox.classList.contains("open")) {
-      closeLightbox();
+      close();
     }
   });
 });
