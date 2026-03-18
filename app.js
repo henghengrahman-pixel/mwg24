@@ -45,6 +45,7 @@ const REQUIRED_DIRS = [
   path.join(UPLOADS_DIR, "villa"),
   path.join(UPLOADS_DIR, "kuliner"),
   path.join(UPLOADS_DIR, "berita"),
+  path.join(UPLOADS_DIR, "gallery"),
   path.join(UPLOADS_DIR, "general")
 ];
 
@@ -82,10 +83,7 @@ function shouldRedirectToBase(req) {
 
 function cleanCanonical(baseUrl, req) {
   const pathname = normalizeUrlPath(req.path);
-  const queryString = req.originalUrl.includes("?")
-    ? req.originalUrl.slice(req.originalUrl.indexOf("?"))
-    : "";
-  return `${baseUrl}${pathname === "/" ? "/" : pathname}${queryString}`;
+  return `${baseUrl}${pathname === "/" ? "/" : pathname}`;
 }
 
 function defaultSettingsFallback() {
@@ -130,6 +128,9 @@ app.use((req, res, next) => {
   next();
 });
 
+/* =========================
+   BODY PARSER
+========================= */
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 app.use(express.json({ limit: "20mb" }));
 
@@ -147,7 +148,12 @@ app.use(
       }
 
       if (/\.(js|css|png|jpg|jpeg|gif|svg|webp|ico)$/i.test(filePath)) {
-        res.setHeader("Cache-Control", IS_PROD ? "public, max-age=604800, stale-while-revalidate=86400" : "no-cache");
+        res.setHeader(
+          "Cache-Control",
+          IS_PROD
+            ? "public, max-age=604800, stale-while-revalidate=86400"
+            : "no-cache"
+        );
       }
     }
   })
@@ -163,7 +169,9 @@ app.use(
     setHeaders(res) {
       res.setHeader(
         "Cache-Control",
-        IS_PROD ? "public, max-age=604800, stale-while-revalidate=86400" : "no-cache"
+        IS_PROD
+          ? "public, max-age=604800, stale-while-revalidate=86400"
+          : "no-cache"
       );
     }
   })
