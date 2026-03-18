@@ -1,27 +1,43 @@
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
   <%
     const safeSettings = settings || {};
     const safeSeo = seo || {};
     const normalizedBaseUrl = String(baseUrl || "").replace(/\/+$/, "");
+    const currentPath = String(path || "");
     const siteName = safeSettings.site_name || "Wisata Berastagi";
+    const siteLanguage = "id-ID";
+    const siteLocale = "id_ID";
 
     const defaultTitle =
       safeSettings.homepage_meta_title ||
-      "Wisata Berastagi – Tempat Wisata, Villa, Hotel, Kuliner & Panduan Liburan";
+      "Wisata Berastagi Terlengkap – Tempat Wisata, Villa, Hotel, Kuliner & Panduan Liburan";
 
     const defaultDescription =
       safeSettings.homepage_meta_description ||
-      "Panduan wisata Berastagi terlengkap untuk menemukan tempat wisata Berastagi populer, villa dan hotel terbaik, kuliner khas Karo, berita terbaru, serta tips liburan ke Berastagi Kabupaten Karo Sumatera Utara.";
+      "Panduan wisata Berastagi terlengkap untuk menemukan tempat wisata populer, villa dan hotel terbaik, kuliner khas Karo, berita terbaru, serta tips liburan ke Berastagi Kabupaten Karo Sumatera Utara.";
 
-    const canonicalPath = path || "";
-    const canonicalUrl = safeSeo.canonical || `${normalizedBaseUrl}${canonicalPath}`;
+    const defaultKeywords =
+      "wisata berastagi, tempat wisata berastagi, villa berastagi, hotel berastagi, kuliner berastagi, liburan berastagi, wisata karo, tempat wisata karo, berita berastagi, penginapan berastagi, wisata sumatera utara, wisata kabupaten karo";
+
+    const pageTitle = String(safeSeo.title || defaultTitle).trim();
+    const pageDescription = String(safeSeo.description || defaultDescription).trim();
+    const pageKeywords = String(safeSeo.keywords || defaultKeywords).trim();
+    const pageType = safeSeo.type || "website";
+
+    const canonicalUrlRaw =
+      safeSeo.canonical ||
+      `${normalizedBaseUrl}${currentPath.startsWith("/") ? currentPath : "/" + currentPath}`;
+
+    const canonicalUrl = canonicalUrlRaw.replace(/([^:]\/)\/+/g, "$1");
 
     const rawImage =
       safeSeo.image ||
       safeSettings.hero_background ||
+      safeSettings.logo ||
       "/images/wisata-berastagi-cover.jpg";
 
     const normalizedImagePath =
@@ -35,27 +51,31 @@
       ? rawImage
       : `${normalizedBaseUrl}${normalizedImagePath}`;
 
-    const pageTitle = safeSeo.title || defaultTitle;
-    const pageDescription = safeSeo.description || defaultDescription;
-    const pageType = safeSeo.type || "website";
-    const pageKeywords =
-      safeSeo.keywords ||
-      "wisata berastagi, tempat wisata berastagi, villa berastagi, hotel berastagi, kuliner berastagi, liburan berastagi, wisata karo, tempat wisata karo, berita berastagi, penginapan berastagi";
-
     const organizationLogo =
       safeSettings.logo && /^https?:\/\//i.test(safeSettings.logo)
         ? safeSettings.logo
         : safeSettings.logo
         ? `${normalizedBaseUrl}${safeSettings.logo.startsWith("/") ? safeSettings.logo : "/" + safeSettings.logo}`
         : imageUrl;
+
+    const publishedTime = safeSeo.publishedTime || safeSeo.published_time || null;
+    const modifiedTime = safeSeo.modifiedTime || safeSeo.updatedTime || safeSeo.modified_time || null;
+    const section = safeSeo.section || null;
+    const tags = Array.isArray(safeSeo.tags) ? safeSeo.tags : [];
+    const twitterSite = safeSeo.twitterSite || "";
+    const twitterCreator = safeSeo.twitterCreator || "";
+    const noindex = !!safeSeo.noindex;
   %>
 
   <title><%= pageTitle %></title>
   <meta name="description" content="<%= pageDescription %>">
   <meta name="keywords" content="<%= pageKeywords %>">
-  <meta name="robots" content="<%= safeSeo.noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large' %>">
   <meta name="author" content="<%= siteName %>">
   <meta name="theme-color" content="#1e5b3a">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="robots" content="<%= noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' %>">
+  <meta name="googlebot" content="<%= noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' %>">
 
   <link rel="canonical" href="<%= canonicalUrl %>">
 
@@ -67,8 +87,12 @@
   <link rel="icon" type="image/png" sizes="64x64" href="/favicon/favicon-64x64.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon/favicon-180x180.png">
 
+  <!-- Performance -->
+  <link rel="preconnect" href="<%= normalizedBaseUrl %>" crossorigin>
+  <link rel="dns-prefetch" href="<%= normalizedBaseUrl %>">
+
   <!-- Open Graph -->
-  <meta property="og:locale" content="id_ID">
+  <meta property="og:locale" content="<%= siteLocale %>">
   <meta property="og:site_name" content="<%= siteName %>">
   <meta property="og:title" content="<%= pageTitle %>">
   <meta property="og:description" content="<%= pageDescription %>">
@@ -81,6 +105,19 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
 
+  <% if (publishedTime) { %>
+    <meta property="article:published_time" content="<%= publishedTime %>">
+  <% } %>
+  <% if (modifiedTime) { %>
+    <meta property="article:modified_time" content="<%= modifiedTime %>">
+  <% } %>
+  <% if (section) { %>
+    <meta property="article:section" content="<%= section %>">
+  <% } %>
+  <% tags.forEach(tag => { %>
+    <meta property="article:tag" content="<%= tag %>">
+  <% }) %>
+
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="<%= pageTitle %>">
@@ -88,16 +125,19 @@
   <meta name="twitter:image" content="<%= imageUrl %>">
   <meta name="twitter:image:alt" content="<%= pageTitle %>">
   <meta name="twitter:url" content="<%= canonicalUrl %>">
-
-  <link rel="preconnect" href="<%= normalizedBaseUrl %>" crossorigin>
+  <% if (twitterSite) { %>
+    <meta name="twitter:site" content="<%= twitterSite %>">
+  <% } %>
+  <% if (twitterCreator) { %>
+    <meta name="twitter:creator" content="<%= twitterCreator %>">
+  <% } %>
 
   <!-- CSS & JS -->
   <link rel="stylesheet" href="/css/style.css">
   <script defer src="/js/main.js"></script>
 
-  <!-- Google AdSense (WAJIB) -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8313404846350628"
-    crossorigin="anonymous"></script>
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8313404846350628" crossorigin="anonymous"></script>
 
   <% if (safeSeo.jsonLd) { %>
     <script type="application/ld+json"><%- safeSeo.jsonLd %></script>
@@ -109,10 +149,14 @@
           {
             "@type": "WebSite",
             "@id": "<%= normalizedBaseUrl %>/#website",
+            "url": "<%= normalizedBaseUrl %>/",
             "name": "<%= siteName %>",
-            "url": "<%= normalizedBaseUrl %>",
+            "alternateName": "Portal Wisata Berastagi",
             "description": "<%= defaultDescription %>",
-            "inLanguage": "id-ID",
+            "inLanguage": "<%= siteLanguage %>",
+            "publisher": {
+              "@id": "<%= normalizedBaseUrl %>/#organization"
+            },
             "potentialAction": {
               "@type": "SearchAction",
               "target": "<%= normalizedBaseUrl %>/cari?q={search_term_string}",
@@ -123,29 +167,43 @@
             "@type": "Organization",
             "@id": "<%= normalizedBaseUrl %>/#organization",
             "name": "<%= siteName %>",
-            "url": "<%= normalizedBaseUrl %>",
+            "url": "<%= normalizedBaseUrl %>/",
             "logo": {
               "@type": "ImageObject",
               "url": "<%= organizationLogo %>"
-            }
+            },
+            "image": "<%= organizationLogo %>"
           },
           {
             "@type": "WebPage",
             "@id": "<%= canonicalUrl %>#webpage",
             "url": "<%= canonicalUrl %>",
             "name": "<%= pageTitle %>",
+            "headline": "<%= pageTitle %>",
             "description": "<%= pageDescription %>",
+            "inLanguage": "<%= siteLanguage %>",
             "isPartOf": {
               "@id": "<%= normalizedBaseUrl %>/#website"
             },
             "about": {
               "@id": "<%= normalizedBaseUrl %>/#organization"
             },
-            "inLanguage": "id-ID",
             "primaryImageOfPage": {
               "@type": "ImageObject",
               "url": "<%= imageUrl %>"
             }
+          },
+          {
+            "@type": "BreadcrumbList",
+            "@id": "<%= canonicalUrl %>#breadcrumb",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Beranda",
+                "item": "<%= normalizedBaseUrl %>/"
+              }
+            ]
           }
         ]
       }
