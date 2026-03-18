@@ -1,38 +1,41 @@
 <header class="site-header">
   <div class="container nav-wrap">
 
-    <!-- LOGO -->
-    <a href="/" class="logo-text">
+    <a
+      href="/"
+      class="logo-text"
+      aria-label="Wisata Berastagi - Kembali ke beranda"
+    >
       <strong class="site-title">
         <%= settings?.site_name || "Wisata Berastagi" %>
       </strong>
       <small class="site-tagline">
-        <%= settings?.site_tagline || "Tempat wisata, villa, kuliner & berita Berastagi" %>
+        <%= settings?.site_tagline || "Panduan tempat wisata, villa, kuliner & berita Berastagi" %>
       </small>
     </a>
 
-    <!-- TOGGLE MOBILE -->
     <button
       class="menu-toggle"
-      aria-label="Buka menu"
+      type="button"
+      aria-label="Buka menu navigasi"
+      aria-controls="mainNav"
+      aria-expanded="false"
       onclick="toggleMenu()"
     >
       ☰
     </button>
 
-    <!-- NAVIGATION -->
-    <nav class="main-nav" id="mainNav">
-
+    <nav class="main-nav" id="mainNav" aria-label="Navigasi utama">
       <a href="/" class="<%= (path || '') === '/' ? 'active' : '' %>">
-        Home
+        Beranda
       </a>
 
       <a href="/wisata" class="<%= (path || '').startsWith('/wisata') ? 'active' : '' %>">
-        Wisata
+        Tempat Wisata
       </a>
 
       <a href="/villa" class="<%= (path || '').startsWith('/villa') ? 'active' : '' %>">
-        Villa & Hotel
+        Villa &amp; Hotel
       </a>
 
       <a href="/kuliner" class="<%= (path || '').startsWith('/kuliner') ? 'active' : '' %>">
@@ -43,7 +46,10 @@
         Berita
       </a>
 
-      <!-- HALAMAN PENTING (FIX) -->
+      <a href="/galeri" class="<%= (path || '').startsWith('/galeri') ? 'active' : '' %>">
+        Galeri
+      </a>
+
       <a href="/about" class="<%= (path || '') === '/about' ? 'active' : '' %>">
         Tentang
       </a>
@@ -51,7 +57,6 @@
       <a href="/contact" class="<%= (path || '') === '/contact' ? 'active' : '' %>">
         Kontak
       </a>
-
     </nav>
 
   </div>
