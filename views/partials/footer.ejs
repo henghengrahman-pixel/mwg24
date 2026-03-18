@@ -3,46 +3,65 @@
     <div class="footer-grid">
 
       <div class="footer-col footer-brand">
-        <h3>Pesona Alam Berastagi &amp; Budaya Karo</h3>
+        <h3><%= settings?.site_name || "Wisata Berastagi" %></h3>
         <p>
-          Berastagi, kota sejuk di dataran tinggi Karo, Sumatera Utara, dikenal sebagai destinasi wisata yang memikat dengan panorama pegunungan, udara segar, serta kekayaan budaya masyarakat Karo yang khas dan berkesan.
+          <strong>Wisata Berastagi</strong> adalah portal informasi wisata Berastagi yang membahas
+          tempat wisata populer, villa dan hotel nyaman, kuliner khas Karo, galeri, berita terbaru,
+          serta panduan liburan lengkap di Berastagi, Kabupaten Karo, Sumatera Utara.
         </p>
       </div>
 
       <div class="footer-col">
-        <h4>Menu Cepat</h4>
+        <h4>Jelajahi Berastagi</h4>
         <ul class="footer-links">
-          <li><a href="/">Home</a></li>
-          <li><a href="/wisata">Tempat Wisata</a></li>
-          <li><a href="/villa">Villa &amp; Hotel</a></li>
-          <li><a href="/kuliner">Kuliner</a></li>
-          <li><a href="/berita">Berita</a></li>
-          <li><a href="/galeri">Galeri</a></li>
+          <li><a href="/">Beranda</a></li>
+          <li><a href="/wisata">Tempat Wisata di Berastagi</a></li>
+          <li><a href="/villa">Villa &amp; Hotel di Berastagi</a></li>
+          <li><a href="/kuliner">Kuliner Berastagi</a></li>
+          <li><a href="/berita">Berita Wisata Berastagi</a></li>
+          <li><a href="/galeri">Galeri Berastagi</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h4>INFORMASI</h4>
+        <h4>Informasi Website</h4>
         <ul class="footer-links">
           <li><a href="/about">Tentang Kami</a></li>
+          <li><a href="/contact">Kontak</a></li>
           <li><a href="/privacy-policy">Privacy Policy</a></li>
           <li><a href="/disclaimer">Disclaimer</a></li>
+          <li><a href="/sitemap.xml">Sitemap XML</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
         <h4>Kontak Kami</h4>
         <ul class="footer-contact">
-          <li><strong>WhatsApp:</strong> <a href="https://wa.me/6285383481491" target="_blank" rel="noopener noreferrer">+62 853-8348-1491</a></li>
-          <li><strong>Email:</strong> <a href="mailto:mawarjayagroup@gmail.com">mawarjayagroup@gmail.com</a></li>
-          <li><strong>Alamat:</strong> Berastagi, Kabupaten Karo, Sumatera Utara</li>
+          <li>
+            <strong>WhatsApp:</strong>
+            <a href="https://wa.me/6285383481491" target="_blank" rel="noopener noreferrer">
+              +62 853-8348-1491
+            </a>
+          </li>
+          <li>
+            <strong>Email:</strong>
+            <a href="mailto:mawarjayagroup@gmail.com">
+              mawarjayagroup@gmail.com
+            </a>
+          </li>
+          <li>
+            <strong>Alamat:</strong>
+            Berastagi, Kabupaten Karo, Sumatera Utara
+          </li>
         </ul>
       </div>
 
     </div>
 
     <div class="footer-bottom">
-      <p>© 2026 Wisata Berastagi. All rights reserved.</p>
+      <p>
+        © <%= new Date().getFullYear() %> <%= settings?.site_name || "Wisata Berastagi" %>. All rights reserved.
+      </p>
     </div>
   </div>
 </footer>
