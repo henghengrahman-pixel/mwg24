@@ -4,38 +4,68 @@
 <body class="admin-page">
   <div class="admin-layout">
     <%- include("partials/admin-sidebar") %>
+
     <main class="admin-main">
       <div class="admin-head">
-        <h1>Kelola Villa</h1>
+        <div>
+          <h1>Kelola Villa</h1>
+          <p class="admin-subtitle">
+            Atur daftar villa dan hotel di Berastagi dengan informasi yang rapi dan mudah dikelola.
+          </p>
+        </div>
         <a href="/admin/villa/new" class="btn-primary">Tambah Villa</a>
       </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Judul</th>
-              <th>Lokasi</th>
-              <th>Harga</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% items.forEach(item => { %>
+      <div class="table-card">
+        <div class="table-card-head">
+          <strong>Total Data: <%= Array.isArray(items) ? items.length : 0 %></strong>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
               <tr>
-                <td><%= item.title %></td>
-                <td><%= item.location %></td>
-                <td><%= item.price %></td>
-                <td class="actions">
-                  <a href="/admin/villa/edit/<%= item.id %>">Edit</a>
-                  <form action="/admin/villa/delete/<%= item.id %>" method="post" onsubmit="return confirm('Hapus data ini?')">
-                    <button type="submit">Hapus</button>
-                  </form>
-                </td>
+                <th style="width: 70px;">No</th>
+                <th>Judul</th>
+                <th>Lokasi</th>
+                <th>Harga</th>
+                <th style="width: 180px;">Aksi</th>
               </tr>
-            <% }) %>
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              <% if (Array.isArray(items) && items.length > 0) { %>
+                <% items.forEach((item, index) => { %>
+                  <tr>
+                    <td><%= index + 1 %></td>
+                    <td>
+                      <strong><%= item.title || "-" %></strong>
+                    </td>
+                    <td><%= item.location || "-" %></td>
+                    <td><%= item.price || "-" %></td>
+                    <td class="actions">
+                      <a class="btn-action-edit" href="/admin/villa/edit/<%= item.id %>">Edit</a>
+
+                      <form
+                        action="/admin/villa/delete/<%= item.id %>"
+                        method="post"
+                        onsubmit="return confirm('Hapus data villa ini?')"
+                      >
+                        <button type="submit" class="btn-action-delete">Hapus</button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } else { %>
+                <tr>
+                  <td colspan="5" class="table-empty">
+                    Belum ada data villa. Silakan tambah villa baru.
+                  </td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
   </div>
