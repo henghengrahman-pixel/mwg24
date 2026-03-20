@@ -4,20 +4,93 @@
 <body>
   <%- include("partials/header") %>
 
+  <%
+    let galleryImages = [];
+
+    try {
+      if (Array.isArray(item?.images)) {
+        galleryImages = item.images.filter(Boolean);
+      } else if (item?.images) {
+        const parsedImages = JSON.parse(item.images);
+        galleryImages = Array.isArray(parsedImages) ? parsedImages.filter(Boolean) : [];
+      }
+    } catch (e) {
+      galleryImages = [];
+    }
+
+    if (item?.image && !galleryImages.includes(item.image)) {
+      galleryImages.unshift(item.image);
+    }
+
+    if (!galleryImages.length && item?.image) {
+      galleryImages = [item.image];
+    }
+
+    const mainImage = galleryImages[0] || item.image || "/images/wisata-berastagi-cover.jpg";
+    const sideImages = galleryImages.slice(1, 5);
+    const totalImages = galleryImages.length;
+    const extraImagesCount = totalImages > 5 ? totalImages - 5 : 0;
+  %>
+
   <section class="section container detail-layout">
     <article class="detail-main">
-      <img
-        src="<%= item.image %>"
-        alt="<%= item.title %> di Berastagi"
-        class="detail-cover"
-        loading="lazy"
-      />
+      <section class="villa-gallery-section">
+        <div class="villa-gallery-grid <%= totalImages <= 1 ? "single" : "" %>">
+          <button
+            type="button"
+            class="villa-gallery-main"
+            onclick="openVillaLightbox(0)"
+            aria-label="Lihat foto utama <%= item.title %>"
+          >
+            <img
+              src="<%= mainImage %>"
+              alt="<%= item.title %> di Berastagi"
+              class="detail-cover"
+              loading="eager"
+            >
+          </button>
 
-      <span class="eyebrow">Vila & Hotel Berastagi</span>
+          <% if (sideImages.length > 0) { %>
+            <div class="villa-gallery-side">
+              <% sideImages.forEach((img, index) => { %>
+                <button
+                  type="button"
+                  class="villa-gallery-thumb <%= (index === 3 && extraImagesCount > 0) ? 'has-overlay' : '' %>"
+                  onclick="openVillaLightbox(<%= index + 1 %>)"
+                  aria-label="Lihat foto <%= index + 2 %> <%= item.title %>"
+                >
+                  <img
+                    src="<%= img %>"
+                    alt="<%= item.title %> foto <%= index + 2 %>"
+                    loading="lazy"
+                  >
+
+                  <% if (index === 3 && extraImagesCount > 0) { %>
+                    <span class="villa-gallery-overlay">
+                      <strong>+<%= extraImagesCount %></strong>
+                      <span>Lihat Semua Foto</span>
+                    </span>
+                  <% } %>
+                </button>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+
+        <% if (totalImages > 1) { %>
+          <div class="villa-gallery-actions">
+            <button type="button" class="btn-secondary" onclick="openVillaLightbox(0)">
+              Lihat Semua Foto
+            </button>
+          </div>
+        <% } %>
+      </section>
+
+      <span class="eyebrow">Vila &amp; Hotel Berastagi</span>
       <h1><%= item.title %></h1>
 
       <div class="detail-meta">
-        <span>Lokasi: <%= item.location %></span>
+        <span>Lokasi: <%= item.location || "-" %></span>
         <span>Harga: <%= helpers.formatCurrency(item.price || 0) %></span>
       </div>
 
@@ -42,7 +115,7 @@
         <p><strong><%= avg || 0 %>/5</strong> dari <%= ratings.length %> ulasan</p>
 
         <form action="/villa/<%= item.slug %>/rating" method="post" class="inline-form">
-          <input type="text" name="name" placeholder="Nama kamu" required />
+          <input type="text" name="name" placeholder="Nama kamu" required>
           <select name="rating" required>
             <option value="">Pilih rating</option>
             <option value="5">5 - Sangat bagus</option>
@@ -59,8 +132,8 @@
         <h2>Ulasan dan Komentar Pengunjung</h2>
 
         <form action="/villa/<%= item.slug %>/comment" method="post" class="comment-form">
-          <input type="text" name="name" placeholder="Nama" required />
-          <input type="email" name="email" placeholder="Email (opsional)" />
+          <input type="text" name="name" placeholder="Nama" required>
+          <input type="email" name="email" placeholder="Email (opsional)">
           <textarea name="comment" rows="5" placeholder="Tulis komentar..." required></textarea>
           <button type="submit">Kirim Komentar</button>
         </form>
@@ -86,8 +159,8 @@
         <h3>Informasi Penginapan</h3>
         <ul class="info-list">
           <li><strong>Harga:</strong> <%= helpers.formatCurrency(item.price || 0) %></li>
-          <li><strong>Lokasi:</strong> <%= item.location %></li>
-          <li><strong>Fasilitas:</strong> <%= item.facilities || '-' %></li>
+          <li><strong>Lokasi:</strong> <%= item.location || "-" %></li>
+          <li><strong>Fasilitas:</strong> <%= item.facilities || "-" %></li>
         </ul>
 
         <% if (item.booking_url) { %>
@@ -96,13 +169,287 @@
       </div>
 
       <div class="sticky-box">
-        <h3>Vila & Hotel Terkait</h3>
+        <h3>Vila &amp; Hotel Terkait</h3>
         <% related.forEach(rel => { %>
           <a href="/villa/<%= rel.slug %>" class="mini-link"><%= rel.title %></a>
         <% }) %>
       </div>
     </aside>
   </section>
+
+  <div id="villaLightbox" class="villa-lightbox" aria-hidden="true">
+    <button type="button" class="villa-lightbox-close" onclick="closeVillaLightbox()" aria-label="Tutup galeri">
+      &times;
+    </button>
+
+    <button type="button" class="villa-lightbox-nav prev" onclick="changeVillaSlide(-1)" aria-label="Foto sebelumnya">
+      &#10094;
+    </button>
+
+    <div class="villa-lightbox-content">
+      <img id="villaLightboxImage" src="" alt="<%= item.title %>">
+      <div class="villa-lightbox-counter" id="villaLightboxCounter">1 / 1</div>
+    </div>
+
+    <button type="button" class="villa-lightbox-nav next" onclick="changeVillaSlide(1)" aria-label="Foto berikutnya">
+      &#10095;
+    </button>
+  </div>
+
+  <script>
+    const villaGalleryImages = <%- JSON.stringify(galleryImages) %>;
+    let currentVillaSlide = 0;
+
+    function openVillaLightbox(index = 0) {
+      if (!villaGalleryImages.length) return;
+
+      currentVillaSlide = index;
+      const lightbox = document.getElementById("villaLightbox");
+      lightbox.classList.add("active");
+      lightbox.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      renderVillaSlide();
+    }
+
+    function closeVillaLightbox() {
+      const lightbox = document.getElementById("villaLightbox");
+      lightbox.classList.remove("active");
+      lightbox.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    function changeVillaSlide(step) {
+      if (!villaGalleryImages.length) return;
+
+      currentVillaSlide += step;
+
+      if (currentVillaSlide < 0) {
+        currentVillaSlide = villaGalleryImages.length - 1;
+      }
+
+      if (currentVillaSlide >= villaGalleryImages.length) {
+        currentVillaSlide = 0;
+      }
+
+      renderVillaSlide();
+    }
+
+    function renderVillaSlide() {
+      const imageEl = document.getElementById("villaLightboxImage");
+      const counterEl = document.getElementById("villaLightboxCounter");
+
+      if (!imageEl || !counterEl || !villaGalleryImages.length) return;
+
+      imageEl.src = villaGalleryImages[currentVillaSlide];
+      imageEl.alt = "<%= item.title.replace(/"/g, '&quot;') %> foto " + (currentVillaSlide + 1);
+      counterEl.textContent = (currentVillaSlide + 1) + " / " + villaGalleryImages.length;
+    }
+
+    document.addEventListener("keydown", function (e) {
+      const lightbox = document.getElementById("villaLightbox");
+      if (!lightbox || !lightbox.classList.contains("active")) return;
+
+      if (e.key === "Escape") closeVillaLightbox();
+      if (e.key === "ArrowLeft") changeVillaSlide(-1);
+      if (e.key === "ArrowRight") changeVillaSlide(1);
+    });
+
+    document.getElementById("villaLightbox")?.addEventListener("click", function (e) {
+      if (e.target.id === "villaLightbox") {
+        closeVillaLightbox();
+      }
+    });
+  </script>
+
+  <style>
+    .villa-gallery-section {
+      margin-bottom: 24px;
+    }
+
+    .villa-gallery-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 8px;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #f3f6f4;
+    }
+
+    .villa-gallery-grid.single {
+      grid-template-columns: 1fr;
+    }
+
+    .villa-gallery-main,
+    .villa-gallery-thumb {
+      position: relative;
+      display: block;
+      border: none;
+      padding: 0;
+      margin: 0;
+      background: #e9efeb;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .villa-gallery-main img,
+    .villa-gallery-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .villa-gallery-main {
+      min-height: 360px;
+    }
+
+    .villa-gallery-side {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .villa-gallery-thumb {
+      min-height: 176px;
+    }
+
+    .villa-gallery-main:hover img,
+    .villa-gallery-thumb:hover img {
+      transform: scale(1.04);
+    }
+
+    .villa-gallery-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      text-align: center;
+      padding: 12px;
+    }
+
+    .villa-gallery-overlay strong {
+      font-size: 28px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .villa-gallery-actions {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .villa-lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+
+    .villa-lightbox.active {
+      display: flex;
+    }
+
+    .villa-lightbox-content {
+      max-width: 92vw;
+      max-height: 88vh;
+      text-align: center;
+      position: relative;
+    }
+
+    .villa-lightbox-content img {
+      max-width: 92vw;
+      max-height: 80vh;
+      border-radius: 14px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .villa-lightbox-counter {
+      color: #fff;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    .villa-lightbox-close {
+      position: absolute;
+      top: 14px;
+      right: 20px;
+      font-size: 40px;
+      color: #fff;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      z-index: 3;
+    }
+
+    .villa-lightbox-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      border: none;
+      width: 52px;
+      height: 52px;
+      border-radius: 999px;
+      font-size: 28px;
+      cursor: pointer;
+      z-index: 3;
+    }
+
+    .villa-lightbox-nav.prev {
+      left: 20px;
+    }
+
+    .villa-lightbox-nav.next {
+      right: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .villa-gallery-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .villa-gallery-main {
+        min-height: 280px;
+      }
+
+      .villa-gallery-thumb {
+        min-height: 140px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .villa-gallery-side {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .villa-lightbox-nav {
+        width: 44px;
+        height: 44px;
+        font-size: 24px;
+      }
+
+      .villa-lightbox-nav.prev {
+        left: 10px;
+      }
+
+      .villa-lightbox-nav.next {
+        right: 10px;
+      }
+    }
+  </style>
 
   <%- include("partials/footer", { settings }) %>
 </body>
