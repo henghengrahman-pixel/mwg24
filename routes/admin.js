@@ -1,1045 +1,639 @@
-const express = require("express");
-const path = require("path");
-const fs = require("fs");
-const multer = require("multer");
+import os
+import re
+import csv
+import tempfile
+import asyncio
+import logging
+from datetime import datetime, date
+from io import BytesIO
+from typing import Dict, List, Tuple, Optional, Any
 
-const router = express.Router();
-const { getDb } = require("../lib/db");
-const { requireAdmin } = require("../middleware/auth");
-const { makeSlug, excerpt } = require("../lib/helpers");
-const { buildSeo } = require("../lib/seo");
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import Command
+from aiogram.types import Message, BufferedInputFile
+from openpyxl import load_workbook, Workbook
+from openpyxl.utils.datetime import from_excel
 
-const dataDir =
-  process.env.DATA_DIR && fs.existsSync(process.env.DATA_DIR)
-    ? path.join(process.env.DATA_DIR, "uploads")
-    : path.join(__dirname, "..", "uploads");
+# ========= LOGGING =========
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+)
 
-fs.mkdirSync(dataDir, { recursive: true });
+# ========= ENV =========
+BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 
-function storageFor(folderName) {
-  return multer.diskStorage({
-    destination(req, file, cb) {
-      const dir = path.join(dataDir, folderName);
-      fs.mkdirSync(dir, { recursive: true });
-      cb(null, dir);
-    },
-    filename(req, file, cb) {
-      const ext = path.extname(file.originalname || ".jpg").toLowerCase() || ".jpg";
-      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
-    }
-  });
-}
+# contoh Railway:
+# ADMIN_IDS=5397964203,123456789,987654321
+ADMIN_IDS_RAW = os.getenv("ADMIN_IDS", "").strip()
 
-const uploadOptions = {
-  limits: {
-    fileSize: 5 * 1024 * 1024
-  }
-};
+if not BOT_TOKEN:
+    raise SystemExit("Missing BOT_TOKEN env")
+if not ADMIN_IDS_RAW:
+    raise SystemExit("Missing ADMIN_IDS env (comma separated digits)")
 
-const wisataUpload = multer({
-  storage: storageFor("wisata"),
-  ...uploadOptions
-});
+ADMIN_IDS: set[int] = set()
+for x in re.split(r"[,\s]+", ADMIN_IDS_RAW):
+    x = x.strip()
+    if not x:
+        continue
+    if not x.isdigit():
+        raise SystemExit(f"Invalid ADMIN_IDS value: {x} (must be digits)")
+    ADMIN_IDS.add(int(x))
 
-const villaUpload = multer({
-  storage: storageFor("villa"),
-  ...uploadOptions
-});
+if not ADMIN_IDS:
+    raise SystemExit("ADMIN_IDS is empty")
 
-const kulinerUpload = multer({
-  storage: storageFor("kuliner"),
-  ...uploadOptions
-});
+bot = Bot(BOT_TOKEN)
+dp = Dispatcher()
 
-const beritaUpload = multer({
-  storage: storageFor("berita"),
-  ...uploadOptions
-});
+# session per admin
+# awaiting: None | "idsfile" | "file"
+SESS: Dict[int, Dict[str, Any]] = {}
 
-const articleEditorUpload = multer({
-  storage: storageFor("berita"),
-  ...uploadOptions
-});
+RE_SPLIT = re.compile(r"[,\s]+")
+DEPOSIT_KEYWORDS = ("deposit", "depo", "topup", "top up")
 
-const galleryUpload = multer({
-  storage: storageFor("gallery"),
-  ...uploadOptions
-});
+# alias header biar lebih fleksibel
+DATE_ALIASES = {"date", "tanggal", "tgl", "datetime", "created_at", "waktu"}
+INFO_ALIASES = {"info", "type", "jenis", "keterangan", "desc", "description", "remark"}
+TO_ALIASES = {"to", "userid", "user_id", "id", "username", "user", "member", "account"}
+COIN_ALIASES = {"coin", "amount", "nominal", "total", "value", "koin"}
 
-function fileUrl(folder, filename) {
-  return `/uploads/${folder}/${filename}`;
-}
 
-function settingsRow() {
-  return getDb().prepare("SELECT * FROM settings WHERE id = 1").get();
-}
+def is_admin(m: Message) -> bool:
+    u = m.from_user
+    return bool(u and u.id in ADMIN_IDS)
 
-function cleanText(value) {
-  return String(value || "").trim();
-}
 
-function cleanHtml(value) {
-  return String(value || "").trim();
-}
+async def deny_if_not_admin(m: Message) -> bool:
+    if not is_admin(m):
+        await m.answer("⛔ Akses ditolak. Bot ini khusus admin.")
+        return True
+    return False
 
-function plainTextFromHtml(value) {
-  return String(value || "")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
-function boolToInt(value) {
-  return value ? 1 : 0;
-}
+def norm_text(s: Any) -> str:
+    return str(s or "").strip()
 
-function fallbackImage(currentImage, file, folder) {
-  if (file?.filename) return fileUrl(folder, file.filename);
-  return cleanText(currentImage);
-}
 
-function requireBasicContent(title, content, res, viewName, seoTitle, item = null) {
-  const plainContent = plainTextFromHtml(content);
+def norm_id(s: Any) -> str:
+    return norm_text(s).lower()
 
-  if (!title || !plainContent) {
-    return res.status(400).render(viewName, {
-      seo: buildSeo({
-        title: seoTitle,
-        noindex: true
-      }),
-      item,
-      error: "Judul dan konten wajib diisi."
-    });
-  }
-  return null;
-}
 
-function deleteUploadedFileByUrl(filePathUrl) {
-  if (!filePathUrl) return;
+def fmt(n: int) -> str:
+    try:
+        return f"{int(n):,}"
+    except Exception:
+        return str(n)
 
-  const relativePath = String(filePathUrl).replace(/^\/+/, "");
-  const absolutePath = path.join(dataDir, "..", relativePath);
 
-  if (absolutePath.includes(path.join("uploads", "")) && fs.existsSync(absolutePath)) {
-    try {
-      fs.unlinkSync(absolutePath);
-    } catch (error) {
-      console.error("Gagal menghapus file:", absolutePath, error.message);
-    }
-  }
-}
+def normalize_header_name(s: Any) -> str:
+    s = norm_text(s).lower()
+    s = re.sub(r"[^a-z0-9_ ]+", "", s)
+    s = re.sub(r"\s+", "_", s).strip("_")
+    return s
 
-function normalizePublishedAt(value) {
-  const raw = cleanText(value);
-  if (!raw) return null;
 
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)) {
-    return `${raw.replace("T", " ")}:00`;
-  }
+def find_first_key(keys: set[str], aliases: set[str]) -> Optional[str]:
+    for a in aliases:
+        if a in keys:
+            return a
+    return None
 
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(raw)) {
-    return `${raw}:00`;
-  }
 
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)) {
-    return raw;
-  }
+def parse_date_any(s: str) -> Optional[datetime]:
+    s = norm_text(s)
+    if not s:
+        return None
 
-  return null;
-}
+    fmts = [
+        "%d/%m/%y %H.%M",
+        "%d/%m/%y %H:%M",
+        "%d/%m/%Y %H.%M",
+        "%d/%m/%Y %H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d",
+        "%d/%m/%Y",
+        "%d/%m/%y",
+        "%m/%d/%Y %H:%M",
+        "%m/%d/%Y",
+    ]
+    for f in fmts:
+        try:
+            return datetime.strptime(s, f)
+        except Exception:
+            pass
 
-function uniqueSlug(tableName, slug, currentId = null) {
-  const db = getDb();
-  let baseSlug = cleanText(slug);
+    s2 = s.replace(".", ":")
+    if s2 != s:
+        for f in [
+            "%d/%m/%y %H:%M",
+            "%d/%m/%Y %H:%M",
+            "%m/%d/%Y %H:%M",
+        ]:
+            try:
+                return datetime.strptime(s2, f)
+            except Exception:
+                pass
+    return None
 
-  if (!baseSlug) {
-    baseSlug = `item-${Date.now()}`;
-  }
 
-  let finalSlug = baseSlug;
-  let counter = 2;
+def parse_excel_datetime(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        return value
 
-  while (true) {
-    const existing = currentId
-      ? db.prepare(`SELECT id FROM ${tableName} WHERE slug = ? AND id != ? LIMIT 1`).get(finalSlug, currentId)
-      : db.prepare(`SELECT id FROM ${tableName} WHERE slug = ? LIMIT 1`).get(finalSlug);
+    if isinstance(value, date):
+        return datetime.combine(value, datetime.min.time())
 
-    if (!existing) return finalSlug;
+    if isinstance(value, (int, float)):
+        try:
+            dt = from_excel(value)
+            if isinstance(dt, datetime):
+                return dt
+            if isinstance(dt, date):
+                return datetime.combine(dt, datetime.min.time())
+        except Exception:
+            return None
 
-    finalSlug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-}
+    return parse_date_any(str(value))
 
-function renderFormError(res, viewName, seoTitle, error, item = null, status = 400) {
-  return res.status(status).render(viewName, {
-    seo: buildSeo({
-      title: seoTitle,
-      noindex: true
-    }),
-    item,
-    error
-  });
-}
 
-/* =========================
-   LOGIN
-========================= */
-router.get("/login", (req, res) => {
-  if (req.session.isAdmin) return res.redirect("/admin");
+def to_int_coin(x: Any) -> int:
+    try:
+        if x is None:
+            return 0
 
-  res.render("login", {
-    seo: buildSeo({
-      title: "Login Admin | Wisata Berastagi",
-      description: "Login admin Wisata Berastagi.",
-      noindex: true
-    }),
-    error: null
-  });
-});
+        if isinstance(x, str):
+            xs = x.strip()
+            if not xs:
+                return 0
+            xs = xs.replace(",", "").replace(" ", "")
+            xs = re.sub(r"[^\d.\-eE+]", "", xs)
+            if not xs:
+                return 0
+            return int(float(xs))
 
-router.post("/login", (req, res) => {
-  const db = getDb();
-  const username = cleanText(req.body.username);
-  const password = cleanText(req.body.password);
+        if isinstance(x, (int, float)):
+            return int(float(x))
+    except Exception:
+        return 0
 
-  const user = db
-    .prepare("SELECT * FROM users WHERE username = ? AND password = ?")
-    .get(username, password);
+    return 0
 
-  if (!user) {
-    return res.status(401).render("login", {
-      seo: buildSeo({
-        title: "Login Admin | Wisata Berastagi",
-        description: "Login admin Wisata Berastagi.",
-        noindex: true
-      }),
-      error: "Username atau password salah."
-    });
-  }
 
-  req.session.isAdmin = true;
-  req.session.adminUsername = user.username;
+# =======================
+# Load ID file (TXT/CSV/XLSX)
+# =======================
 
-  res.redirect("/admin");
-});
+def load_ids_from_txt(path: str) -> set[str]:
+    ids: set[str] = set()
+    with open(path, "r", encoding="utf-8-sig", errors="ignore") as f:
+        for line in f:
+            parts = RE_SPLIT.split(line.strip())
+            for p in parts:
+                s = norm_id(p)
+                if s and s not in {"to", "id", "userid", "user_id", "none", "null"}:
+                    ids.add(s)
+    return ids
 
-router.get("/logout", (req, res) => {
-  req.session.destroy(() => res.redirect("/admin/login"));
-});
 
-router.use(requireAdmin);
+def load_ids_from_csv(path: str) -> set[str]:
+    ids: set[str] = set()
 
-/* =========================
-   UPLOAD IMAGE UNTUK EDITOR
-========================= */
-router.post("/upload-image", articleEditorUpload.single("image"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({
-      error: "Gambar tidak ditemukan"
-    });
-  }
+    with open(path, "r", encoding="utf-8-sig", newline="") as f:
+        sample = f.read(8192)
+        f.seek(0)
 
-  return res.json({
-    location: fileUrl("berita", req.file.filename)
-  });
-});
+        try:
+            dialect = csv.Sniffer().sniff(sample, delimiters=[",", ";", "\t", "|"])
+        except Exception:
+            dialect = csv.excel
 
-/* =========================
-   DASHBOARD
-========================= */
-router.get("/", (req, res) => {
-  const db = getDb();
+        reader = csv.reader(f, dialect=dialect)
+        rows = list(reader)
 
-  res.render("admin-dashboard", {
-    seo: buildSeo({
-      title: "Dashboard Admin | Wisata Berastagi",
-      noindex: true
-    }),
-    stats: {
-      wisata: db.prepare("SELECT COUNT(*) as total FROM wisata").get().total,
-      villa: db.prepare("SELECT COUNT(*) as total FROM villa").get().total,
-      kuliner: db.prepare("SELECT COUNT(*) as total FROM kuliner").get().total,
-      berita: db.prepare("SELECT COUNT(*) as total FROM articles").get().total,
-      gallery: db.prepare("SELECT COUNT(*) as total FROM gallery").get().total,
-      comments: db.prepare("SELECT COUNT(*) as total FROM comments").get().total
-    }
-  });
-});
+    if not rows:
+        return ids
 
-/* =========================
-   GALLERY
-========================= */
-router.get("/gallery", (req, res) => {
-  const items = getDb()
-    .prepare("SELECT * FROM gallery ORDER BY sort_order ASC, id DESC")
-    .all();
+    first = rows[0]
+    header = [normalize_header_name(c) for c in first]
 
-  res.render("admin-gallery", {
-    seo: buildSeo({
-      title: "Kelola Galeri | Wisata Berastagi",
-      noindex: true
-    }),
-    items,
-    item: null,
-    error: null
-  });
-});
+    preferred_cols = ["to", "userid", "user_id", "id", "username", "user", "member", "account"]
+    col_idx = None
+    for col in preferred_cols:
+        if col in header:
+            col_idx = header.index(col)
+            break
 
-router.get("/gallery/edit/:id", (req, res) => {
-  const db = getDb();
-  const item = db.prepare("SELECT * FROM gallery WHERE id = ?").get(req.params.id);
-  const items = db.prepare("SELECT * FROM gallery ORDER BY sort_order ASC, id DESC").all();
+    data_rows = rows[1:] if col_idx is not None else rows
 
-  if (!item) return res.redirect("/admin/gallery");
+    for r in data_rows:
+        if not r:
+            continue
+        idx = col_idx if (col_idx is not None and col_idx < len(r)) else 0
+        val = r[idx] if idx < len(r) else ""
+        s = norm_id(val)
+        if s and s not in {"to", "id", "userid", "user_id", "none", "null"}:
+            ids.add(s)
 
-  res.render("admin-gallery", {
-    seo: buildSeo({
-      title: "Edit Galeri | Wisata Berastagi",
-      noindex: true
-    }),
-    items,
-    item,
-    error: null
-  });
-});
+    return ids
 
-router.post("/gallery/save", galleryUpload.single("image"), (req, res) => {
-  try {
-    const db = getDb();
-    const id = req.body.id ? Number(req.body.id) : null;
-    const title = cleanText(req.body.title);
-    const oldItem = id ? db.prepare("SELECT * FROM gallery WHERE id = ?").get(id) : null;
-    const image = fallbackImage(req.body.current_image, req.file, "gallery");
 
-    if (!image) {
-      const items = db.prepare("SELECT * FROM gallery ORDER BY sort_order ASC, id DESC").all();
-      return res.status(400).render("admin-gallery", {
-        seo: buildSeo({
-          title: id ? "Edit Galeri | Wisata Berastagi" : "Kelola Galeri | Wisata Berastagi",
-          noindex: true
-        }),
-        items,
-        item: req.body,
-        error: "Gambar galeri wajib diisi."
-      });
-    }
+def load_ids_from_xlsx(path: str) -> set[str]:
+    ids: set[str] = set()
+    wb = load_workbook(path, data_only=True)
+    ws = wb.active
 
-    const payload = {
-      id,
-      title,
-      slug: uniqueSlug("gallery", makeSlug(req.body.slug || title || `gallery-${Date.now()}`), id),
-      image,
-      alt_text: cleanText(req.body.alt_text || title),
-      caption: cleanText(req.body.caption),
-      sort_order: Number(req.body.sort_order || 0),
-      is_active: boolToInt(req.body.is_active)
-    };
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        return ids
 
-    if (id) {
-      db.prepare(`
-        UPDATE gallery
-        SET
-          title = @title,
-          slug = @slug,
-          image = @image,
-          alt_text = @alt_text,
-          caption = @caption,
-          sort_order = @sort_order,
-          is_active = @is_active,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = @id
-      `).run(payload);
+    first_row = rows[0]
+    headers = [normalize_header_name(c) for c in first_row]
 
-      if (req.file && oldItem?.image && oldItem.image !== image) {
-        deleteUploadedFileByUrl(oldItem.image);
-      }
-    } else {
-      db.prepare(`
-        INSERT INTO gallery (
-          title, slug, image, alt_text, caption, sort_order, is_active
-        ) VALUES (
-          @title, @slug, @image, @alt_text, @caption, @sort_order, @is_active
+    preferred_cols = ["to", "userid", "user_id", "id", "username", "user", "member", "account"]
+    col_idx = None
+    for col in preferred_cols:
+        if col in headers:
+            col_idx = headers.index(col)
+            break
+
+    data_rows = rows[1:] if col_idx is not None else rows
+
+    for row in data_rows:
+        if not row:
+            continue
+        idx = col_idx if (col_idx is not None and col_idx < len(row)) else 0
+        val = row[idx] if idx < len(row) else None
+        s = norm_id(val)
+        if s and s not in {"to", "id", "userid", "user_id", "none", "null"}:
+            ids.add(s)
+
+    return ids
+
+
+def load_id_file(path: str) -> set[str]:
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".txt":
+        return load_ids_from_txt(path)
+    if ext == ".csv":
+        return load_ids_from_csv(path)
+    if ext == ".xlsx":
+        return load_ids_from_xlsx(path)
+    raise ValueError("File ID harus .txt / .csv / .xlsx")
+
+
+# =======================
+# Load history (CSV/XLSX)
+# =======================
+
+def load_rows_from_csv(path: str) -> List[dict]:
+    rows: List[dict] = []
+
+    with open(path, "r", encoding="utf-8-sig", newline="") as f:
+        sample = f.read(8192)
+        f.seek(0)
+
+        try:
+            dialect = csv.Sniffer().sniff(sample, delimiters=[",", ";", "\t", "|"])
+        except Exception:
+            dialect = csv.excel
+
+        reader = csv.DictReader(f, dialect=dialect)
+
+        if reader.fieldnames:
+            reader.fieldnames = [normalize_header_name(fn) for fn in reader.fieldnames]
+
+        for r in reader:
+            rr = {}
+            for k, v in r.items():
+                if k is None:
+                    continue
+                kk = normalize_header_name(k)
+                rr[kk] = v.strip() if isinstance(v, str) else v
+            rows.append(rr)
+
+    return rows
+
+
+def load_rows_from_xlsx(path: str) -> List[dict]:
+    wb = load_workbook(path, data_only=True)
+    ws = wb.active
+
+    raw_rows = list(ws.iter_rows(values_only=True))
+    if not raw_rows:
+        return []
+
+    headers = [normalize_header_name(c) for c in raw_rows[0]]
+    rows: List[dict] = []
+
+    for row in raw_rows[1:]:
+        if not any(cell is not None and str(cell).strip() != "" for cell in row):
+            continue
+
+        rr = {}
+        for h, cell in zip(headers, row):
+            if not h:
+                continue
+            rr[h] = cell.strip() if isinstance(cell, str) else cell
+        rows.append(rr)
+
+    return rows
+
+
+def load_history(path: str) -> List[dict]:
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".csv":
+        return load_rows_from_csv(path)
+    if ext == ".xlsx":
+        return load_rows_from_xlsx(path)
+    raise ValueError("History harus CSV atau XLSX")
+
+
+def compute_report(
+    rows: List[dict],
+    ids: set[str],
+    requested_day: Optional[date]
+) -> Tuple[date, List[Tuple[str, int, int]]]:
+    if not rows:
+        raise ValueError("File history kosong atau tidak ada data yang terbaca.")
+
+    keys = set(rows[0].keys())
+
+    date_key = find_first_key(keys, DATE_ALIASES)
+    info_key = find_first_key(keys, INFO_ALIASES)
+    to_key = find_first_key(keys, TO_ALIASES)
+    coin_key = find_first_key(keys, COIN_ALIASES)
+
+    missing = []
+    if not date_key:
+        missing.append("date/tanggal")
+    if not info_key:
+        missing.append("info/keterangan")
+    if not to_key:
+        missing.append("to/user/id")
+    if not coin_key:
+        missing.append("coin/amount/nominal")
+
+    if missing:
+        raise ValueError(
+            f"Kolom wajib tidak ditemukan: {', '.join(missing)}\n"
+            f"Kolom yang terbaca di file: {', '.join(sorted(keys))}"
         )
-      `).run(payload);
-    }
-
-    res.redirect("/admin/gallery");
-  } catch (error) {
-    console.error("GAGAL SIMPAN GALLERY:", error);
-    res.redirect("/admin/gallery");
-  }
-});
-
-router.post("/gallery/toggle/:id", (req, res) => {
-  const db = getDb();
-  const item = db.prepare("SELECT * FROM gallery WHERE id = ?").get(req.params.id);
-
-  if (item) {
-    db.prepare(`
-      UPDATE gallery
-      SET is_active = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(item.is_active ? 0 : 1, req.params.id);
-  }
-
-  res.redirect("/admin/gallery");
-});
-
-router.post("/gallery/delete/:id", (req, res) => {
-  const db = getDb();
-  const item = db.prepare("SELECT * FROM gallery WHERE id = ?").get(req.params.id);
-
-  if (item) {
-    deleteUploadedFileByUrl(item.image);
-    db.prepare("DELETE FROM gallery WHERE id = ?").run(req.params.id);
-  }
-
-  res.redirect("/admin/gallery");
-});
-
-/* =========================
-   WISATA
-========================= */
-router.get("/wisata", (req, res) => {
-  const items = getDb().prepare("SELECT * FROM wisata ORDER BY id DESC").all();
-
-  res.render("admin-wisata", {
-    seo: buildSeo({
-      title: "Admin Wisata | Wisata Berastagi",
-      noindex: true
-    }),
-    items
-  });
-});
-
-router.get("/wisata/new", (req, res) => {
-  res.render("admin-wisata-form", {
-    seo: buildSeo({
-      title: "Tambah Wisata | Wisata Berastagi",
-      noindex: true
-    }),
-    item: null,
-    error: null
-  });
-});
-
-router.get("/wisata/edit/:id", (req, res) => {
-  const item = getDb().prepare("SELECT * FROM wisata WHERE id = ?").get(req.params.id);
-
-  if (!item) return res.redirect("/admin/wisata");
-
-  res.render("admin-wisata-form", {
-    seo: buildSeo({
-      title: "Edit Wisata | Wisata Berastagi",
-      noindex: true
-    }),
-    item,
-    error: null
-  });
-});
-
-router.post("/wisata/save", wisataUpload.single("image"), (req, res) => {
-  try {
-    const db = getDb();
-    const id = req.body.id ? Number(req.body.id) : null;
-    const title = cleanText(req.body.title);
-    const content = cleanHtml(req.body.content);
-    const oldItem = id ? db.prepare("SELECT * FROM wisata WHERE id = ?").get(id) : null;
-
-    const validationError = requireBasicContent(
-      title,
-      content,
-      res,
-      "admin-wisata-form",
-      id ? "Edit Wisata | Wisata Berastagi" : "Tambah Wisata | Wisata Berastagi",
-      req.body
-    );
-    if (validationError) return;
-
-    const slug = uniqueSlug("wisata", makeSlug(req.body.slug || title), id);
-    const image = fallbackImage(req.body.current_image, req.file, "wisata");
-
-    const payload = {
-      id,
-      title,
-      slug,
-      excerpt: cleanText(req.body.excerpt || excerpt(plainTextFromHtml(content), 150)),
-      content,
-      image,
-      location: cleanText(req.body.location),
-      ticket_price: cleanText(req.body.ticket_price),
-      open_hours: cleanText(req.body.open_hours),
-      maps_url: cleanText(req.body.maps_url),
-      meta_title: cleanText(req.body.meta_title || `${title} | Wisata Berastagi`),
-      meta_description: cleanText(req.body.meta_description || excerpt(plainTextFromHtml(content), 150)),
-      is_featured: boolToInt(req.body.is_featured)
-    };
-
-    if (id) {
-      db.prepare(`
-        UPDATE wisata
-        SET
-          title = @title,
-          slug = @slug,
-          excerpt = @excerpt,
-          content = @content,
-          image = @image,
-          location = @location,
-          ticket_price = @ticket_price,
-          open_hours = @open_hours,
-          maps_url = @maps_url,
-          meta_title = @meta_title,
-          meta_description = @meta_description,
-          is_featured = @is_featured,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = @id
-      `).run(payload);
-
-      if (req.file && oldItem?.image && oldItem.image !== image) {
-        deleteUploadedFileByUrl(oldItem.image);
-      }
-    } else {
-      db.prepare(`
-        INSERT INTO wisata (
-          title, slug, excerpt, content, image, location, ticket_price, open_hours, maps_url,
-          meta_title, meta_description, is_featured
-        ) VALUES (
-          @title, @slug, @excerpt, @content, @image, @location, @ticket_price, @open_hours, @maps_url,
-          @meta_title, @meta_description, @is_featured
-        )
-      `).run(payload);
-    }
-
-    res.redirect("/admin/wisata");
-  } catch (error) {
-    console.error("GAGAL SIMPAN WISATA:", error);
-    return renderFormError(
-      res,
-      "admin-wisata-form",
-      req.body.id ? "Edit Wisata | Wisata Berastagi" : "Tambah Wisata | Wisata Berastagi",
-      error.message || "Data wisata gagal disimpan.",
-      req.body,
-      500
-    );
-  }
-});
-
-router.post("/wisata/delete/:id", (req, res) => {
-  const db = getDb();
-  const item = db.prepare("SELECT * FROM wisata WHERE id = ?").get(req.params.id);
-
-  if (item?.image) {
-    deleteUploadedFileByUrl(item.image);
-  }
-
-  db.prepare("DELETE FROM wisata WHERE id = ?").run(req.params.id);
-  res.redirect("/admin/wisata");
-});
-
-/* =========================
-   VILLA
-========================= */
-router.get("/villa", (req, res) => {
-  const items = getDb().prepare("SELECT * FROM villa ORDER BY id DESC").all();
-
-  res.render("admin-villa", {
-    seo: buildSeo({
-      title: "Admin Villa | Wisata Berastagi",
-      noindex: true
-    }),
-    items
-  });
-});
-
-router.get("/villa/new", (req, res) => {
-  res.render("admin-villa-form", {
-    seo: buildSeo({
-      title: "Tambah Villa | Wisata Berastagi",
-      noindex: true
-    }),
-    item: null,
-    error: null
-  });
-});
-
-router.get("/villa/edit/:id", (req, res) => {
-  const item = getDb().prepare("SELECT * FROM villa WHERE id = ?").get(req.params.id);
-
-  if (!item) return res.redirect("/admin/villa");
-
-  res.render("admin-villa-form", {
-    seo: buildSeo({
-      title: "Edit Villa | Wisata Berastagi",
-      noindex: true
-    }),
-    item,
-    error: null
-  });
-});
-
-router.post("/villa/save", villaUpload.single("image"), (req, res) => {
-  try {
-    const db = getDb();
-    const id = req.body.id ? Number(req.body.id) : null;
-    const title = cleanText(req.body.title);
-    const content = cleanHtml(req.body.content);
-    const oldItem = id ? db.prepare("SELECT * FROM villa WHERE id = ?").get(id) : null;
-
-    const validationError = requireBasicContent(
-      title,
-      content,
-      res,
-      "admin-villa-form",
-      id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
-      req.body
-    );
-    if (validationError) return;
-
-    const slug = uniqueSlug("villa", makeSlug(req.body.slug || title), id);
-    const image = fallbackImage(req.body.current_image, req.file, "villa");
-
-    const payload = {
-      id,
-      title,
-      slug,
-      excerpt: cleanText(req.body.excerpt || excerpt(plainTextFromHtml(content), 150)),
-      content,
-      image,
-      price: cleanText(req.body.price),
-      location: cleanText(req.body.location),
-      facilities: cleanText(req.body.facilities),
-      booking_url: cleanText(req.body.booking_url),
-      contact_phone: cleanText(req.body.contact_phone),
-      maps_url: cleanText(req.body.maps_url),
-      meta_title: cleanText(req.body.meta_title || `${title} | Villa Berastagi`),
-      meta_description: cleanText(req.body.meta_description || excerpt(plainTextFromHtml(content), 150)),
-      is_featured: boolToInt(req.body.is_featured)
-    };
-
-    if (id) {
-      db.prepare(`
-        UPDATE villa
-        SET
-          title = @title,
-          slug = @slug,
-          excerpt = @excerpt,
-          content = @content,
-          image = @image,
-          price = @price,
-          location = @location,
-          facilities = @facilities,
-          booking_url = @booking_url,
-          contact_phone = @contact_phone,
-          maps_url = @maps_url,
-          meta_title = @meta_title,
-          meta_description = @meta_description,
-          is_featured = @is_featured,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = @id
-      `).run(payload);
-
-      if (req.file && oldItem?.image && oldItem.image !== image) {
-        deleteUploadedFileByUrl(oldItem.image);
-      }
-    } else {
-      db.prepare(`
-        INSERT INTO villa (
-          title, slug, excerpt, content, image, price, location, facilities, booking_url, contact_phone, maps_url,
-          meta_title, meta_description, is_featured
-        ) VALUES (
-          @title, @slug, @excerpt, @content, @image, @price, @location, @facilities, @booking_url, @contact_phone, @maps_url,
-          @meta_title, @meta_description, @is_featured
-        )
-      `).run(payload);
-    }
-
-    res.redirect("/admin/villa");
-  } catch (error) {
-    console.error("GAGAL SIMPAN VILLA:", error);
-    return renderFormError(
-      res,
-      "admin-villa-form",
-      req.body.id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
-      error.message || "Data villa gagal disimpan.",
-      req.body,
-      500
-    );
-  }
-});
-
-router.post("/villa/delete/:id", (req, res) => {
-  const db = getDb();
-  const item = db.prepare("SELECT * FROM villa WHERE id = ?").get(req.params.id);
-
-  if (item?.image) {
-    deleteUploadedFileByUrl(item.image);
-  }
-
-  db.prepare("DELETE FROM villa WHERE id = ?").run(req.params.id);
-  res.redirect("/admin/villa");
-});
-
-/* =========================
-   KULINER
-========================= */
-router.get("/kuliner", (req, res) => {
-  const items = getDb().prepare("SELECT * FROM kuliner ORDER BY id DESC").all();
-
-  res.render("admin-kuliner", {
-    seo: buildSeo({
-      title: "Admin Kuliner | Wisata Berastagi",
-      noindex: true
-    }),
-    items
-  });
-});
-
-router.get("/kuliner/new", (req, res) => {
-  res.render("admin-kuliner-form", {
-    seo: buildSeo({
-      title: "Tambah Kuliner | Wisata Berastagi",
-      noindex: true
-    }),
-    item: null,
-    error: null
-  });
-});
-
-router.get("/kuliner/edit/:id", (req, res) => {
-  const item = getDb().prepare("SELECT * FROM kuliner WHERE id = ?").get(req.params.id);
-
-  if (!item) return res.redirect("/admin/kuliner");
-
-  res.render("admin-kuliner-form", {
-    seo: buildSeo({
-      title: "Edit Kuliner | Wisata Berastagi",
-      noindex: true
-    }),
-    item,
-    error: null
-  });
-});
-
-router.post("/kuliner/save", kulinerUpload.single("image"), (req, res) => {
-  try {
-    const db = getDb();
-    const id = req.body.id ? Number(req.body.id) : null;
-    const title = cleanText(req.body.title);
-    const content = cleanHtml(req.body.content);
-    const oldItem = id ? db.prepare("SELECT * FROM kuliner WHERE id = ?").get(id) : null;
-
-    const validationError = requireBasicContent(
-      title,
-      content,
-      res,
-      "admin-kuliner-form",
-      id ? "Edit Kuliner | Wisata Berastagi" : "Tambah Kuliner | Wisata Berastagi",
-      req.body
-    );
-    if (validationError) return;
-
-    const slug = uniqueSlug("kuliner", makeSlug(req.body.slug || title), id);
-    const image = fallbackImage(req.body.current_image, req.file, "kuliner");
-
-    const payload = {
-      id,
-      title,
-      slug,
-      excerpt: cleanText(req.body.excerpt || excerpt(plainTextFromHtml(content), 150)),
-      content,
-      image,
-      location: cleanText(req.body.location),
-      price_range: cleanText(req.body.price_range),
-      open_hours: cleanText(req.body.open_hours),
-      maps_url: cleanText(req.body.maps_url),
-      contact_phone: cleanText(req.body.contact_phone),
-      meta_title: cleanText(req.body.meta_title || `${title} | Kuliner Berastagi`),
-      meta_description: cleanText(req.body.meta_description || excerpt(plainTextFromHtml(content), 150)),
-      is_featured: boolToInt(req.body.is_featured)
-    };
-
-    if (id) {
-      db.prepare(`
-        UPDATE kuliner
-        SET
-          title = @title,
-          slug = @slug,
-          excerpt = @excerpt,
-          content = @content,
-          image = @image,
-          location = @location,
-          price_range = @price_range,
-          open_hours = @open_hours,
-          maps_url = @maps_url,
-          contact_phone = @contact_phone,
-          meta_title = @meta_title,
-          meta_description = @meta_description,
-          is_featured = @is_featured,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = @id
-      `).run(payload);
-
-      if (req.file && oldItem?.image && oldItem.image !== image) {
-        deleteUploadedFileByUrl(oldItem.image);
-      }
-    } else {
-      db.prepare(`
-        INSERT INTO kuliner (
-          title, slug, excerpt, content, image, location, price_range, open_hours, maps_url,
-          contact_phone, meta_title, meta_description, is_featured
-        ) VALUES (
-          @title, @slug, @excerpt, @content, @image, @location, @price_range, @open_hours, @maps_url,
-          @contact_phone, @meta_title, @meta_description, @is_featured
-        )
-      `).run(payload);
-    }
-
-    res.redirect("/admin/kuliner");
-  } catch (error) {
-    console.error("GAGAL SIMPAN KULINER:", error);
-    return renderFormError(
-      res,
-      "admin-kuliner-form",
-      req.body.id ? "Edit Kuliner | Wisata Berastagi" : "Tambah Kuliner | Wisata Berastagi",
-      error.message || "Data kuliner gagal disimpan.",
-      req.body,
-      500
-    );
-  }
-});
-
-router.post("/kuliner/delete/:id", (req, res) => {
-  const db = getDb();
-  const item = db.prepare("SELECT * FROM kuliner WHERE id = ?").get(req.params.id);
-
-  if (item?.image) {
-    deleteUploadedFileByUrl(item.image);
-  }
-
-  db.prepare("DELETE FROM kuliner WHERE id = ?").run(req.params.id);
-  res.redirect("/admin/kuliner");
-});
-
-/* =========================
-   BERITA
-   tetap pakai tabel articles
-========================= */
-function saveBeritaHandler(req, res) {
-  try {
-    const db = getDb();
-    const id = req.body.id ? Number(req.body.id) : null;
-    const title = cleanText(req.body.title);
-    const content = cleanHtml(req.body.content);
-    const oldItem = id ? db.prepare("SELECT * FROM articles WHERE id = ?").get(id) : null;
-
-    const validationError = requireBasicContent(
-      title,
-      content,
-      res,
-      "admin-article-form",
-      id ? "Edit Berita | Wisata Berastagi" : "Tambah Berita | Wisata Berastagi",
-      req.body
-    );
-    if (validationError) return;
-
-    const slug = uniqueSlug("articles", makeSlug(req.body.slug || title), id);
-    const image = fallbackImage(req.body.current_image, req.file, "berita");
-    const publishedAt = normalizePublishedAt(req.body.published_at);
-
-    const payload = {
-      id,
-      title,
-      slug,
-      excerpt: cleanText(req.body.excerpt || excerpt(plainTextFromHtml(content), 150)),
-      content,
-      image,
-      category: cleanText(req.body.category || "berita"),
-      meta_title: cleanText(req.body.meta_title || `${title} | Berita Wisata Berastagi`),
-      meta_description: cleanText(req.body.meta_description || excerpt(plainTextFromHtml(content), 150)),
-      published_at: publishedAt
-    };
-
-    if (id) {
-      db.prepare(`
-        UPDATE articles
-        SET
-          title = @title,
-          slug = @slug,
-          excerpt = @excerpt,
-          content = @content,
-          image = @image,
-          category = @category,
-          meta_title = @meta_title,
-          meta_description = @meta_description,
-          published_at = COALESCE(@published_at, published_at, CURRENT_TIMESTAMP),
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = @id
-      `).run(payload);
-
-      if (req.file && oldItem?.image && oldItem.image !== image) {
-        deleteUploadedFileByUrl(oldItem.image);
-      }
-    } else {
-      db.prepare(`
-        INSERT INTO articles (
-          title, slug, excerpt, content, image, category, meta_title, meta_description, published_at
-        ) VALUES (
-          @title, @slug, @excerpt, @content, @image, @category, @meta_title, @meta_description,
-          COALESCE(@published_at, CURRENT_TIMESTAMP)
-        )
-      `).run(payload);
-    }
-
-    res.redirect("/admin/berita");
-  } catch (error) {
-    console.error("GAGAL SIMPAN BERITA:", error);
-    return renderFormError(
-      res,
-      "admin-article-form",
-      req.body.id ? "Edit Berita | Wisata Berastagi" : "Tambah Berita | Wisata Berastagi",
-      error.message || "Berita gagal disimpan. Cek kolom tabel articles.",
-      req.body,
-      500
-    );
-  }
-}
-
-router.get("/berita", (req, res) => {
-  const items = getDb()
-    .prepare("SELECT * FROM articles ORDER BY datetime(COALESCE(published_at, created_at)) DESC, id DESC")
-    .all();
-
-  res.render("admin-articles", {
-    seo: buildSeo({
-      title: "Admin Berita | Wisata Berastagi",
-      noindex: true
-    }),
-    items
-  });
-});
-
-router.get("/berita/new", (req, res) => {
-  res.render("admin-article-form", {
-    seo: buildSeo({
-      title: "Tambah Berita | Wisata Berastagi",
-      noindex: true
-    }),
-    item: null,
-    error: null
-  });
-});
-
-router.get("/berita/edit/:id", (req, res) => {
-  const item = getDb().prepare("SELECT * FROM articles WHERE id = ?").get(req.params.id);
-
-  if (!item) return res.redirect("/admin/berita");
-
-  res.render("admin-article-form", {
-    seo: buildSeo({
-      title: "Edit Berita | Wisata Berastagi",
-      noindex: true
-    }),
-    item,
-    error: null
-  });
-});
-
-router.post("/berita/save", beritaUpload.single("image"), saveBeritaHandler);
-
-router.post("/berita/delete/:id", (req, res) => {
-  const db = getDb();
-  const item = db.prepare("SELECT * FROM articles WHERE id = ?").get(req.params.id);
-
-  if (item?.image) {
-    deleteUploadedFileByUrl(item.image);
-  }
-
-  db.prepare("DELETE FROM articles WHERE id = ?").run(req.params.id);
-  res.redirect("/admin/berita");
-});
-
-/* =========================
-   OPTIONAL BACKWARD COMPATIBILITY
-========================= */
-router.get("/articles", (req, res) => res.redirect("/admin/berita"));
-router.get("/articles/new", (req, res) => res.redirect("/admin/berita/new"));
-router.get("/articles/edit/:id", (req, res) => res.redirect(`/admin/berita/edit/${req.params.id}`));
-router.post("/articles/save", beritaUpload.single("image"), saveBeritaHandler);
-router.post("/articles/delete/:id", (req, res) => res.redirect(307, `/admin/berita/delete/${req.params.id}`));
-
-/* =========================
-   COMMENTS
-========================= */
-router.get("/comments", (req, res) => {
-  const items = getDb().prepare("SELECT * FROM comments ORDER BY id DESC").all();
-
-  res.render("admin-comments", {
-    seo: buildSeo({
-      title: "Komentar Pengunjung | Wisata Berastagi",
-      noindex: true
-    }),
-    items
-  });
-});
-
-router.post("/comments/approve/:id", (req, res) => {
-  getDb().prepare("UPDATE comments SET status = 'approved' WHERE id = ?").run(req.params.id);
-  res.redirect("/admin/comments");
-});
-
-router.post("/comments/delete/:id", (req, res) => {
-  getDb().prepare("DELETE FROM comments WHERE id = ?").run(req.params.id);
-  res.redirect("/admin/comments");
-});
-
-/* =========================
-   SETTINGS
-========================= */
-router.get("/settings", (req, res) => {
-  res.render("admin-settings", {
-    seo: buildSeo({
-      title: "Pengaturan Website | Wisata Berastagi",
-      noindex: true
-    }),
-    settings: settingsRow()
-  });
-});
-
-router.post("/settings", (req, res) => {
-  getDb().prepare(`
-    UPDATE settings
-    SET
-      site_name = ?,
-      site_tagline = ?,
-      contact_phone = ?,
-      contact_email = ?,
-      address = ?,
-      footer_text = ?,
-      homepage_title = ?,
-      homepage_meta_description = ?,
-      hero_title = ?,
-      hero_subtitle = ?,
-      hero_background = ?
-    WHERE id = 1
-  `).run(
-    cleanText(req.body.site_name),
-    cleanText(req.body.site_tagline),
-    cleanText(req.body.contact_phone),
-    cleanText(req.body.contact_email),
-    cleanText(req.body.address),
-    cleanText(req.body.footer_text),
-    cleanText(req.body.homepage_title),
-    cleanText(req.body.homepage_meta_description),
-    cleanText(req.body.hero_title),
-    cleanText(req.body.hero_subtitle),
-    cleanText(req.body.hero_background)
-  );
-
-  res.redirect("/admin/settings");
-});
-
-module.exports = router;
+
+    parsed: List[Tuple[date, str, int]] = []
+
+    for r in rows:
+        info = norm_text(r.get(info_key, "")).lower()
+        if not any(k in info for k in DEPOSIT_KEYWORDS):
+            continue
+
+        dtp = parse_excel_datetime(r.get(date_key))
+        if not dtp:
+            continue
+
+        to_id = norm_id(r.get(to_key, ""))
+        if not to_id or to_id not in ids:
+            continue
+
+        coin = to_int_coin(r.get(coin_key, 0))
+        parsed.append((dtp.date(), to_id, coin))
+
+    if not parsed:
+        raise ValueError("Tidak ada data deposit yang cocok dengan ID new member di file history.")
+
+    available_days = sorted({d for d, _, _ in parsed})
+    target_day = requested_day if (requested_day in available_days) else available_days[-1]
+
+    agg: Dict[str, Dict[str, int]] = {}
+    for d, to_id, coin in parsed:
+        if d != target_day:
+            continue
+        if to_id not in agg:
+            agg[to_id] = {"count": 0, "sum": 0}
+        agg[to_id]["count"] += 1
+        agg[to_id]["sum"] += coin
+
+    if not agg:
+        raise ValueError(f"Tidak ada deposit untuk tanggal {target_day} pada ID yang cocok.")
+
+    out = [(k, v["count"], v["sum"]) for k, v in agg.items()]
+    out.sort(key=lambda x: (x[2], x[1], x[0]), reverse=True)
+    return target_day, out
+
+
+def make_excel_bytes(target_day: date, items: List[Tuple[str, int, int]]) -> bytes:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Report"
+
+    ws.append(["TO", "Deposit Count", "Total Coin", "Tanggal"])
+
+    for to_id, cnt, total in items:
+        ws.append([to_id, cnt, total, str(target_day)])
+
+    bio = BytesIO()
+    wb.save(bio)
+    return bio.getvalue()
+
+
+# ================== COMMANDS ==================
+
+@dp.message(Command("start"))
+async def start(m: Message):
+    if await deny_if_not_admin(m):
+        return
+
+    SESS[m.from_user.id] = {"ids": set(), "target_date": None, "awaiting": None}
+
+    await m.answer(
+        "✅ Bot Cek New Member siap (OMTOGEL)\n\n"
+        "Perintah:\n"
+        "/ceknew = mulai (upload file ID dulu)\n"
+        "/tanggal YYYY-MM-DD = set tanggal (opsional)\n"
+        "/reset = hapus session\n"
+        "/adminlist = lihat daftar admin\n\n"
+        "Alur:\n"
+        "1) /ceknew\n"
+        "2) upload file ID (.txt/.csv/.xlsx)\n"
+        "3) upload history koin (.csv/.xlsx)\n"
+    )
+
+
+@dp.message(Command("reset"))
+async def reset(m: Message):
+    if await deny_if_not_admin(m):
+        return
+
+    SESS[m.from_user.id] = {"ids": set(), "target_date": None, "awaiting": None}
+    await m.answer("♻️ Session direset. Ketik /ceknew untuk mulai lagi.")
+
+
+@dp.message(Command("tanggal"))
+async def tanggal(m: Message):
+    if await deny_if_not_admin(m):
+        return
+
+    parts = norm_text(m.text).split(maxsplit=1)
+    if len(parts) < 2:
+        await m.answer("Format: /tanggal 2026-01-13")
+        return
+
+    try:
+        d = datetime.strptime(parts[1].strip(), "%Y-%m-%d").date()
+    except Exception:
+        await m.answer("Format tanggal salah. Contoh: /tanggal 2026-01-13")
+        return
+
+    sess = SESS.setdefault(m.from_user.id, {"ids": set(), "target_date": None, "awaiting": None})
+    sess["target_date"] = d
+    await m.answer(f"📅 OK. Target tanggal diset: {d} (kalau tidak ada di file, bot pakai tanggal terbaru).")
+
+
+@dp.message(Command("ceknew"))
+async def ceknew(m: Message):
+    if await deny_if_not_admin(m):
+        return
+
+    sess = SESS.setdefault(m.from_user.id, {"ids": set(), "target_date": None, "awaiting": None})
+    sess["ids"] = set()
+    sess["awaiting"] = "idsfile"
+
+    await m.answer(
+        "Upload file ID new member dulu ✅\n"
+        "Format: .txt / .csv / .xlsx\n"
+        "- TXT: boleh 1 baris 1 ID atau dipisah spasi/koma\n"
+        "- CSV/XLSX: kolom TO / ID / USERID (atau kolom A)\n\n"
+        "Setelah itu upload history koin."
+    )
+
+
+@dp.message(Command("adminlist"))
+async def adminlist(m: Message):
+    if await deny_if_not_admin(m):
+        return
+
+    await m.answer("✅ Admin IDs:\n" + "\n".join(str(i) for i in sorted(ADMIN_IDS)))
+
+
+# ================== DOCUMENT HANDLER ==================
+
+@dp.message(F.document)
+async def handle_doc(m: Message):
+    if await deny_if_not_admin(m):
+        return
+
+    sess = SESS.setdefault(m.from_user.id, {"ids": set(), "target_date": None, "awaiting": None})
+    doc = m.document
+
+    if not doc:
+        await m.answer("❌ Dokumen tidak ditemukan.")
+        return
+
+    fname = norm_text(doc.file_name) or "file"
+    ext = os.path.splitext(fname)[1].lower()
+
+    with tempfile.TemporaryDirectory() as td:
+        path = os.path.join(td, fname)
+
+        try:
+            await bot.download(doc, destination=path)
+        except Exception as e:
+            await m.answer(f"❌ Gagal download file: {e}")
+            return
+
+        # 1) upload ID file
+        if sess.get("awaiting") == "idsfile":
+            if ext not in [".txt", ".csv", ".xlsx"]:
+                await m.answer("❌ File ID harus .txt / .csv / .xlsx")
+                return
+
+            try:
+                ids = load_id_file(path)
+            except Exception as e:
+                await m.answer(f"❌ Gagal baca file ID: {e}")
+                return
+
+            if not ids:
+                await m.answer("❌ ID kosong. Pastikan file berisi ID.")
+                return
+
+            sess["ids"] = ids
+            sess["awaiting"] = "file"
+
+            await m.answer(
+                f"✅ ID terkumpul: {fmt(len(ids))}\n"
+                "Sekarang upload history koin (CSV/XLSX)."
+            )
+            return
+
+        # 2) upload history file
+        if sess.get("awaiting") == "file":
+            if ext not in [".csv", ".xlsx"]:
+                await m.answer("❌ History harus CSV atau XLSX")
+                return
+
+            if not sess.get("ids"):
+                await m.answer("❌ ID belum ada. Ketik /ceknew lalu upload file ID dulu.")
+                return
+
+            try:
+                rows = load_history(path)
+                target_day, items = compute_report(rows, sess["ids"], sess.get("target_date"))
+            except Exception as e:
+                await m.answer(f"❌ Gagal proses history: {e}")
+                return
+
+            total_member_dp = len(items)
+            total_dp_count = sum(cnt for _, cnt, _ in items)
+            total_coin = sum(total for _, _, total in items)
+
+            lines = []
+            for i, (to_id, cnt, total) in enumerate(items[:15], start=1):
+                lines.append(f"{i}. {to_id} | {fmt(cnt)}x | {fmt(total)}")
+
+            msg = (
+                f"📊 Report New Member (Tanggal {target_day})\n\n"
+                f"📌 Total ID input: {fmt(len(sess['ids']))}\n"
+                f"✅ Member yang deposit: {fmt(total_member_dp)}\n"
+                f"🧾 Total deposit count (all new member): {fmt(total_dp_count)}\n"
+                f"🪙 Total coin deposit (all new member): {fmt(total_coin)}\n\n"
+                f"🏆 Top 15:\n"
+                + ("\n".join(lines) if lines else "-")
+            )
+
+            await m.answer(msg)
+
+            try:
+                xbytes = make_excel_bytes(target_day, items)
+                outname = f"report_new_member_{target_day}.xlsx"
+                await m.answer_document(BufferedInputFile(xbytes, filename=outname))
+            except Exception as e:
+                await m.answer(f"⚠️ Report tampil, tapi gagal kirim Excel: {e}")
+
+            # reset session setelah selesai
+            sess["ids"] = set()
+            sess["target_date"] = None
+            sess["awaiting"] = None
+            return
+
+    await m.answer("Ketik /ceknew dulu, lalu upload file ID (.txt/.csv/.xlsx).")
+
+
+async def main():
+    logging.info("Bot starting... removing webhook first")
+    await bot.delete_webhook(drop_pending_updates=True)
+
+    me = await bot.get_me()
+    logging.info("Bot active: @%s (%s)", me.username, me.id)
+
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Bot stopped")
