@@ -54,7 +54,32 @@ function safeDescription(item, fallbackText) {
   );
 }
 
+function safeParseJsonArray(value) {
+  if (!value) return [];
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function safeVillaImages(item) {
+  const images = safeParseJsonArray(item?.images);
+
+  if (item?.image && !images.includes(item.image)) {
+    images.unshift(item.image);
+  }
+
+  return images.filter(Boolean);
+}
+
 function safeImage(item) {
+  if (item?.images) {
+    const villaImages = safeVillaImages(item);
+    if (villaImages.length) return villaImages[0];
+  }
+
   return item?.image || "/images/wisata-berastagi-cover.jpg";
 }
 
@@ -133,7 +158,11 @@ router.get("/", (req, res) => {
 
   const featuredVilla = db
     .prepare("SELECT * FROM villa WHERE is_featured = 1 ORDER BY id DESC LIMIT 6")
-    .all();
+    .all()
+    .map((item) => ({
+      ...item,
+      images: safeVillaImages(item)
+    }));
 
   const latestKuliner = db
     .prepare("SELECT * FROM kuliner ORDER BY id DESC LIMIT 6")
@@ -458,7 +487,14 @@ router.get("/villa", (req, res) => {
   const settings = getSettings();
   const baseUrl = res.locals.baseUrl;
   const canonical = `${baseUrl}/villa`;
-  const items = db.prepare("SELECT * FROM villa ORDER BY id DESC").all();
+
+  const items = db
+    .prepare("SELECT * FROM villa ORDER BY id DESC")
+    .all()
+    .map((item) => ({
+      ...item,
+      images: safeVillaImages(item)
+    }));
 
   const title = "Villa dan Hotel di Berastagi Terbaik | Wisata Berastagi";
   const description =
@@ -502,15 +538,24 @@ router.get("/villa/:slug", (req, res) => {
   const db = getDb();
   const settings = getSettings();
   const baseUrl = res.locals.baseUrl;
-  const item = db.prepare("SELECT * FROM villa WHERE slug = ?").get(req.params.slug);
+  const rawItem = db.prepare("SELECT * FROM villa WHERE slug = ?").get(req.params.slug);
 
-  if (!item) return res.redirect("/villa");
+  if (!rawItem) return res.redirect("/villa");
+
+  const item = {
+    ...rawItem,
+    images: safeVillaImages(rawItem)
+  };
 
   const ratings = getRatings("villa", item.id);
   const comments = getComments("villa", item.id);
   const related = db
     .prepare("SELECT * FROM villa WHERE id != ? ORDER BY id DESC LIMIT 4")
-    .all(item.id);
+    .all(item.id)
+    .map((rel) => ({
+      ...rel,
+      images: safeVillaImages(rel)
+    }));
 
   const canonical = `${baseUrl}/villa/${item.slug}`;
   const title = item.meta_title || buildTitle(item.title, "Villa & Hotel di Berastagi");
@@ -1202,7 +1247,11 @@ router.get("/cari", (req, res) => {
 
     villa = db
       .prepare("SELECT * FROM villa WHERE title LIKE ? OR content LIKE ? ORDER BY id DESC")
-      .all(like, like);
+      .all(like, like)
+      .map((item) => ({
+        ...item,
+        images: safeVillaImages(item)
+      }));
 
     kuliner = db
       .prepare("SELECT * FROM kuliner WHERE title LIKE ? OR content LIKE ? ORDER BY id DESC")
