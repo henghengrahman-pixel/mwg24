@@ -114,6 +114,7 @@ function requireBasicContent(title, content, res, viewName, seoTitle, item = nul
       error: "Judul dan konten wajib diisi."
     });
   }
+
   return null;
 }
 
@@ -203,6 +204,18 @@ function deleteManyFiles(urls = []) {
   for (const url of urls) {
     deleteUploadedFileByUrl(url);
   }
+}
+
+function preserveVillaFormItem(body = {}, existingItem = null) {
+  const oldImages = safeParseJsonArray(body.current_gallery_images || existingItem?.images);
+
+  return {
+    ...(existingItem || {}),
+    ...body,
+    id: body.id || existingItem?.id || "",
+    image: body.current_image || existingItem?.image || "",
+    images: oldImages
+  };
 }
 
 /* =========================
@@ -596,7 +609,10 @@ router.get("/villa/edit/:id", (req, res) => {
       title: "Edit Villa | Wisata Berastagi",
       noindex: true
     }),
-    item,
+    item: {
+      ...item,
+      images: safeParseJsonArray(item.images)
+    },
     error: null
   });
 });
@@ -616,7 +632,7 @@ router.post(
           "admin-villa-form",
           req.body?.id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
           err.message || "Upload gambar gagal.",
-          req.body,
+          preserveVillaFormItem(req.body),
           400
         );
       }
@@ -627,7 +643,7 @@ router.post(
           "admin-villa-form",
           req.body?.id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
           err.message || "Upload file gagal.",
-          req.body,
+          preserveVillaFormItem(req.body),
           400
         );
       }
@@ -643,13 +659,15 @@ router.post(
       const content = cleanHtml(req.body.content);
       const oldItem = id ? db.prepare("SELECT * FROM villa WHERE id = ?").get(id) : null;
 
+      const itemForView = preserveVillaFormItem(req.body, oldItem);
+
       const validationError = requireBasicContent(
         title,
         content,
         res,
         "admin-villa-form",
         id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
-        req.body
+        itemForView
       );
       if (validationError) return;
 
@@ -658,7 +676,7 @@ router.post(
       const mainImageFile = req.files?.image?.[0] || null;
       const image = fallbackImage(req.body.current_image, mainImageFile, "villa");
 
-      const oldGalleryImages = safeParseJsonArray(req.body.current_gallery_images);
+      const oldGalleryImages = safeParseJsonArray(req.body.current_gallery_images || oldItem?.images);
       const newGalleryImages = villaImagesFromFiles(req.files?.gallery_images || []);
       const mergedGalleryImages = [...oldGalleryImages, ...newGalleryImages];
 
@@ -722,12 +740,15 @@ router.post(
       res.redirect("/admin/villa");
     } catch (error) {
       console.error("GAGAL SIMPAN VILLA:", error);
+
+      const itemForView = preserveVillaFormItem(req.body);
+
       return renderFormError(
         res,
         "admin-villa-form",
         req.body.id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
         error.message || "Data villa gagal disimpan.",
-        req.body,
+        itemForView,
         500
       );
     }
@@ -893,7 +914,6 @@ router.post("/kuliner/delete/:id", (req, res) => {
 
 /* =========================
    BERITA
-   tetap pakai tabel articles
 ========================= */
 function saveBeritaHandler(req, res) {
   try {
