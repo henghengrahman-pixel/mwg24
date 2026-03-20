@@ -25,24 +25,73 @@
           <table>
             <thead>
               <tr>
-                <th style="width: 70px;">No</th>
+                <th style="width:70px;">No</th>
+                <th style="width:120px;">Foto</th>
                 <th>Judul</th>
                 <th>Lokasi</th>
                 <th>Harga</th>
-                <th style="width: 180px;">Aksi</th>
+                <th style="width:110px;">Galeri</th>
+                <th style="width:190px;">Aksi</th>
               </tr>
             </thead>
 
             <tbody>
               <% if (Array.isArray(items) && items.length > 0) { %>
                 <% items.forEach((item, index) => { %>
+                  <%
+                    let galleryImages = [];
+
+                    try {
+                      if (Array.isArray(item?.images)) {
+                        galleryImages = item.images.filter(Boolean);
+                      } else if (item?.images) {
+                        const parsed = JSON.parse(item.images);
+                        galleryImages = Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+                      }
+                    } catch (e) {
+                      galleryImages = [];
+                    }
+
+                    const totalGallery = galleryImages.length;
+                    const coverImage = item?.image || galleryImages[0] || "/images/wisata-berastagi-cover.jpg";
+                  %>
+
                   <tr>
                     <td><%= index + 1 %></td>
+
                     <td>
-                      <strong><%= item.title || "-" %></strong>
+                      <div class="villa-admin-thumb">
+                        <img
+                          src="<%= coverImage %>"
+                          alt="<%= item.title || 'Villa Berastagi' %>"
+                          loading="lazy"
+                        >
+                      </div>
                     </td>
+
+                    <td>
+                      <div class="villa-admin-title">
+                        <strong><%= item.title || "-" %></strong>
+                        <small>Slug: <%= item.slug || "-" %></small>
+                      </div>
+                    </td>
+
                     <td><%= item.location || "-" %></td>
-                    <td><%= item.price || "-" %></td>
+
+                    <td>
+                      <% if (item.price) { %>
+                        <span class="price-badge"><%= item.price %></span>
+                      <% } else { %>
+                        <span>-</span>
+                      <% } %>
+                    </td>
+
+                    <td>
+                      <span class="gallery-badge">
+                        <%= totalGallery %> foto
+                      </span>
+                    </td>
+
                     <td class="actions">
                       <a class="btn-action-edit" href="/admin/villa/edit/<%= item.id %>">Edit</a>
 
@@ -58,7 +107,7 @@
                 <% }) %>
               <% } else { %>
                 <tr>
-                  <td colspan="5" class="table-empty">
+                  <td colspan="7" class="table-empty">
                     Belum ada data villa. Silakan tambah villa baru.
                   </td>
                 </tr>
@@ -69,5 +118,109 @@
       </div>
     </main>
   </div>
+
+  <style>
+    .villa-admin-thumb {
+      width: 84px;
+      height: 64px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #eef3ef;
+      border: 1px solid #dce6de;
+    }
+
+    .villa-admin-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .villa-admin-title {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .villa-admin-title strong {
+      color: #183124;
+      line-height: 1.35;
+    }
+
+    .villa-admin-title small {
+      color: #6c8376;
+      font-size: 12px;
+      word-break: break-word;
+    }
+
+    .price-badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #edf6ef;
+      color: #24593f;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .gallery-badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f4f7f5;
+      color: #39584a;
+      font-weight: 700;
+      font-size: 13px;
+      border: 1px solid #dce6de;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-action-edit,
+    .btn-action-delete {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 0 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-action-edit {
+      background: #edf6ef;
+      color: #24593f;
+    }
+
+    .btn-action-delete {
+      background: #fff1f1;
+      color: #b42318;
+    }
+
+    .table-empty {
+      text-align: center;
+      color: #6c8376;
+      padding: 24px 16px;
+    }
+
+    @media (max-width: 900px) {
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      table {
+        min-width: 880px;
+      }
+    }
+  </style>
 </body>
 </html>
