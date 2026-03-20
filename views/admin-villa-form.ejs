@@ -15,13 +15,39 @@
         </div>
       </div>
 
+      <%
+        let galleryImages = [];
+        try {
+          if (Array.isArray(item?.images)) {
+            galleryImages = item.images;
+          } else if (item?.images) {
+            galleryImages = JSON.parse(item.images);
+          }
+        } catch (e) {
+          galleryImages = [];
+        }
+      %>
+
       <% if (typeof error !== "undefined" && error) { %>
         <div class="alert-error"><%= error %></div>
       <% } %>
 
-      <form action="/admin/villa/save" method="post" enctype="multipart/form-data" class="admin-form">
+      <div id="formErrorBox" class="alert-error" style="display:none;"></div>
+
+      <form
+        id="villaForm"
+        action="/admin/villa/save"
+        method="post"
+        enctype="multipart/form-data"
+        class="admin-form"
+      >
         <input type="hidden" name="id" value="<%= item?.id || '' %>" />
         <input type="hidden" name="current_image" value="<%= item?.image || '' %>" />
+        <input
+          type="hidden"
+          name="current_gallery_images"
+          value="<%= galleryImages.length ? JSON.stringify(galleryImages).replace(/"/g, '&quot;') : '' %>"
+        />
 
         <div class="form-grid">
           <div class="form-group full">
@@ -78,13 +104,44 @@
             <label for="image">Gambar Utama</label>
 
             <% if (item?.image) { %>
-              <div class="image-preview">
-                <img src="<%= item.image %>" alt="Preview gambar villa atau hotel" />
+              <div class="image-preview" style="margin-bottom:12px;">
+                <img src="<%= item.image %>" alt="Preview gambar utama villa atau hotel" style="max-width:220px; border-radius:12px;" />
               </div>
             <% } %>
 
             <input type="file" id="image" name="image" accept="image/*" />
             <small class="form-hint">Upload gambar baru jika ingin mengganti gambar utama lama.</small>
+          </div>
+
+          <div class="form-group full">
+            <label for="gallery_images">Gallery Villa / Hotel (boleh banyak foto)</label>
+
+            <% if (galleryImages.length) { %>
+              <div class="existing-gallery" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; margin-bottom:12px;">
+                <% galleryImages.forEach(function(img) { %>
+                  <div class="gallery-thumb" style="border:1px solid #d8e2db; border-radius:12px; overflow:hidden; background:#fff;">
+                    <img
+                      src="<%= img %>"
+                      alt="Gallery villa"
+                      style="width:100%; height:110px; object-fit:cover; display:block;"
+                    />
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+
+            <input
+              type="file"
+              id="gallery_images"
+              name="gallery_images"
+              accept="image/*"
+              multiple
+            />
+            <small class="form-hint">
+              Bisa pilih banyak foto sekaligus. Disarankan maksimal 10 foto agar ringan.
+            </small>
+
+            <div id="newGalleryPreview" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; margin-top:14px;"></div>
           </div>
 
           <div class="form-divider full">Informasi Penginapan</div>
@@ -206,7 +263,7 @@
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn-primary">
+          <button type="submit" class="btn-primary" id="submitBtn">
             <%= item ? "Update Villa" : "Simpan Villa" %>
           </button>
 
@@ -222,15 +279,33 @@
   <script>
     const titleInput = document.getElementById("title");
     const slugInput = document.getElementById("slug");
+    const villaForm = document.getElementById("villaForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const formErrorBox = document.getElementById("formErrorBox");
+    const galleryInput = document.getElementById("gallery_images");
+    const newGalleryPreview = document.getElementById("newGalleryPreview");
 
     function makeSlug(text) {
       return String(text || "")
         .toLowerCase()
         .trim()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9\\s-]/g, "")
+        .replace(/\\s+/g, "-")
         .replace(/-+/g, "-")
         .replace(/^-|-$/g, "");
+    }
+
+    function showFormError(message) {
+      if (!formErrorBox) return;
+      formErrorBox.style.display = "block";
+      formErrorBox.innerHTML = message;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function clearFormError() {
+      if (!formErrorBox) return;
+      formErrorBox.style.display = "none";
+      formErrorBox.innerHTML = "";
     }
 
     if (titleInput && slugInput) {
@@ -242,6 +317,42 @@
 
       slugInput.addEventListener("input", function () {
         slugInput.dataset.editedManually = "true";
+      });
+    }
+
+    if (galleryInput && newGalleryPreview) {
+      galleryInput.addEventListener("change", function () {
+        newGalleryPreview.innerHTML = "";
+
+        const files = Array.from(this.files || []);
+        if (!files.length) return;
+
+        files.forEach((file) => {
+          if (!file.type.startsWith("image/")) return;
+
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const wrap = document.createElement("div");
+            wrap.style.border = "1px solid #d8e2db";
+            wrap.style.borderRadius = "12px";
+            wrap.style.overflow = "hidden";
+            wrap.style.background = "#fff";
+
+            wrap.innerHTML = `
+              <img
+                src="${e.target.result}"
+                alt="Preview foto baru"
+                style="width:100%; height:110px; object-fit:cover; display:block;"
+              />
+              <div style="padding:8px 10px; font-size:12px; color:#557062; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${file.name}
+              </div>
+            `;
+
+            newGalleryPreview.appendChild(wrap);
+          };
+          reader.readAsDataURL(file);
+        });
       });
     }
 
@@ -356,6 +467,41 @@
         xhr.send(formData);
       })
     });
+
+    if (villaForm) {
+      villaForm.addEventListener("submit", function (e) {
+        clearFormError();
+
+        try {
+          if (window.tinymce) {
+            tinymce.triggerSave();
+          }
+        } catch (err) {
+          console.error("TinyMCE triggerSave error:", err);
+        }
+
+        const title = document.getElementById("title")?.value?.trim() || "";
+        const content = document.getElementById("editor")?.value?.trim() || "";
+
+        if (!title) {
+          e.preventDefault();
+          showFormError("Judul villa / hotel wajib diisi.");
+          return;
+        }
+
+        if (!content) {
+          e.preventDefault();
+          showFormError("Isi konten wajib diisi.");
+          return;
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.dataset.originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML = "Menyimpan...";
+        }
+      });
+    }
   </script>
 </body>
 </html>
