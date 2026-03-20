@@ -15,6 +15,20 @@
         </div>
       </div>
 
+      <%
+        let galleryImages = [];
+        try {
+          if (Array.isArray(item?.images)) {
+            galleryImages = item.images.filter(Boolean);
+          } else if (item?.images) {
+            const parsed = JSON.parse(item.images);
+            galleryImages = Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+          }
+        } catch (e) {
+          galleryImages = [];
+        }
+      %>
+
       <% if (typeof error !== "undefined" && error) { %>
         <div class="alert-error"><%= error %></div>
       <% } %>
@@ -30,6 +44,11 @@
       >
         <input type="hidden" name="id" value="<%= item?.id || '' %>">
         <input type="hidden" name="current_image" value="<%= item?.image || '' %>">
+        <input
+          type="hidden"
+          name="current_gallery_images"
+          value="<%= galleryImages.length ? JSON.stringify(galleryImages).replace(/"/g, '&quot;') : '' %>"
+        >
 
         <div class="form-grid">
           <div class="form-group full">
@@ -96,6 +115,46 @@
 
             <input type="file" id="image" name="image" accept="image/*">
             <small class="form-hint">Upload gambar baru jika ingin mengganti gambar utama lama.</small>
+          </div>
+
+          <div class="form-group full">
+            <label for="gallery_images">Galeri Foto Villa / Hotel</label>
+
+            <% if (galleryImages.length) { %>
+              <div
+                class="existing-gallery"
+                style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; margin-bottom:12px;"
+              >
+                <% galleryImages.forEach(function(img, index) { %>
+                  <div
+                    class="gallery-thumb"
+                    style="border:1px solid #d8e2db; border-radius:12px; overflow:hidden; background:#fff;"
+                  >
+                    <img
+                      src="<%= img %>"
+                      alt="Galeri villa <%= index + 1 %>"
+                      style="width:100%; height:110px; object-fit:cover; display:block;"
+                    >
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+
+            <input
+              type="file"
+              id="gallery_images"
+              name="gallery_images"
+              accept="image/*"
+              multiple
+            >
+            <small class="form-hint">
+              Bisa pilih banyak foto sekaligus. Disarankan maksimal 10 foto agar halaman tetap ringan.
+            </small>
+
+            <div
+              id="newGalleryPreview"
+              style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; margin-top:14px;"
+            ></div>
           </div>
 
           <div class="form-divider full">Informasi Penginapan</div>
@@ -237,6 +296,8 @@
     const villaForm = document.getElementById("villaForm");
     const submitBtn = document.getElementById("submitBtn");
     const formErrorBox = document.getElementById("formErrorBox");
+    const galleryInput = document.getElementById("gallery_images");
+    const newGalleryPreview = document.getElementById("newGalleryPreview");
 
     function makeSlug(text) {
       return String(text || "")
@@ -270,6 +331,42 @@
 
       slugInput.addEventListener("input", function () {
         slugInput.dataset.editedManually = "true";
+      });
+    }
+
+    if (galleryInput && newGalleryPreview) {
+      galleryInput.addEventListener("change", function () {
+        newGalleryPreview.innerHTML = "";
+
+        const files = Array.from(this.files || []);
+        if (!files.length) return;
+
+        files.forEach((file) => {
+          if (!file.type.startsWith("image/")) return;
+
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const wrap = document.createElement("div");
+            wrap.style.border = "1px solid #d8e2db";
+            wrap.style.borderRadius = "12px";
+            wrap.style.overflow = "hidden";
+            wrap.style.background = "#fff";
+
+            wrap.innerHTML = `
+              <img
+                src="${e.target.result}"
+                alt="Preview foto baru"
+                style="width:100%; height:110px; object-fit:cover; display:block;"
+              />
+              <div style="padding:8px 10px; font-size:12px; color:#557062; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${file.name}
+              </div>
+            `;
+
+            newGalleryPreview.appendChild(wrap);
+          };
+          reader.readAsDataURL(file);
+        });
       });
     }
 
