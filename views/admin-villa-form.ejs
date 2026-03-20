@@ -8,25 +8,12 @@
     <main class="admin-main">
       <div class="admin-head">
         <div>
-          <h1><%= item ? "Edit Villa" : "Tambah Villa" %></h1>
+          <h1><%= item && item.id ? "Edit Villa" : "Tambah Villa" %></h1>
           <p class="admin-subtitle">
             Kelola data villa dan hotel Berastagi dengan konten yang rapi, menarik, dan ramah SEO.
           </p>
         </div>
       </div>
-
-      <%
-        let galleryImages = [];
-        try {
-          if (Array.isArray(item?.images)) {
-            galleryImages = item.images;
-          } else if (item?.images) {
-            galleryImages = JSON.parse(item.images);
-          }
-        } catch (e) {
-          galleryImages = [];
-        }
-      %>
 
       <% if (typeof error !== "undefined" && error) { %>
         <div class="alert-error"><%= error %></div>
@@ -41,13 +28,8 @@
         enctype="multipart/form-data"
         class="admin-form"
       >
-        <input type="hidden" name="id" value="<%= item?.id || '' %>" />
-        <input type="hidden" name="current_image" value="<%= item?.image || '' %>" />
-        <input
-          type="hidden"
-          name="current_gallery_images"
-          value="<%= galleryImages.length ? JSON.stringify(galleryImages).replace(/"/g, '&quot;') : '' %>"
-        />
+        <input type="hidden" name="id" value="<%= item?.id || '' %>">
+        <input type="hidden" name="current_image" value="<%= item?.image || '' %>">
 
         <div class="form-grid">
           <div class="form-group full">
@@ -59,7 +41,7 @@
               value="<%= item?.title || '' %>"
               placeholder="Contoh: Villa Sejuk View Gunung Berastagi"
               required
-            />
+            >
           </div>
 
           <div class="form-group full">
@@ -70,7 +52,7 @@
               name="slug"
               value="<%= item?.slug || '' %>"
               placeholder="otomatis jika kosong"
-            />
+            >
             <small class="form-hint">URL akan menjadi: /villa/slug-anda</small>
           </div>
 
@@ -93,7 +75,6 @@
               name="content"
               rows="16"
               placeholder="Tulis deskripsi lengkap villa atau hotel di sini..."
-              required
             ><%= item?.content || '' %></textarea>
             <small class="form-hint">
               Gunakan toolbar untuk heading, paragraf, link, list, dan tambah gambar di tengah konten.
@@ -105,43 +86,16 @@
 
             <% if (item?.image) { %>
               <div class="image-preview" style="margin-bottom:12px;">
-                <img src="<%= item.image %>" alt="Preview gambar utama villa atau hotel" style="max-width:220px; border-radius:12px;" />
+                <img
+                  src="<%= item.image %>"
+                  alt="Preview gambar utama villa atau hotel"
+                  style="max-width:220px; width:100%; height:auto; border-radius:12px;"
+                >
               </div>
             <% } %>
 
-            <input type="file" id="image" name="image" accept="image/*" />
+            <input type="file" id="image" name="image" accept="image/*">
             <small class="form-hint">Upload gambar baru jika ingin mengganti gambar utama lama.</small>
-          </div>
-
-          <div class="form-group full">
-            <label for="gallery_images">Gallery Villa / Hotel (boleh banyak foto)</label>
-
-            <% if (galleryImages.length) { %>
-              <div class="existing-gallery" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; margin-bottom:12px;">
-                <% galleryImages.forEach(function(img) { %>
-                  <div class="gallery-thumb" style="border:1px solid #d8e2db; border-radius:12px; overflow:hidden; background:#fff;">
-                    <img
-                      src="<%= img %>"
-                      alt="Gallery villa"
-                      style="width:100%; height:110px; object-fit:cover; display:block;"
-                    />
-                  </div>
-                <% }) %>
-              </div>
-            <% } %>
-
-            <input
-              type="file"
-              id="gallery_images"
-              name="gallery_images"
-              accept="image/*"
-              multiple
-            />
-            <small class="form-hint">
-              Bisa pilih banyak foto sekaligus. Disarankan maksimal 10 foto agar ringan.
-            </small>
-
-            <div id="newGalleryPreview" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; margin-top:14px;"></div>
           </div>
 
           <div class="form-divider full">Informasi Penginapan</div>
@@ -154,7 +108,7 @@
               name="price"
               value="<%= item?.price || '' %>"
               placeholder="Contoh: 450000"
-            />
+            >
           </div>
 
           <div class="form-group">
@@ -165,7 +119,7 @@
               name="location"
               value="<%= item?.location || '' %>"
               placeholder="Contoh: Jalan Jamin Ginting, Berastagi"
-            />
+            >
           </div>
 
           <div class="form-group full">
@@ -176,7 +130,7 @@
               name="facilities"
               value="<%= item?.facilities || '' %>"
               placeholder="Contoh: Wifi, Parkir, Air Panas, Sarapan"
-            />
+            >
             <small class="form-hint">Pisahkan fasilitas dengan koma agar mudah dibaca.</small>
           </div>
 
@@ -188,7 +142,7 @@
               name="booking_url"
               value="<%= item?.booking_url || '' %>"
               placeholder="https://..."
-            />
+            >
           </div>
 
           <div class="form-group">
@@ -199,7 +153,7 @@
               name="contact_phone"
               value="<%= item?.contact_phone || '' %>"
               placeholder="Contoh: 0812-xxxx-xxxx"
-            />
+            >
           </div>
 
           <div class="form-group full">
@@ -210,17 +164,18 @@
               name="maps_url"
               value="<%= item?.maps_url || '' %>"
               placeholder="https://maps.google.com/..."
-            />
+            >
           </div>
 
           <div class="form-group full">
-            <label class="checkbox-line">
+            <label class="checkbox-line" for="is_featured">
               <input
                 type="checkbox"
+                id="is_featured"
                 name="is_featured"
                 value="1"
-                <%= item?.is_featured ? "checked" : "" %>
-              />
+                <%= Number(item?.is_featured || 0) === 1 ? "checked" : "" %>
+              >
               Jadikan unggulan
             </label>
           </div>
@@ -248,7 +203,7 @@
               name="meta_title"
               value="<%= item?.meta_title || '' %>"
               placeholder="Judul SEO (jika kosong otomatis)"
-            />
+            >
           </div>
 
           <div class="form-group full">
@@ -264,7 +219,7 @@
 
         <div class="form-actions">
           <button type="submit" class="btn-primary" id="submitBtn">
-            <%= item ? "Update Villa" : "Simpan Villa" %>
+            <%= item && item.id ? "Update Villa" : "Simpan Villa" %>
           </button>
 
           <a href="/admin/villa" class="btn-secondary">
@@ -282,15 +237,13 @@
     const villaForm = document.getElementById("villaForm");
     const submitBtn = document.getElementById("submitBtn");
     const formErrorBox = document.getElementById("formErrorBox");
-    const galleryInput = document.getElementById("gallery_images");
-    const newGalleryPreview = document.getElementById("newGalleryPreview");
 
     function makeSlug(text) {
       return String(text || "")
         .toLowerCase()
         .trim()
-        .replace(/[^a-z0-9\\s-]/g, "")
-        .replace(/\\s+/g, "-")
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
         .replace(/-+/g, "-")
         .replace(/^-|-$/g, "");
     }
@@ -298,14 +251,14 @@
     function showFormError(message) {
       if (!formErrorBox) return;
       formErrorBox.style.display = "block";
-      formErrorBox.innerHTML = message;
+      formErrorBox.textContent = message;
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function clearFormError() {
       if (!formErrorBox) return;
       formErrorBox.style.display = "none";
-      formErrorBox.innerHTML = "";
+      formErrorBox.textContent = "";
     }
 
     if (titleInput && slugInput) {
@@ -317,42 +270,6 @@
 
       slugInput.addEventListener("input", function () {
         slugInput.dataset.editedManually = "true";
-      });
-    }
-
-    if (galleryInput && newGalleryPreview) {
-      galleryInput.addEventListener("change", function () {
-        newGalleryPreview.innerHTML = "";
-
-        const files = Array.from(this.files || []);
-        if (!files.length) return;
-
-        files.forEach((file) => {
-          if (!file.type.startsWith("image/")) return;
-
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            const wrap = document.createElement("div");
-            wrap.style.border = "1px solid #d8e2db";
-            wrap.style.borderRadius = "12px";
-            wrap.style.overflow = "hidden";
-            wrap.style.background = "#fff";
-
-            wrap.innerHTML = `
-              <img
-                src="${e.target.result}"
-                alt="Preview foto baru"
-                style="width:100%; height:110px; object-fit:cover; display:block;"
-              />
-              <div style="padding:8px 10px; font-size:12px; color:#557062; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                ${file.name}
-              </div>
-            `;
-
-            newGalleryPreview.appendChild(wrap);
-          };
-          reader.readAsDataURL(file);
-        });
       });
     }
 
@@ -483,16 +400,28 @@
         const title = document.getElementById("title")?.value?.trim() || "";
         const content = document.getElementById("editor")?.value?.trim() || "";
 
+        const plainText = content
+          .replace(/<style[\s\S]*?<\/style>/gi, " ")
+          .replace(/<script[\s\S]*?<\/script>/gi, " ")
+          .replace(/<[^>]*>/g, " ")
+          .replace(/&nbsp;/gi, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
         if (!title) {
           e.preventDefault();
           showFormError("Judul villa / hotel wajib diisi.");
           return;
         }
 
-        if (!content) {
+        if (!plainText) {
           e.preventDefault();
           showFormError("Isi konten wajib diisi.");
           return;
+        }
+
+        if (slugInput && slugInput.value.trim()) {
+          slugInput.value = makeSlug(slugInput.value);
         }
 
         if (submitBtn) {
