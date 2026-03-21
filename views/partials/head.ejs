@@ -37,6 +37,7 @@
       `${normalizedBaseUrl}${currentPath.startsWith("/") ? currentPath : "/" + currentPath}`;
 
     const canonicalUrl = canonicalUrlRaw.replace(/([^:]\/)\/+/g, "$1");
+    const isHomePage = currentPath === "" || currentPath === "/";
 
     const rawImage =
       safeSeo.image ||
@@ -69,6 +70,161 @@
     const twitterSite = safeSeo.twitterSite || "";
     const twitterCreator = safeSeo.twitterCreator || "";
     const noindex = !!safeSeo.noindex;
+
+    function normalizeJsonLdToGraph(input) {
+      if (!input) return [];
+
+      try {
+        const parsed = typeof input === "string" ? JSON.parse(input) : input;
+
+        if (Array.isArray(parsed)) return parsed;
+
+        if (parsed && Array.isArray(parsed["@graph"])) return parsed["@graph"];
+
+        if (parsed && typeof parsed === "object") return [parsed];
+
+        return [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    function isValidBreadcrumbNode(node) {
+      return !!(
+        node &&
+        node["@type"] === "BreadcrumbList" &&
+        Array.isArray(node.itemListElement) &&
+        node.itemListElement.length > 0
+      );
+    }
+
+    function toListItem(item, index) {
+      if (!item) return null;
+
+      if (item["@type"] === "ListItem") {
+        if (!item.position) item.position = index + 1;
+        return item;
+      }
+
+      const name = item.name || item.title || item.label || "";
+      const url = item.item || item.url || item.link || "";
+
+      if (!name || !url) return null;
+
+      return {
+        "@type": "ListItem",
+        "position": index + 1,
+        "name": name,
+        "item": url
+      };
+    }
+
+    let breadcrumbItems = [];
+
+    if (Array.isArray(safeSeo.breadcrumbs) && safeSeo.breadcrumbs.length > 0) {
+      breadcrumbItems = safeSeo.breadcrumbs
+        .map((item, index) => toListItem(item, index))
+        .filter(Boolean);
+    } else {
+      breadcrumbItems = [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Beranda",
+          "item": `${normalizedBaseUrl}/`
+        }
+      ];
+    }
+
+    let customGraph = normalizeJsonLdToGraph(safeSeo.jsonLd);
+
+    customGraph = customGraph.filter((node) => {
+      if (!node || typeof node !== "object") return false;
+
+      if (node["@type"] === "BreadcrumbList") {
+        return isValidBreadcrumbNode(node);
+      }
+
+      return true;
+    });
+
+    const hasCustomWebsite = customGraph.some((node) => node["@type"] === "WebSite");
+    const hasCustomOrganization = customGraph.some((node) => node["@type"] === "Organization");
+    const hasCustomWebPage = customGraph.some((node) => node["@type"] === "WebPage");
+    const hasCustomBreadcrumb = customGraph.some((node) => node["@type"] === "BreadcrumbList");
+
+    const schemaGraph = [];
+
+    if (!hasCustomWebsite) {
+      schemaGraph.push({
+        "@type": "WebSite",
+        "@id": `${normalizedBaseUrl}/#website`,
+        "url": `${normalizedBaseUrl}/`,
+        "name": siteName,
+        "alternateName": "Portal Wisata Berastagi",
+        "description": defaultDescription,
+        "inLanguage": siteLanguage,
+        "publisher": {
+          "@id": `${normalizedBaseUrl}/#organization`
+        },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": `${normalizedBaseUrl}/cari?q={search_term_string}`,
+          "query-input": "required name=search_term_string"
+        }
+      });
+    }
+
+    if (!hasCustomOrganization) {
+      schemaGraph.push({
+        "@type": "Organization",
+        "@id": `${normalizedBaseUrl}/#organization`,
+        "name": siteName,
+        "url": `${normalizedBaseUrl}/`,
+        "logo": {
+          "@type": "ImageObject",
+          "url": organizationLogo
+        },
+        "image": organizationLogo
+      });
+    }
+
+    if (!hasCustomWebPage) {
+      schemaGraph.push({
+        "@type": "WebPage",
+        "@id": `${canonicalUrl}#webpage`,
+        "url": canonicalUrl,
+        "name": pageTitle,
+        "headline": pageTitle,
+        "description": pageDescription,
+        "inLanguage": siteLanguage,
+        "isPartOf": {
+          "@id": `${normalizedBaseUrl}/#website`
+        },
+        "about": {
+          "@id": `${normalizedBaseUrl}/#organization`
+        },
+        "primaryImageOfPage": {
+          "@type": "ImageObject",
+          "url": imageUrl
+        }
+      });
+    }
+
+    if (!hasCustomBreadcrumb && breadcrumbItems.length > 0) {
+      schemaGraph.push({
+        "@type": "BreadcrumbList",
+        "@id": `${canonicalUrl}#breadcrumb`,
+        "itemListElement": breadcrumbItems
+      });
+    }
+
+    schemaGraph.push(...customGraph);
+
+    const finalJsonLd = JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": schemaGraph
+    }, null, 2);
   %>
 
   <title><%= pageTitle %></title>
@@ -141,77 +297,8 @@
   <script defer src="/js/main.js"></script>
 
   <!-- Google AdSense -->
- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8313404846350628"
-     crossorigin="anonymous"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8313404846350628"
+    crossorigin="anonymous"></script>
 
-  <% if (safeSeo.jsonLd) { %>
-    <script type="application/ld+json"><%- safeSeo.jsonLd %></script>
-  <% } else { %>
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "WebSite",
-            "@id": "<%= normalizedBaseUrl %>/#website",
-            "url": "<%= normalizedBaseUrl %>/",
-            "name": "<%= siteName %>",
-            "alternateName": "Portal Wisata Berastagi",
-            "description": "<%= defaultDescription %>",
-            "inLanguage": "<%= siteLanguage %>",
-            "publisher": {
-              "@id": "<%= normalizedBaseUrl %>/#organization"
-            },
-            "potentialAction": {
-              "@type": "SearchAction",
-              "target": "<%= normalizedBaseUrl %>/cari?q={search_term_string}",
-              "query-input": "required name=search_term_string"
-            }
-          },
-          {
-            "@type": "Organization",
-            "@id": "<%= normalizedBaseUrl %>/#organization",
-            "name": "<%= siteName %>",
-            "url": "<%= normalizedBaseUrl %>/",
-            "logo": {
-              "@type": "ImageObject",
-              "url": "<%= organizationLogo %>"
-            },
-            "image": "<%= organizationLogo %>"
-          },
-          {
-            "@type": "WebPage",
-            "@id": "<%= canonicalUrl %>#webpage",
-            "url": "<%= canonicalUrl %>",
-            "name": "<%= pageTitle %>",
-            "headline": "<%= pageTitle %>",
-            "description": "<%= pageDescription %>",
-            "inLanguage": "<%= siteLanguage %>",
-            "isPartOf": {
-              "@id": "<%= normalizedBaseUrl %>/#website"
-            },
-            "about": {
-              "@id": "<%= normalizedBaseUrl %>/#organization"
-            },
-            "primaryImageOfPage": {
-              "@type": "ImageObject",
-              "url": "<%= imageUrl %>"
-            }
-          },
-          {
-            "@type": "BreadcrumbList",
-            "@id": "<%= canonicalUrl %>#breadcrumb",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Beranda",
-                "item": "<%= normalizedBaseUrl %>/"
-              }
-            ]
-          }
-        ]
-      }
-    </script>
-  <% } %>
+  <script type="application/ld+json"><%- finalJsonLd %></script>
 </head>
