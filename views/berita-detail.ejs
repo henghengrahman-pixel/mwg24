@@ -6,6 +6,14 @@
 
   <section class="section container detail-layout">
     <article class="detail-main">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Beranda</a>
+        <span>/</span>
+        <a href="/berita">Berita</a>
+        <span>/</span>
+        <span><%= item.title %></span>
+      </nav>
+
       <img
         src="<%= item.image || 'https://via.placeholder.com/1200x700?text=Berita+Wisata+Berastagi' %>"
         alt="<%= item.title %> - Berita Wisata Berastagi"
@@ -23,27 +31,123 @@
         <% } %>
       </div>
 
+      <div class="detail-quick-links">
+        <a href="#deskripsi">Isi Berita</a>
+        <a href="#info-berita">Info Berita</a>
+        <a href="#faq">FAQ</a>
+        <a href="#berita-terkait">Berita Terkait</a>
+        <a href="#ulasan">Komentar</a>
+      </div>
+
       <% if (item.excerpt) { %>
         <div class="detail-intro">
           <p><%= item.excerpt %></p>
         </div>
       <% } %>
 
-      <div class="detail-content article-content">
-        <%
-          const rawContent = item.content || "";
-          const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(rawContent);
-        %>
+      <section id="deskripsi">
+        <div class="detail-content article-content">
+          <%
+            const rawContent = item.content || "";
+            const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(rawContent);
+          %>
 
-        <% if (hasHtmlTags) { %>
-          <%- rawContent %>
+          <% if (hasHtmlTags) { %>
+            <%- rawContent %>
+          <% } else { %>
+            <%- rawContent
+              .split(/\n\s*\n/)
+              .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+              .join("") %>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="detail-extra-box" id="info-berita">
+        <h2>Informasi Berita</h2>
+        <div class="detail-extra-grid">
+          <div class="detail-extra-item">
+            <strong>Judul</strong>
+            <p><%= item.title || "-" %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Kategori</strong>
+            <p><%= item.category || "Berita Wisata Berastagi" %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Tanggal</strong>
+            <p><%= item.created_at || "-" %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Topik</strong>
+            <p>Wisata, villa, kuliner, dan liburan di Berastagi</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-extra-box">
+        <h2>Baca Juga Panduan Berastagi Lainnya</h2>
+        <p>
+          Selain membaca <a href="/berita">berita wisata Berastagi</a>,
+          kamu juga bisa melihat <a href="/wisata">tempat wisata di Berastagi</a>,
+          mencari <a href="/villa">villa dan hotel di Berastagi</a>,
+          menjelajahi <a href="/kuliner">kuliner Berastagi</a>, dan
+          melihat <a href="/galeri">galeri foto Berastagi</a>
+          agar informasi liburan kamu makin lengkap.
+        </p>
+      </section>
+
+      <section class="detail-extra-box" id="faq">
+        <h2>FAQ Seputar Berita Ini</h2>
+
+        <div class="faq-list">
+          <div class="faq-item">
+            <h3>Berita ini membahas tentang apa?</h3>
+            <p>
+              Berita ini membahas seputar
+              <%= item.category || "wisata, villa, kuliner, dan perkembangan liburan di Berastagi" %>.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Kapan berita ini dipublikasikan?</h3>
+            <p>Berita ini dipublikasikan pada <%= item.created_at || "tanggal yang tertera di halaman ini" %>.</p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apakah berita ini relevan untuk wisatawan Berastagi?</h3>
+            <p>
+              Ya, berita ini relevan untuk pengunjung yang ingin mendapatkan informasi terbaru
+              tentang wisata, penginapan, kuliner, dan aktivitas liburan di Berastagi.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Di mana bisa melihat informasi wisata Berastagi lainnya?</h3>
+            <p>
+              Kamu bisa melihat informasi lainnya melalui halaman
+              tempat wisata, villa dan hotel, kuliner, galeri, serta berita terbaru di website ini.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-extra-box" id="berita-terkait">
+        <h2>Berita Terkait di Berastagi</h2>
+
+        <% if (related && related.length) { %>
+          <div class="related-links-grid">
+            <% related.forEach(rel => { %>
+              <a href="/berita/<%= rel.slug %>" class="related-link-card">
+                <span>Berita Wisata</span>
+                <strong><%= rel.title %></strong>
+              </a>
+            <% }) %>
+          </div>
         <% } else { %>
-          <%- rawContent
-            .split(/\n\s*\n/)
-            .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
-            .join("") %>
+          <p>Belum ada berita terkait lainnya.</p>
         <% } %>
-      </div>
+      </section>
 
       <section class="comment-box" id="ulasan">
         <h2>Komentar Pembaca</h2>
@@ -73,8 +177,24 @@
 
     <aside class="detail-sidebar">
       <div class="sticky-box">
-        <h3>Berita Terkait</h3>
+        <h3>Info Berita</h3>
+        <ul class="info-list">
+          <li><strong>Kategori:</strong> <%= item.category || 'Berita Wisata Berastagi' %></li>
+          <li><strong>Tanggal:</strong> <%= item.created_at || '-' %></li>
+          <li><strong>Topik:</strong> Wisata Berastagi</li>
+        </ul>
+      </div>
 
+      <div class="sticky-box">
+        <h3>Jelajahi Juga</h3>
+        <a href="/wisata" class="mini-link">Tempat Wisata di Berastagi</a>
+        <a href="/villa" class="mini-link">Villa &amp; Hotel di Berastagi</a>
+        <a href="/kuliner" class="mini-link">Kuliner Berastagi</a>
+        <a href="/galeri" class="mini-link">Galeri Foto Berastagi</a>
+      </div>
+
+      <div class="sticky-box">
+        <h3>Berita Terkait</h3>
         <% if (related && related.length) { %>
           <% related.forEach(rel => { %>
             <a href="/berita/<%= rel.slug %>" class="mini-link"><%= rel.title %></a>
