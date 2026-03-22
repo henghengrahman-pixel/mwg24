@@ -34,6 +34,14 @@
 
   <section class="section container detail-layout">
     <article class="detail-main">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Beranda</a>
+        <span>/</span>
+        <a href="/villa">Villa &amp; Hotel</a>
+        <span>/</span>
+        <span><%= item.title %></span>
+      </nav>
+
       <section class="villa-gallery-section">
         <div class="villa-gallery-grid <%= totalImages <= 1 ? "single" : "" %>">
           <button
@@ -45,7 +53,6 @@
             <img
               src="<%= mainImage %>"
               alt="<%= item.title %> di Berastagi"
-              class="detail-cover"
               loading="eager"
             >
           </button>
@@ -86,29 +93,134 @@
         <% } %>
       </section>
 
-      <span class="eyebrow">Vila &amp; Hotel Berastagi</span>
+      <span class="eyebrow">Villa &amp; Hotel Berastagi</span>
       <h1><%= item.title %></h1>
 
       <div class="detail-meta">
         <span>Lokasi: <%= item.location || "-" %></span>
         <span>Harga: <%= helpers.formatCurrency(item.price || 0) %></span>
+        <span>Fasilitas: <%= item.facilities || "-" %></span>
       </div>
 
-      <div class="detail-content article-content">
-        <%
-          const rawContent = item.content || "";
-          const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(rawContent);
-        %>
+      <div class="detail-quick-links">
+        <a href="#deskripsi">Deskripsi</a>
+        <a href="#info-penginapan">Info Penginapan</a>
+        <a href="#faq">FAQ</a>
+        <a href="#villa-terkait">Villa Terkait</a>
+        <a href="#rating">Rating</a>
+        <a href="#ulasan">Ulasan</a>
+      </div>
 
-        <% if (hasHtmlTags) { %>
-          <%- rawContent %>
+      <% if (item.excerpt) { %>
+        <div class="detail-intro">
+          <p><%= item.excerpt %></p>
+        </div>
+      <% } %>
+
+      <section id="deskripsi">
+        <div class="detail-content article-content">
+          <%
+            const rawContent = item.content || "";
+            const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(rawContent);
+          %>
+
+          <% if (hasHtmlTags) { %>
+            <%- rawContent %>
+          <% } else { %>
+            <%- rawContent
+              .split(/\n\s*\n/)
+              .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+              .join("") %>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="detail-extra-box" id="info-penginapan">
+        <h2>Informasi Penginapan <%= item.title %></h2>
+        <div class="detail-extra-grid">
+          <div class="detail-extra-item">
+            <strong>Nama Penginapan</strong>
+            <p><%= item.title || "-" %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Lokasi</strong>
+            <p><%= item.location || "-" %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Harga</strong>
+            <p><%= helpers.formatCurrency(item.price || 0) %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Fasilitas</strong>
+            <p><%= item.facilities || "-" %></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-extra-box">
+        <h2>Butuh Referensi Liburan Lainnya?</h2>
+        <p>
+          Selain mencari <a href="/villa">villa dan hotel di Berastagi</a>,
+          kamu juga bisa melihat <a href="/wisata">tempat wisata di Berastagi</a>,
+          <a href="/kuliner">kuliner Berastagi</a>,
+          <a href="/berita">berita wisata terbaru</a>, dan
+          <a href="/galeri">galeri foto Berastagi</a>
+          untuk melengkapi rencana perjalanan kamu.
+        </p>
+      </section>
+
+      <section class="detail-extra-box" id="faq">
+        <h2>FAQ Seputar <%= item.title %></h2>
+
+        <div class="faq-list">
+          <div class="faq-item">
+            <h3>Di mana lokasi <%= item.title %>?</h3>
+            <p><%= item.title %> berada di <%= item.location || "Berastagi, Kabupaten Karo" %>.</p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Berapa harga menginap di <%= item.title %>?</h3>
+            <p>
+              Harga menginap di <%= item.title %> mulai dari
+              <%= helpers.formatCurrency(item.price || 0) %>.
+              Harga bisa berubah tergantung musim liburan dan ketersediaan kamar.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apa saja fasilitas di <%= item.title %>?</h3>
+            <p>
+              Fasilitas yang tersedia di <%= item.title %> antara lain
+              <%= item.facilities || "fasilitas dasar penginapan" %>.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apakah <%= item.title %> cocok untuk liburan keluarga?</h3>
+            <p>
+              Ya, <%= item.title %> cocok dijadikan pilihan menginap untuk liburan keluarga,
+              pasangan, maupun rombongan yang ingin menikmati suasana sejuk Berastagi.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-extra-box" id="villa-terkait">
+        <h2>Villa &amp; Hotel Terkait di Berastagi</h2>
+
+        <% if (related && related.length) { %>
+          <div class="related-links-grid">
+            <% related.forEach(rel => { %>
+              <a href="/villa/<%= rel.slug %>" class="related-link-card">
+                <span>Villa &amp; Hotel</span>
+                <strong><%= rel.title %></strong>
+              </a>
+            <% }) %>
+          </div>
         <% } else { %>
-          <%- rawContent
-            .split(/\n\s*\n/)
-            .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
-            .join("") %>
+          <p>Belum ada villa atau hotel terkait lainnya.</p>
         <% } %>
-      </div>
+      </section>
 
       <section class="rating-box" id="rating">
         <h2>Rating Pengunjung</h2>
@@ -169,7 +281,15 @@
       </div>
 
       <div class="sticky-box">
-        <h3>Vila &amp; Hotel Terkait</h3>
+        <h3>Jelajahi Juga</h3>
+        <a href="/wisata" class="mini-link">Tempat Wisata di Berastagi</a>
+        <a href="/kuliner" class="mini-link">Kuliner Berastagi</a>
+        <a href="/berita" class="mini-link">Berita Wisata Berastagi</a>
+        <a href="/galeri" class="mini-link">Galeri Foto Berastagi</a>
+      </div>
+
+      <div class="sticky-box">
+        <h3>Villa &amp; Hotel Terkait</h3>
         <% related.forEach(rel => { %>
           <a href="/villa/<%= rel.slug %>" class="mini-link"><%= rel.title %></a>
         <% }) %>
@@ -260,196 +380,6 @@
       }
     });
   </script>
-
-  <style>
-    .villa-gallery-section {
-      margin-bottom: 24px;
-    }
-
-    .villa-gallery-grid {
-      display: grid;
-      grid-template-columns: 1.6fr 1fr;
-      gap: 8px;
-      border-radius: 20px;
-      overflow: hidden;
-      background: #f3f6f4;
-    }
-
-    .villa-gallery-grid.single {
-      grid-template-columns: 1fr;
-    }
-
-    .villa-gallery-main,
-    .villa-gallery-thumb {
-      position: relative;
-      display: block;
-      border: none;
-      padding: 0;
-      margin: 0;
-      background: #e9efeb;
-      cursor: pointer;
-      overflow: hidden;
-    }
-
-    .villa-gallery-main img,
-    .villa-gallery-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: transform 0.3s ease;
-    }
-
-    .villa-gallery-main {
-      min-height: 360px;
-    }
-
-    .villa-gallery-side {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .villa-gallery-thumb {
-      min-height: 176px;
-    }
-
-    .villa-gallery-main:hover img,
-    .villa-gallery-thumb:hover img {
-      transform: scale(1.04);
-    }
-
-    .villa-gallery-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.45);
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      text-align: center;
-      padding: 12px;
-    }
-
-    .villa-gallery-overlay strong {
-      font-size: 28px;
-      line-height: 1;
-      margin-bottom: 6px;
-    }
-
-    .villa-gallery-actions {
-      margin-top: 12px;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .villa-lightbox {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.92);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      padding: 20px;
-    }
-
-    .villa-lightbox.active {
-      display: flex;
-    }
-
-    .villa-lightbox-content {
-      max-width: 92vw;
-      max-height: 88vh;
-      text-align: center;
-      position: relative;
-    }
-
-    .villa-lightbox-content img {
-      max-width: 92vw;
-      max-height: 80vh;
-      border-radius: 14px;
-      display: block;
-      margin: 0 auto;
-    }
-
-    .villa-lightbox-counter {
-      color: #fff;
-      margin-top: 12px;
-      font-size: 14px;
-    }
-
-    .villa-lightbox-close {
-      position: absolute;
-      top: 14px;
-      right: 20px;
-      font-size: 40px;
-      color: #fff;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      z-index: 3;
-    }
-
-    .villa-lightbox-nav {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255, 255, 255, 0.14);
-      color: #fff;
-      border: none;
-      width: 52px;
-      height: 52px;
-      border-radius: 999px;
-      font-size: 28px;
-      cursor: pointer;
-      z-index: 3;
-    }
-
-    .villa-lightbox-nav.prev {
-      left: 20px;
-    }
-
-    .villa-lightbox-nav.next {
-      right: 20px;
-    }
-
-    @media (max-width: 900px) {
-      .villa-gallery-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .villa-gallery-main {
-        min-height: 280px;
-      }
-
-      .villa-gallery-thumb {
-        min-height: 140px;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .villa-gallery-side {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .villa-lightbox-nav {
-        width: 44px;
-        height: 44px;
-        font-size: 24px;
-      }
-
-      .villa-lightbox-nav.prev {
-        left: 10px;
-      }
-
-      .villa-lightbox-nav.next {
-        right: 10px;
-      }
-    }
-  </style>
 
   <%- include("partials/footer", { settings }) %>
 </body>
