@@ -6,6 +6,12 @@
 
   <section class="page-hero small">
     <div class="container">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Beranda</a>
+        <span>/</span>
+        <span>Berita</span>
+      </nav>
+
       <span class="eyebrow">Berita</span>
       <h1>Berita Wisata Berastagi Terbaru</h1>
       <p>
@@ -40,12 +46,14 @@
             <a href="/berita/<%= item.slug %>">
               <img
                 src="<%= item.image || 'https://via.placeholder.com/800x500?text=Berita+Wisata+Berastagi' %>"
-                alt="<%= item.title %>"
+                alt="<%= item.title %> - berita wisata Berastagi"
                 loading="lazy"
               />
               <div class="card-body">
                 <% if (item.category) { %>
                   <span class="card-tag"><%= item.category %></span>
+                <% } else { %>
+                  <span class="card-tag">Berita</span>
                 <% } %>
 
                 <h2><%= item.title %></h2>
@@ -69,6 +77,73 @@
         </p>
       </div>
     <% } %>
+  </section>
+
+  <section class="section section-muted">
+    <div class="container">
+      <div class="intro-box reveal">
+        <span class="eyebrow">Jelajahi Berastagi</span>
+        <h2>Baca Berita, Cari Wisata, Kuliner, dan Penginapan Berastagi</h2>
+        <p>
+          Selain membaca <strong>berita wisata Berastagi</strong>, kamu juga bisa melihat
+          <a href="/wisata">tempat wisata di Berastagi</a>,
+          <a href="/villa">villa dan hotel di Berastagi</a>,
+          <a href="/kuliner">kuliner Berastagi</a>, dan
+          <a href="/galeri">galeri foto Berastagi</a>
+          agar informasi liburan kamu lebih lengkap.
+        </p>
+
+        <div class="detail-quick-links">
+          <a href="/wisata">Tempat Wisata Berastagi</a>
+          <a href="/villa">Villa &amp; Hotel Berastagi</a>
+          <a href="/kuliner">Kuliner Berastagi</a>
+          <a href="/galeri">Galeri Berastagi</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="container">
+      <div class="intro-box reveal">
+        <span class="eyebrow">Pertanyaan Umum</span>
+        <h2>FAQ Berita Wisata Berastagi</h2>
+
+        <div class="faq-list">
+          <div class="faq-item">
+            <h3>Berita apa saja yang dibahas di halaman ini?</h3>
+            <p>
+              Halaman ini membahas berita seputar tempat wisata, kuliner, villa, hotel,
+              event, suasana liburan, dan informasi terbaru tentang Berastagi.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apakah berita di halaman ini cocok untuk wisatawan?</h3>
+            <p>
+              Ya, berita di halaman ini cocok untuk wisatawan yang ingin mengetahui
+              perkembangan terbaru dan informasi bermanfaat sebelum berkunjung ke Berastagi.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apakah website ini hanya berisi berita?</h3>
+            <p>
+              Tidak. Selain berita, website ini juga menyediakan informasi tempat wisata,
+              villa, hotel, kuliner, dan galeri foto Berastagi.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Bagaimana cara mencari info wisata atau penginapan di website ini?</h3>
+            <p>
+              Kamu bisa langsung membuka kategori wisata, villa, kuliner, atau galeri
+              melalui menu utama website ini.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <%- include("partials/footer", { settings }) %>
