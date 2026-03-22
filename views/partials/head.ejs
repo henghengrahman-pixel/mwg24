@@ -1,17 +1,16 @@
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
   <!-- META ADSENSE -->
   <meta name="google-adsense-account" content="ca-pub-8313404846350628">
-
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
   <%
     const safeSettings = settings || {};
     const safeSeo = seo || {};
     const normalizedBaseUrl = String(baseUrl || "").replace(/\/+$/, "");
-    const currentPath = String(path || "");
+    const currentPath = String(path || "/") || "/";
     const siteName = safeSettings.site_name || "Wisata Berastagi";
     const siteLanguage = "id-ID";
     const siteLocale = "id_ID";
@@ -30,14 +29,26 @@
     const pageTitle = String(safeSeo.title || defaultTitle).trim();
     const pageDescription = String(safeSeo.description || defaultDescription).trim();
     const pageKeywords = String(safeSeo.keywords || defaultKeywords).trim();
-    const pageType = safeSeo.type || "website";
+    const pageType = String(safeSeo.type || "website").trim();
+    const noindex = !!safeSeo.noindex;
+
+    function normalizeFullUrl(url = "") {
+      return String(url || "").replace(/([^:]\/)\/+/g, "$1");
+    }
+
+    function makeAbsoluteUrl(input = "") {
+      const raw = String(input || "").trim();
+      if (!raw) return `${normalizedBaseUrl}/images/wisata-berastagi-cover.jpg`;
+      if (/^https?:\/\//i.test(raw)) return raw;
+      if (raw.startsWith("/")) return `${normalizedBaseUrl}${raw}`;
+      return `${normalizedBaseUrl}/${raw}`;
+    }
 
     const canonicalUrlRaw =
       safeSeo.canonical ||
       `${normalizedBaseUrl}${currentPath.startsWith("/") ? currentPath : "/" + currentPath}`;
 
-    const canonicalUrl = canonicalUrlRaw.replace(/([^:]\/)\/+/g, "$1");
-    const isHomePage = currentPath === "" || currentPath === "/";
+    const canonicalUrl = normalizeFullUrl(canonicalUrlRaw);
 
     const rawImage =
       safeSeo.image ||
@@ -45,23 +56,11 @@
       safeSettings.logo ||
       "/images/wisata-berastagi-cover.jpg";
 
-    const normalizedImagePath =
-      /^https?:\/\//i.test(rawImage)
-        ? rawImage
-        : rawImage.startsWith("/")
-        ? rawImage
-        : `/${rawImage}`;
+    const imageUrl = normalizeFullUrl(makeAbsoluteUrl(rawImage));
 
-    const imageUrl = /^https?:\/\//i.test(rawImage)
-      ? rawImage
-      : `${normalizedBaseUrl}${normalizedImagePath}`;
-
-    const organizationLogo =
-      safeSettings.logo && /^https?:\/\//i.test(safeSettings.logo)
-        ? safeSettings.logo
-        : safeSettings.logo
-        ? `${normalizedBaseUrl}${safeSettings.logo.startsWith("/") ? safeSettings.logo : "/" + safeSettings.logo}`
-        : imageUrl;
+    const organizationLogo = normalizeFullUrl(
+      makeAbsoluteUrl(safeSettings.logo || rawImage || "/images/wisata-berastagi-cover.jpg")
+    );
 
     const publishedTime = safeSeo.publishedTime || safeSeo.published_time || null;
     const modifiedTime = safeSeo.modifiedTime || safeSeo.updatedTime || safeSeo.modified_time || null;
@@ -69,7 +68,6 @@
     const tags = Array.isArray(safeSeo.tags) ? safeSeo.tags : [];
     const twitterSite = safeSeo.twitterSite || "";
     const twitterCreator = safeSeo.twitterCreator || "";
-    const noindex = !!safeSeo.noindex;
 
     function normalizeJsonLdToGraph(input) {
       if (!input) return [];
@@ -78,9 +76,7 @@
         const parsed = typeof input === "string" ? JSON.parse(input) : input;
 
         if (Array.isArray(parsed)) return parsed;
-
         if (parsed && Array.isArray(parsed["@graph"])) return parsed["@graph"];
-
         if (parsed && typeof parsed === "object") return [parsed];
 
         return [];
@@ -102,8 +98,12 @@
       if (!item) return null;
 
       if (item["@type"] === "ListItem") {
-        if (!item.position) item.position = index + 1;
-        return item;
+        return {
+          "@type": "ListItem",
+          "position": item.position || index + 1,
+          "name": item.name || "",
+          "item": item.item || item.url || ""
+        };
       }
 
       const name = item.name || item.title || item.label || "";
@@ -140,17 +140,13 @@
 
     customGraph = customGraph.filter((node) => {
       if (!node || typeof node !== "object") return false;
-
-      if (node["@type"] === "BreadcrumbList") {
-        return isValidBreadcrumbNode(node);
-      }
-
+      if (node["@type"] === "BreadcrumbList") return isValidBreadcrumbNode(node);
       return true;
     });
 
     const hasCustomWebsite = customGraph.some((node) => node["@type"] === "WebSite");
     const hasCustomOrganization = customGraph.some((node) => node["@type"] === "Organization");
-    const hasCustomWebPage = customGraph.some((node) => node["@type"] === "WebPage");
+    const hasCustomWebPage = customGraph.some((node) => node["@type"] === "WebPage" || node["@type"] === "CollectionPage");
     const hasCustomBreadcrumb = customGraph.some((node) => node["@type"] === "BreadcrumbList");
 
     const schemaGraph = [];
@@ -221,10 +217,14 @@
 
     schemaGraph.push(...customGraph);
 
-    const finalJsonLd = JSON.stringify({
-      "@context": "https://schema.org",
-      "@graph": schemaGraph
-    }, null, 2);
+    const finalJsonLd = JSON.stringify(
+      {
+        "@context": "https://schema.org",
+        "@graph": schemaGraph
+      },
+      null,
+      2
+    );
   %>
 
   <title><%= pageTitle %></title>
@@ -248,8 +248,10 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon/favicon-180x180.png">
 
   <!-- Performance -->
-  <link rel="preconnect" href="<%= normalizedBaseUrl %>" crossorigin>
-  <link rel="dns-prefetch" href="<%= normalizedBaseUrl %>">
+  <% if (normalizedBaseUrl) { %>
+    <link rel="preconnect" href="<%= normalizedBaseUrl %>" crossorigin>
+    <link rel="dns-prefetch" href="<%= normalizedBaseUrl %>">
+  <% } %>
 
   <!-- Open Graph -->
   <meta property="og:locale" content="<%= siteLocale %>">
@@ -297,8 +299,11 @@
   <script defer src="/js/main.js"></script>
 
   <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8313404846350628"
+  <script
+    async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8313404846350628"
     crossorigin="anonymous"></script>
 
+  <!-- Schema -->
   <script type="application/ld+json"><%- finalJsonLd %></script>
 </head>
