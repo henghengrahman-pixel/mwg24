@@ -6,6 +6,14 @@
 
   <section class="section container detail-layout">
     <article class="detail-main">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Beranda</a>
+        <span>/</span>
+        <a href="/kuliner">Kuliner</a>
+        <span>/</span>
+        <span><%= item.title %></span>
+      </nav>
+
       <img
         src="<%= item.image || '/images/wisata-berastagi-cover.jpg' %>"
         alt="<%= item.title %> - Kuliner Berastagi"
@@ -18,20 +26,29 @@
 
       <div class="detail-meta">
         <% if (item.location) { %>
-          <span><%= item.location %></span>
+          <span>Lokasi: <%= item.location %></span>
         <% } %>
 
         <% if (item.open_hours) { %>
-          <span>• Jam buka: <%= item.open_hours %></span>
+          <span>Jam buka: <%= item.open_hours %></span>
         <% } %>
 
         <% if (item.price_range) { %>
-          <span>• Harga: <%= item.price_range %></span>
+          <span>Harga: <%= item.price_range %></span>
         <% } %>
 
         <% if (avg) { %>
-          <span>• Rating: <%= avg %>/5</span>
+          <span>Rating: <%= avg %>/5</span>
         <% } %>
+      </div>
+
+      <div class="detail-quick-links">
+        <a href="#deskripsi">Deskripsi</a>
+        <a href="#info-kuliner">Info Kuliner</a>
+        <a href="#faq">FAQ</a>
+        <a href="#kuliner-terkait">Kuliner Terkait</a>
+        <a href="#rating">Rating</a>
+        <a href="#ulasan">Komentar</a>
       </div>
 
       <% if (item.excerpt) { %>
@@ -40,24 +57,113 @@
         </div>
       <% } %>
 
-      <div class="detail-content article-content">
-        <%
-          const rawContent = item.content || "";
-          const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(rawContent);
-        %>
+      <section id="deskripsi">
+        <div class="detail-content article-content">
+          <%
+            const rawContent = item.content || "";
+            const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(rawContent);
+          %>
 
-        <% if (hasHtmlTags) { %>
-          <%- rawContent %>
+          <% if (hasHtmlTags) { %>
+            <%- rawContent %>
+          <% } else { %>
+            <%- rawContent
+              .split(/\n\s*\n/)
+              .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+              .join("") %>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="detail-extra-box" id="info-kuliner">
+        <h2>Informasi Kuliner <%= item.title %></h2>
+        <div class="detail-extra-grid">
+          <div class="detail-extra-item">
+            <strong>Nama Tempat</strong>
+            <p><%= item.title || "-" %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Lokasi</strong>
+            <p><%= item.location || "-" %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Jam Buka</strong>
+            <p><%= item.open_hours || "-" %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Harga</strong>
+            <p><%= item.price_range || "-" %></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-extra-box">
+        <h2>Jelajahi Berastagi Lebih Lengkap</h2>
+        <p>
+          Setelah menikmati <a href="/kuliner">kuliner Berastagi</a>,
+          kamu juga bisa melihat <a href="/wisata">tempat wisata di Berastagi</a>,
+          mencari <a href="/villa">villa dan hotel di Berastagi</a>,
+          membaca <a href="/berita">berita wisata terbaru</a>, dan
+          melihat <a href="/galeri">galeri foto Berastagi</a>
+          agar rencana liburan kamu makin lengkap.
+        </p>
+      </section>
+
+      <section class="detail-extra-box" id="faq">
+        <h2>FAQ Seputar <%= item.title %></h2>
+
+        <div class="faq-list">
+          <div class="faq-item">
+            <h3>Di mana lokasi <%= item.title %>?</h3>
+            <p><%= item.title %> berada di <%= item.location || "kawasan Berastagi, Kabupaten Karo" %>.</p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Berapa kisaran harga di <%= item.title %>?</h3>
+            <p>
+              Kisaran harga di <%= item.title %> adalah
+              <%= item.price_range || "menyesuaikan menu dan porsi yang dipilih" %>.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Jam buka <%= item.title %> sampai jam berapa?</h3>
+            <p>
+              Jam operasional <%= item.title %> adalah
+              <%= item.open_hours || "mengikuti jam operasional tempat makan setempat" %>.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apakah <%= item.title %> layak dicoba saat liburan ke Berastagi?</h3>
+            <p>
+              Ya, <%= item.title %> cocok menjadi pilihan kuliner saat liburan ke Berastagi,
+              terutama untuk kamu yang ingin menikmati makanan khas dan suasana kuliner dataran tinggi.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-extra-box" id="kuliner-terkait">
+        <h2>Kuliner Terkait di Berastagi</h2>
+
+        <% if (related && related.length) { %>
+          <div class="related-links-grid">
+            <% related.forEach(rel => { %>
+              <a href="/kuliner/<%= rel.slug %>" class="related-link-card">
+                <span>Kuliner Berastagi</span>
+                <strong><%= rel.title %></strong>
+              </a>
+            <% }) %>
+          </div>
         <% } else { %>
-          <%- rawContent
-            .split(/\n\s*\n/)
-            .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
-            .join("") %>
+          <p>Belum ada rekomendasi kuliner terkait lainnya.</p>
         <% } %>
-      </div>
+      </section>
 
       <section class="rating-box" id="rating">
         <h2>Rating Pengunjung</h2>
+        <p><strong><%= avg || 0 %>/5</strong> dari <%= ratings?.length || 0 %> ulasan</p>
 
         <form action="/kuliner/<%= item.slug %>/rating" method="post" class="inline-form">
           <input type="text" name="name" placeholder="Nama" />
@@ -129,6 +235,14 @@
             Lihat Lokasi
           </a>
         <% } %>
+      </div>
+
+      <div class="sticky-box">
+        <h3>Jelajahi Juga</h3>
+        <a href="/wisata" class="mini-link">Tempat Wisata di Berastagi</a>
+        <a href="/villa" class="mini-link">Villa &amp; Hotel di Berastagi</a>
+        <a href="/berita" class="mini-link">Berita Wisata Berastagi</a>
+        <a href="/galeri" class="mini-link">Galeri Foto Berastagi</a>
       </div>
 
       <div class="sticky-box">
