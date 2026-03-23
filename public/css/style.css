@@ -2294,3 +2294,78 @@ RESPONSIVE
     right:10px;
   }
 }
+
+/* =========================
+VILLA LIST PAGE
+========================= */
+
+.villa-card{
+  display:flex;
+  flex-direction:column;
+  height:100%;
+}
+
+.villa-card img{
+  width:100%;
+  aspect-ratio:16/10;
+  object-fit:cover;
+  border-bottom:1px solid #e6eee8;
+  background:#eef4ef;
+}
+
+.villa-card .card-body{
+  display:flex;
+  flex-direction:column;
+  height:100%;
+}
+
+.villa-card .meta-row{
+  margin-top:auto;
+}
+
+.villa-price{
+  font-weight:800;
+  color:#1e5b3a;
+}
+
+.villa-location{
+  color:#5e6d63;
+  font-size:14px;
+}
+
+.villa-facilities{
+  margin-top:10px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.villa-facilities span{
+  background:#eef4ef;
+  border:1px solid #dde8df;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+  color:#244a35;
+}
+
+/* villa grid spacing */
+.villa-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:22px;
+}
+
+/* responsive villa */
+@media (max-width: 980px){
+  .villa-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media (max-width: 640px){
+  .villa-grid{
+    grid-template-columns:1fr;
+  }
+}
