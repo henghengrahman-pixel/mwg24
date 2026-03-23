@@ -4,7 +4,7 @@ const SQLiteStore = require("connect-sqlite3")(session);
 const path = require("path");
 const fs = require("fs");
 
-const { initDb } = require("./lib/db");
+const { initDb, getDb } = require("./lib/db");
 const publicRoutes = require("./routes/public");
 const adminRoutes = require("./routes/admin");
 const { siteSeoDefaults } = require("./lib/seo");
@@ -94,18 +94,17 @@ function defaultSettingsFallback() {
 }
 
 /* =========================
-   BASIC SECURITY / PERFORMANCE HEADERS
+   BASIC HEADERS
 ========================= */
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
-  res.setHeader("Cross-Origin-Resource-Policy", "same-site");
   next();
 });
 
 /* =========================
-   CANONICAL HOST + TRAILING SLASH REDIRECT
+   CANONICAL HOST + TRAILING SLASH
 ========================= */
 app.use((req, res, next) => {
   if (shouldRedirectToBase(req)) {
@@ -135,47 +134,10 @@ app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 app.use(express.json({ limit: "20mb" }));
 
 /* =========================
-   STATIC FILES
+   STATIC
 ========================= */
-app.use(
-  express.static(PUBLIC_DIR, {
-    etag: true,
-    lastModified: true,
-    maxAge: IS_PROD ? "7d" : 0,
-    setHeaders(res, filePath) {
-      if (filePath.endsWith(".css")) {
-        res.setHeader("Content-Type", "text/css; charset=UTF-8");
-      }
-
-      if (/\.(js|css|png|jpg|jpeg|gif|svg|webp|ico)$/i.test(filePath)) {
-        res.setHeader(
-          "Cache-Control",
-          IS_PROD
-            ? "public, max-age=604800, stale-while-revalidate=86400"
-            : "no-cache"
-        );
-      }
-    }
-  })
-);
-
-app.use(
-  "/uploads",
-  express.static(UPLOADS_DIR, {
-    etag: true,
-    lastModified: true,
-    maxAge: IS_PROD ? "7d" : 0,
-    fallthrough: true,
-    setHeaders(res) {
-      res.setHeader(
-        "Cache-Control",
-        IS_PROD
-          ? "public, max-age=604800, stale-while-revalidate=86400"
-          : "no-cache"
-      );
-    }
-  })
-);
+app.use(express.static(PUBLIC_DIR));
+app.use("/uploads", express.static(UPLOADS_DIR));
 
 /* =========================
    SESSION
@@ -201,13 +163,6 @@ app.use(
 );
 
 /* =========================
-   APP LOCALS
-========================= */
-app.locals.baseUrl = BASE_URL;
-app.locals.site = siteSeoDefaults();
-app.locals.currentYear = new Date().getFullYear();
-
-/* =========================
    GLOBAL LOCALS
 ========================= */
 app.use((req, res, next) => {
@@ -221,13 +176,6 @@ app.use((req, res, next) => {
   res.locals.requestUrl = `${BASE_URL}${req.originalUrl}`;
   res.locals.canonicalUrl = cleanCanonical(BASE_URL, req);
 
-  res.locals.seoDefaults = {
-    title: "Wisata Berastagi Terlengkap – Tempat Wisata, Villa, Hotel, Kuliner & Panduan Liburan",
-    description:
-      "Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, villa dan hotel, kuliner, berita, hingga tips liburan terbaik.",
-    canonical: `${BASE_URL}${normalizedPath === "/" ? "/" : normalizedPath}`
-  };
-
   next();
 });
 
@@ -238,10 +186,10 @@ app.use("/", publicRoutes);
 app.use("/admin", adminRoutes);
 
 /* =========================
-   SYSTEM ROUTES
+   ROBOTS
 ========================= */
 app.get("/robots.txt", (req, res) => {
-  res.type("text/plain; charset=UTF-8").send(
+  res.type("text/plain").send(
 `User-agent: *
 Allow: /
 Disallow: /admin
@@ -251,13 +199,58 @@ Sitemap: ${BASE_URL}/sitemap.xml`
   );
 });
 
+/* =========================
+   SITEMAP (SEO PENTING)
+========================= */
+app.get("/sitemap.xml", (req, res) => {
+  const db = getDb();
+
+  const wisata = db.prepare("SELECT slug FROM wisata").all();
+  const villa = db.prepare("SELECT slug FROM villa").all();
+  const kuliner = db.prepare("SELECT slug FROM kuliner").all();
+  const berita = db.prepare("SELECT slug FROM articles").all();
+
+  let urls = `
+  <url><loc>${BASE_URL}/</loc></url>
+  <url><loc>${BASE_URL}/wisata</loc></url>
+  <url><loc>${BASE_URL}/villa</loc></url>
+  <url><loc>${BASE_URL}/kuliner</loc></url>
+  <url><loc>${BASE_URL}/berita</loc></url>
+  `;
+
+  wisata.forEach(i => {
+    urls += `<url><loc>${BASE_URL}/wisata/${i.slug}</loc></url>`;
+  });
+
+  villa.forEach(i => {
+    urls += `<url><loc>${BASE_URL}/villa/${i.slug}</loc></url>`;
+  });
+
+  kuliner.forEach(i => {
+    urls += `<url><loc>${BASE_URL}/kuliner/${i.slug}</loc></url>`;
+  });
+
+  berita.forEach(i => {
+    urls += `<url><loc>${BASE_URL}/berita/${i.slug}</loc></url>`;
+  });
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  ${urls}
+  </urlset>`;
+
+  res.header("Content-Type", "application/xml");
+  res.send(xml);
+});
+
+/* =========================
+   HEALTH
+========================= */
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
     site: "Wisata Berastagi",
-    baseUrl: BASE_URL,
-    uploadsDir: UPLOADS_DIR,
-    environment: process.env.NODE_ENV || "development"
+    baseUrl: BASE_URL
   });
 });
 
@@ -269,44 +262,30 @@ app.use((req, res) => {
     settings: defaultSettingsFallback(),
     seo: {
       title: "Halaman Tidak Ditemukan | Wisata Berastagi",
-      description: "Halaman yang kamu cari tidak tersedia di website Wisata Berastagi.",
+      description: "Halaman tidak ditemukan.",
       canonical: `${BASE_URL}${normalizeUrlPath(req.path)}`,
       noindex: true
-    },
-    pageTitle: "404 - Halaman Tidak Ditemukan",
-    pageContent:
-      "Maaf, halaman yang kamu cari tidak tersedia atau mungkin sudah dipindahkan."
+    }
   });
 });
 
 /* =========================
-   ERROR HANDLER
+   ERROR
 ========================= */
 app.use((err, req, res, next) => {
   console.error("APP ERROR:", err);
-
-  if (res.headersSent) {
-    return next(err);
-  }
 
   res.status(500).render("about", {
     settings: defaultSettingsFallback(),
     seo: {
       title: "Terjadi Kesalahan | Wisata Berastagi",
-      description: "Terjadi kendala pada website Wisata Berastagi.",
+      description: "Terjadi kesalahan pada server.",
       canonical: `${BASE_URL}${normalizeUrlPath(req.path)}`,
       noindex: true
-    },
-    pageTitle: "500 - Terjadi Kesalahan",
-    pageContent:
-      "Maaf, sedang terjadi kendala pada sistem. Silakan coba lagi beberapa saat."
+    }
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`WisataBerastagi running on port ${PORT}`);
-  console.log(`Base URL: ${BASE_URL}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`Data dir: ${DATA_DIR}`);
-  console.log(`Uploads dir: ${UPLOADS_DIR}`);
+  console.log(`Running on ${PORT}`);
 });
