@@ -1,140 +1,169 @@
-.villa-grid{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:24px;
-}
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
 
-.villa-card{
-  background:#fff;
-  border:1px solid #e3ebe5;
-  border-radius:22px;
-  overflow:hidden;
-  box-shadow:0 12px 28px rgba(20,54,36,.06);
-  transition:transform .25s ease, box-shadow .25s ease;
-}
+  <section class="page-hero small">
+    <div class="container">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Beranda</a>
+        <span>/</span>
+        <span>Villa &amp; Hotel</span>
+      </nav>
 
-.villa-card:hover{
-  transform:translateY(-4px);
-  box-shadow:0 18px 34px rgba(20,54,36,.10);
-}
+      <span class="eyebrow">Penginapan Berastagi</span>
+      <h1>Vila dan Hotel di Berastagi</h1>
+      <p>
+        Temukan rekomendasi vila dan hotel di Berastagi yang nyaman, bersih, dan cocok
+        untuk keluarga, pasangan, maupun rombongan yang ingin menikmati suasana sejuk Berastagi.
+      </p>
+    </div>
+  </section>
 
-.villa-card-link{
-  display:block;
-  color:inherit;
-  text-decoration:none;
-  height:100%;
-}
+  <section class="section container">
+    <div class="intro-box reveal">
+      <span class="eyebrow">Rekomendasi Menginap</span>
+      <h2>Pilihan Vila dan Hotel Terbaik untuk Liburan di Berastagi</h2>
+      <p>
+        Berastagi memiliki banyak pilihan penginapan, mulai dari vila keluarga, hotel dengan
+        pemandangan pegunungan, hingga tempat menginap yang cocok untuk liburan singkat maupun
+        akhir pekan. Di halaman ini kamu bisa menemukan berbagai rekomendasi vila dan hotel di Berastagi
+        lengkap dengan informasi harga, lokasi, dan detail penginapan yang memudahkan kamu memilih
+        tempat menginap terbaik.
+      </p>
+    </div>
 
-.villa-card-media{
-  position:relative;
-  aspect-ratio:16/10;
-  overflow:hidden;
-  background:#edf3ee;
-}
+    <% if (Array.isArray(items) && items.length > 0) { %>
+      <div class="villa-grid">
+        <% items.forEach(item => { %>
+          <%
+            const galleryImages =
+              Array.isArray(item?.images) && item.images.length
+                ? item.images
+                : (item?.image ? [item.image] : ["/images/wisata-berastagi-cover.jpg"]);
 
-.villa-card-media img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-  transition:transform .35s ease;
-}
+            const coverImage = galleryImages[0] || item.image || "/images/wisata-berastagi-cover.jpg";
+            const galleryCount = galleryImages.length;
+          %>
 
-.villa-card:hover .villa-card-media img{
-  transform:scale(1.04);
-}
+          <article class="villa-card reveal">
+            <a href="/villa/<%= item.slug %>" class="villa-card-link">
+              <div class="villa-card-media">
+                <img
+                  src="<%= coverImage %>"
+                  alt="<%= item.title %> di Berastagi"
+                  loading="lazy"
+                >
 
-.villa-card-badge{
-  position:absolute;
-  right:14px;
-  bottom:14px;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  background:rgba(0,0,0,.65);
-  color:#fff;
-  padding:8px 10px;
-  border-radius:999px;
-  font-size:13px;
-  font-weight:700;
-  backdrop-filter:blur(4px);
-}
+                <% if (galleryCount > 1) { %>
+                  <span class="villa-card-badge">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M4 7a2 2 0 0 1 2-2h2.2a2 2 0 0 1 1.4.58l.82.82a2 2 0 0 0 1.41.6H18a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7zm2 0v9h12V9h-6.17a4 4 0 0 1-2.82-1.17L8.2 7H6z"></path>
+                    </svg>
+                    <%= galleryCount %> foto
+                  </span>
+                <% } %>
+              </div>
 
-.villa-card-badge svg{
-  width:16px;
-  height:16px;
-  fill:currentColor;
-}
+              <div class="villa-card-body">
+                <div class="villa-card-top">
+                  <h2><%= item.title || "-" %></h2>
+                  <strong class="villa-card-price"><%= helpers.formatCurrency(item.price || 0) %></strong>
+                </div>
 
-.villa-card-body{
-  padding:18px 18px 20px;
-}
+                <p class="villa-card-location">
+                  <%= item.location || "Lokasi penginapan di Berastagi" %>
+                </p>
 
-.villa-card-top{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:10px;
-}
+                <p class="villa-card-excerpt">
+                  <%= item.excerpt || "Lihat detail penginapan, fasilitas, lokasi, dan informasi lengkap villa atau hotel ini." %>
+                </p>
 
-.villa-card-top h2{
-  margin:0;
-  font-size:1.1rem;
-  line-height:1.35;
-  color:#183124;
-}
+                <span class="villa-card-cta">Lihat Detail</span>
+              </div>
+            </a>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty-state reveal">
+        <h2>Belum ada data villa</h2>
+        <p>
+          Data vila dan hotel di Berastagi belum tersedia. Silakan cek kembali nanti untuk melihat
+          rekomendasi penginapan terbaru.
+        </p>
+      </div>
+    <% } %>
+  </section>
 
-.villa-card-price{
-  white-space:nowrap;
-  color:#24593f;
-  font-size:.98rem;
-}
+  <section class="section section-muted">
+    <div class="container">
+      <div class="intro-box reveal">
+        <span class="eyebrow">Panduan Menginap</span>
+        <h2>Cari Villa, Hotel, dan Referensi Liburan Berastagi Lebih Lengkap</h2>
+        <p>
+          Selain mencari <strong>villa dan hotel di Berastagi</strong>, kamu juga bisa melihat
+          <a href="/wisata">tempat wisata di Berastagi</a>,
+          <a href="/kuliner">kuliner Berastagi</a>,
+          <a href="/berita">berita wisata terbaru</a>, dan
+          <a href="/galeri">galeri foto Berastagi</a>
+          agar rencana liburan kamu lebih lengkap dan terarah.
+        </p>
 
-.villa-card-location{
-  margin:0 0 10px;
-  font-size:.95rem;
-  color:#557062;
-}
+        <div class="detail-quick-links">
+          <a href="/wisata">Tempat Wisata Berastagi</a>
+          <a href="/kuliner">Kuliner Berastagi</a>
+          <a href="/berita">Berita Wisata</a>
+          <a href="/galeri">Galeri Berastagi</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
-.villa-card-excerpt{
-  margin:0 0 16px;
-  color:#4f6558;
-  line-height:1.7;
-  font-size:.95rem;
-}
+  <section class="section section-muted">
+    <div class="container">
+      <div class="intro-box reveal">
+        <span class="eyebrow">Pertanyaan Umum</span>
+        <h2>FAQ Vila dan Hotel di Berastagi</h2>
 
-.villa-card-cta{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-height:40px;
-  padding:0 14px;
-  border-radius:999px;
-  background:#edf6ef;
-  color:#24593f;
-  font-weight:700;
-  font-size:.92rem;
-}
+        <div class="faq-list">
+          <div class="faq-item">
+            <h3>Apakah Berastagi punya banyak pilihan villa dan hotel?</h3>
+            <p>
+              Ya, Berastagi memiliki banyak pilihan villa, hotel, homestay, dan penginapan
+              yang cocok untuk keluarga, pasangan, maupun rombongan.
+            </p>
+          </div>
 
-@media (max-width: 1024px){
-  .villa-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-}
+          <div class="faq-item">
+            <h3>Apakah ada penginapan di Berastagi untuk rombongan keluarga?</h3>
+            <p>
+              Ada. Banyak villa di Berastagi yang cocok untuk keluarga besar atau rombongan
+              dengan fasilitas yang lebih luas dan nyaman.
+            </p>
+          </div>
 
-@media (max-width: 640px){
-  .villa-grid{
-    grid-template-columns:1fr;
-    gap:18px;
-  }
+          <div class="faq-item">
+            <h3>Kapan waktu terbaik menginap di Berastagi?</h3>
+            <p>
+              Waktu terbaik biasanya saat cuaca cerah dan suasana liburan lebih nyaman,
+              terutama ketika kamu ingin sekalian menikmati wisata alam dan kuliner Berastagi.
+            </p>
+          </div>
 
-  .villa-card-top{
-    flex-direction:column;
-    gap:6px;
-  }
+          <div class="faq-item">
+            <h3>Apakah di website ini ada informasi wisata dan kuliner juga?</h3>
+            <p>
+              Ya, selain penginapan, website ini juga menyediakan informasi tempat wisata,
+              kuliner, galeri, dan berita wisata Berastagi.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  .villa-card-price{
-    white-space:normal;
-  }
-}
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>
