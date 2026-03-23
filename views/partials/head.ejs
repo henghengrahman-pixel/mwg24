@@ -6,18 +6,19 @@
   <!-- META ADSENSE -->
   <meta name="google-adsense-account" content="ca-pub-8313404846350628">
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-11QT8Y3MC6"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-11QT8Y3MC6"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-11QT8Y3MC6');
+  </script>
 
-  gtag('config', 'G-11QT8Y3MC6');
-</script>
   <%
     const safeSettings = settings || {};
     const safeSeo = seo || {};
+
     const normalizedBaseUrl = String(baseUrl || "").replace(/\/+$/, "");
     const currentPath = String(path || "/") || "/";
     const siteName = safeSettings.site_name || "Wisata Berastagi";
@@ -55,6 +56,7 @@
 
     const canonicalUrlRaw =
       safeSeo.canonical ||
+      canonical ||
       `${normalizedBaseUrl}${currentPath.startsWith("/") ? currentPath : "/" + currentPath}`;
 
     const canonicalUrl = normalizeFullUrl(canonicalUrlRaw);
@@ -78,6 +80,9 @@
     const twitterSite = safeSeo.twitterSite || "";
     const twitterCreator = safeSeo.twitterCreator || "";
 
+    const autoBreadcrumbCategory = String(breadcrumbCategory || "").trim();
+    const autoBreadcrumbCategorySlug = String(breadcrumbCategorySlug || "").trim();
+
     function normalizeJsonLdToGraph(input) {
       if (!input) return [];
 
@@ -92,15 +97,6 @@
       } catch (err) {
         return [];
       }
-    }
-
-    function isValidBreadcrumbNode(node) {
-      return !!(
-        node &&
-        node["@type"] === "BreadcrumbList" &&
-        Array.isArray(node.itemListElement) &&
-        node.itemListElement.length > 0
-      );
     }
 
     function toListItem(item, index) {
@@ -135,28 +131,72 @@
         .map((item, index) => toListItem(item, index))
         .filter(Boolean);
     } else {
-      breadcrumbItems = [
-        {
+      breadcrumbItems.push({
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Beranda",
+        "item": `${normalizedBaseUrl}/`
+      });
+
+      if (autoBreadcrumbCategory && autoBreadcrumbCategorySlug) {
+        breadcrumbItems.push({
           "@type": "ListItem",
-          "position": 1,
-          "name": "Beranda",
-          "item": `${normalizedBaseUrl}/`
+          "position": 2,
+          "name": autoBreadcrumbCategory,
+          "item": `${normalizedBaseUrl}/${autoBreadcrumbCategorySlug}`
+        });
+
+        if (currentPath !== `/${autoBreadcrumbCategorySlug}`) {
+          breadcrumbItems.push({
+            "@type": "ListItem",
+            "position": 3,
+            "name": pageTitle,
+            "item": canonicalUrl
+          });
         }
-      ];
+      } else if (currentPath !== "/") {
+        breadcrumbItems.push({
+          "@type": "ListItem",
+          "position": 2,
+          "name": pageTitle,
+          "item": canonicalUrl
+        });
+      }
     }
 
-    let customGraph = normalizeJsonLdToGraph(safeSeo.jsonLd);
+    breadcrumbItems = breadcrumbItems
+      .filter(item => item && item.name && item.item)
+      .map((item, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "name": item.name,
+        "item": item.item
+      }));
 
-    customGraph = customGraph.filter((node) => {
-      if (!node || typeof node !== "object") return false;
-      if (node["@type"] === "BreadcrumbList") return isValidBreadcrumbNode(node);
-      return true;
+    let customGraph = normalizeJsonLdToGraph(safeSeo.jsonLd).filter(node => node && typeof node === "object");
+
+    // Buang breadcrumb lama supaya tidak bentrok
+    customGraph = customGraph.filter((node) => node["@type"] !== "BreadcrumbList");
+
+    // Paksa semua WebPage/CollectionPage pakai breadcrumb ID yang benar
+    customGraph = customGraph.map((node) => {
+      if (node["@type"] === "WebPage" || node["@type"] === "CollectionPage") {
+        return {
+          ...node,
+          "@id": `${canonicalUrl}#webpage`,
+          url: canonicalUrl,
+          breadcrumb: breadcrumbItems.length
+            ? { "@id": `${canonicalUrl}#breadcrumb` }
+            : undefined
+        };
+      }
+
+      return node;
     });
 
     const hasCustomWebsite = customGraph.some((node) => node["@type"] === "WebSite");
     const hasCustomOrganization = customGraph.some((node) => node["@type"] === "Organization");
     const hasCustomWebPage = customGraph.some((node) => node["@type"] === "WebPage" || node["@type"] === "CollectionPage");
-    const hasCustomBreadcrumb = customGraph.some((node) => node["@type"] === "BreadcrumbList");
 
     const schemaGraph = [];
 
@@ -212,11 +252,14 @@
         "primaryImageOfPage": {
           "@type": "ImageObject",
           "url": imageUrl
-        }
+        },
+        "breadcrumb": breadcrumbItems.length
+          ? { "@id": `${canonicalUrl}#breadcrumb` }
+          : undefined
       });
     }
 
-    if (!hasCustomBreadcrumb && breadcrumbItems.length > 0) {
+    if (breadcrumbItems.length > 0) {
       schemaGraph.push({
         "@type": "BreadcrumbList",
         "@id": `${canonicalUrl}#breadcrumb`,
