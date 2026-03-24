@@ -6,6 +6,7 @@
 
   <section class="section container detail-layout">
     <article class="detail-main">
+
       <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="/">Beranda</a>
         <span>/</span>
@@ -30,6 +31,12 @@
         <span>Tiket: <%= helpers.formatCurrency(item.ticket_price || 0) %></span>
       </div>
 
+      <% if (item.excerpt) { %>
+        <div class="detail-intro">
+          <p><%= item.excerpt %></p>
+        </div>
+      <% } %>
+
       <div class="detail-quick-links">
         <a href="#deskripsi">Deskripsi</a>
         <a href="#info-wisata">Info Wisata</a>
@@ -38,12 +45,6 @@
         <a href="#rating">Rating</a>
         <a href="#ulasan">Ulasan</a>
       </div>
-
-      <% if (item.excerpt) { %>
-        <div class="detail-intro">
-          <p><%= item.excerpt %></p>
-        </div>
-      <% } %>
 
       <section id="deskripsi">
         <div class="detail-content article-content">
@@ -109,8 +110,7 @@
           <div class="faq-item">
             <h3>Berapa harga tiket masuk <%= item.title %>?</h3>
             <p>
-              Harga tiket <%= item.title %> saat ini sekitar
-              <%= helpers.formatCurrency(item.ticket_price || 0) %>.
+              Harga tiket sekitar <%= helpers.formatCurrency(item.ticket_price || 0) %>.
               Sebaiknya cek kembali sebelum berkunjung jika ada perubahan harga.
             </p>
           </div>
@@ -126,8 +126,9 @@
           <div class="faq-item">
             <h3>Apakah <%= item.title %> cocok untuk liburan keluarga?</h3>
             <p>
-              Ya, <%= item.title %> cocok dijadikan pilihan liburan santai di Berastagi,
-              terutama untuk pengunjung yang ingin menikmati suasana sejuk dan panorama alam dataran tinggi.
+              Ya, <%= item.title %> cocok untuk liburan santai di Berastagi,
+              terutama untuk pengunjung yang ingin menikmati suasana sejuk
+              dan panorama alam dataran tinggi.
             </p>
           </div>
         </div>
@@ -188,10 +189,11 @@
           <% }) %>
 
           <% if (!comments.length) { %>
-            <p>Belum ada komentar yang tampil. Jadilah yang pertama mengirim ulasan untuk tempat wisata ini.</p>
+            <p>Belum ada komentar. Jadilah yang pertama memberi ulasan.</p>
           <% } %>
         </div>
       </section>
+
     </article>
 
     <aside class="detail-sidebar">
@@ -204,13 +206,15 @@
         </ul>
 
         <% if (item.maps_url) { %>
-          <a href="<%= item.maps_url %>" target="_blank" rel="noopener" class="btn-primary full">Lihat Maps</a>
+          <a href="<%= item.maps_url %>" target="_blank" rel="noopener" class="btn-primary full">
+            Lihat Maps
+          </a>
         <% } %>
       </div>
 
       <div class="sticky-box">
         <h3>Jelajahi Juga</h3>
-        <a href="/villa" class="mini-link">Villa &amp; Hotel di Berastagi</a>
+        <a href="/villa" class="mini-link">Villa & Hotel di Berastagi</a>
         <a href="/kuliner" class="mini-link">Kuliner Berastagi</a>
         <a href="/berita" class="mini-link">Berita Wisata Berastagi</a>
         <a href="/galeri" class="mini-link">Galeri Foto Berastagi</a>
@@ -223,6 +227,7 @@
         <% }) %>
       </div>
     </aside>
+
   </section>
 
   <%- include("partials/footer", { settings }) %>
