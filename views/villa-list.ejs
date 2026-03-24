@@ -15,106 +15,111 @@
       <span class="eyebrow">Penginapan Berastagi</span>
       <h1>Villa dan Hotel di Berastagi</h1>
       <p>
-        Temukan rekomendasi villa dan hotel di Berastagi yang nyaman, bersih, dan cocok
-        untuk keluarga, pasangan, maupun rombongan yang ingin menikmati suasana sejuk Berastagi.
+        Temukan rekomendasi villa dan hotel di Berastagi yang nyaman, bersih,
+        dan cocok untuk keluarga, pasangan, maupun rombongan yang ingin menikmati
+        suasana sejuk Berastagi, Kabupaten Karo, Sumatera Utara.
       </p>
     </div>
   </section>
 
-  <section class="section container">
-    <div class="intro-box reveal">
-      <span class="eyebrow">Rekomendasi Menginap</span>
-      <h2>Pilihan Villa dan Hotel Terbaik untuk Liburan di Berastagi</h2>
-      <p>
-        Berastagi memiliki banyak pilihan penginapan, mulai dari villa keluarga, hotel dengan
-        pemandangan pegunungan, hingga tempat menginap yang cocok untuk liburan singkat maupun
-        akhir pekan. Di halaman ini kamu bisa menemukan berbagai rekomendasi villa dan hotel di Berastagi
-        lengkap dengan informasi harga, lokasi, dan detail penginapan yang memudahkan kamu memilih
-        tempat menginap terbaik.
-      </p>
-    </div>
+  <section class="section">
+    <div class="container">
 
-    <% if (Array.isArray(items) && items.length > 0) { %>
-      <div class="villa-grid">
-        <% items.forEach(item => { %>
-          <%
-            const galleryImages =
-              Array.isArray(item?.images) && item.images.length
-                ? item.images
-                : (item?.image ? [item.image] : ["/images/wisata-berastagi-cover.jpg"]);
-
-            const coverImage = galleryImages[0] || item.image || "/images/wisata-berastagi-cover.jpg";
-            const galleryCount = galleryImages.length;
-
-            const rawFacilities = String(item.facilities || "")
-              .split(",")
-              .map(x => x.trim())
-              .filter(Boolean)
-              .slice(0, 4);
-          %>
-
-          <article class="villa-card reveal">
-            <a href="/villa/<%= item.slug %>" class="villa-card-link">
-              <div class="villa-card-media">
-                <img
-                  src="<%= coverImage %>"
-                  alt="<%= item.title %> di Berastagi"
-                  loading="lazy"
-                >
-
-                <span class="villa-card-badge villa-card-badge-type">Villa &amp; Hotel</span>
-
-                <% if (galleryCount > 1) { %>
-                  <span class="villa-card-badge villa-card-badge-count">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <path d="M4 7a2 2 0 0 1 2-2h2.2a2 2 0 0 1 1.4.58l.82.82a2 2 0 0 0 1.41.6H18a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7zm2 0v9h12V9h-6.17a4 4 0 0 1-2.82-1.17L8.2 7H6z"></path>
-                    </svg>
-                    <%= galleryCount %> foto
-                  </span>
-                <% } %>
-              </div>
-
-              <div class="villa-card-body">
-                <div class="villa-card-top">
-                  <h2><%= item.title || "-" %></h2>
-                  <strong class="villa-card-price">
-                    <%= item.price ? helpers.formatCurrency(item.price) : "Hubungi admin" %>
-                  </strong>
-                </div>
-
-                <p class="villa-card-location">
-                  <%= item.location || "Berastagi" %>
-                </p>
-
-                <p class="villa-card-excerpt">
-                  <%= item.excerpt || "Lihat detail penginapan, fasilitas, lokasi, dan informasi lengkap villa atau hotel ini." %>
-                </p>
-
-                <% if (rawFacilities.length) { %>
-                  <div class="villa-facilities">
-                    <% rawFacilities.forEach(facility => { %>
-                      <span><%= facility %></span>
-                    <% }) %>
-                  </div>
-                <% } %>
-
-                <div class="villa-card-footer">
-                  <span class="villa-card-cta">Lihat Detail</span>
-                </div>
-              </div>
-            </a>
-          </article>
-        <% }) %>
-      </div>
-    <% } else { %>
-      <div class="empty-state reveal">
-        <h2>Belum ada data villa</h2>
+      <div class="intro-box reveal">
+        <span class="eyebrow">Rekomendasi Menginap</span>
+        <h2>Pilihan Villa dan Hotel Terbaik untuk Liburan di Berastagi</h2>
         <p>
-          Data villa dan hotel di Berastagi belum tersedia. Silakan cek kembali nanti untuk melihat
-          rekomendasi penginapan terbaru.
+          Berastagi memiliki banyak pilihan penginapan, mulai dari villa keluarga,
+          hotel dengan pemandangan pegunungan, hingga tempat menginap yang cocok
+          untuk liburan singkat maupun akhir pekan. Di halaman ini kamu bisa menemukan
+          berbagai rekomendasi villa dan hotel di Berastagi lengkap dengan informasi
+          harga, lokasi, dan detail penginapan yang memudahkan kamu memilih tempat
+          menginap terbaik.
         </p>
       </div>
-    <% } %>
+
+      <% if (Array.isArray(items) && items.length > 0) { %>
+        <div class="villa-grid">
+          <% items.forEach(item => { %>
+            <%
+              const galleryImages =
+                Array.isArray(item?.images) && item.images.length
+                  ? item.images
+                  : (item?.image ? [item.image] : ["/images/wisata-berastagi-cover.jpg"]);
+
+              const coverImage = galleryImages[0] || item.image || "/images/wisata-berastagi-cover.jpg";
+              const galleryCount = galleryImages.length;
+
+              const rawFacilities = String(item.facilities || "")
+                .split(",")
+                .map(x => x.trim())
+                .filter(Boolean)
+                .slice(0, 4);
+            %>
+
+            <article class="villa-card reveal">
+              <a href="/villa/<%= item.slug %>" class="villa-card-link">
+                <div class="villa-card-media">
+                  <img
+                    src="<%= coverImage %>"
+                    alt="<%= item.title %> di Berastagi"
+                    loading="lazy"
+                  >
+
+                  <span class="villa-card-badge villa-card-badge-type">
+                    Villa &amp; Hotel
+                  </span>
+
+                  <% if (galleryCount > 1) { %>
+                    <span class="villa-card-badge villa-card-badge-count">
+                      <%= galleryCount %> foto
+                    </span>
+                  <% } %>
+                </div>
+
+                <div class="villa-card-body">
+                  <div class="villa-card-top">
+                    <h2><%= item.title || "-" %></h2>
+                    <strong class="villa-card-price">
+                      <%= item.price ? helpers.formatCurrency(item.price) : "Hubungi admin" %>
+                    </strong>
+                  </div>
+
+                  <p class="villa-card-location">
+                    <%= item.location || "Berastagi" %>
+                  </p>
+
+                  <p class="villa-card-excerpt">
+                    <%= item.excerpt || "Lihat detail penginapan, fasilitas, lokasi, dan informasi lengkap villa atau hotel ini." %>
+                  </p>
+
+                  <% if (rawFacilities.length) { %>
+                    <div class="villa-facilities">
+                      <% rawFacilities.forEach(facility => { %>
+                        <span><%= facility %></span>
+                      <% }) %>
+                    </div>
+                  <% } %>
+
+                  <div class="villa-card-footer">
+                    <span class="villa-card-cta">Lihat Detail</span>
+                  </div>
+                </div>
+              </a>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state reveal">
+          <h2>Belum ada data villa</h2>
+          <p>
+            Data villa dan hotel di Berastagi belum tersedia.
+            Silakan cek kembali nanti untuk melihat rekomendasi penginapan terbaru.
+          </p>
+        </div>
+      <% } %>
+
+    </div>
   </section>
 
   <section class="section section-muted">
@@ -141,26 +146,26 @@
     </div>
   </section>
 
-  <section class="section section-muted">
+  <section class="section">
     <div class="container">
       <div class="intro-box reveal">
         <span class="eyebrow">Pertanyaan Umum</span>
-        <h2>FAQ Vila dan Hotel di Berastagi</h2>
+        <h2>FAQ Villa dan Hotel di Berastagi</h2>
 
         <div class="faq-list">
           <div class="faq-item">
             <h3>Apakah Berastagi punya banyak pilihan villa dan hotel?</h3>
             <p>
-              Ya, Berastagi memiliki banyak pilihan villa, hotel, homestay, dan penginapan
-              yang cocok untuk keluarga, pasangan, maupun rombongan.
+              Ya, Berastagi memiliki banyak pilihan villa, hotel, homestay,
+              dan penginapan yang cocok untuk keluarga, pasangan, maupun rombongan.
             </p>
           </div>
 
           <div class="faq-item">
             <h3>Apakah ada penginapan di Berastagi untuk rombongan keluarga?</h3>
             <p>
-              Ada. Banyak villa di Berastagi yang cocok untuk keluarga besar atau rombongan
-              dengan fasilitas yang lebih luas dan nyaman.
+              Ada. Banyak villa di Berastagi yang cocok untuk keluarga besar
+              atau rombongan dengan fasilitas yang lebih luas dan nyaman.
             </p>
           </div>
 
