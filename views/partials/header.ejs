@@ -1,6 +1,5 @@
 <header class="site-header">
   <div class="container nav-wrap">
-
     <a
       href="/"
       class="logo-text"
@@ -22,7 +21,9 @@
       aria-expanded="false"
       onclick="toggleMenu()"
     >
-      ☰
+      <span></span>
+      <span></span>
+      <span></span>
     </button>
 
     <nav class="main-nav" id="mainNav" aria-label="Navigasi utama">
@@ -58,6 +59,50 @@
         Kontak
       </a>
     </nav>
-
   </div>
+
+  <div class="mobile-nav-backdrop" id="mobileNavBackdrop" onclick="closeMenu()"></div>
 </header>
+
+<script>
+  function toggleMenu() {
+    const nav = document.getElementById("mainNav");
+    const button = document.querySelector(".menu-toggle");
+    const backdrop = document.getElementById("mobileNavBackdrop");
+    const isOpen = nav.classList.contains("open");
+
+    if (isOpen) {
+      nav.classList.remove("open");
+      button.classList.remove("active");
+      backdrop.classList.remove("show");
+      button.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("nav-open");
+    } else {
+      nav.classList.add("open");
+      button.classList.add("active");
+      backdrop.classList.add("show");
+      button.setAttribute("aria-expanded", "true");
+      document.body.classList.add("nav-open");
+    }
+  }
+
+  function closeMenu() {
+    const nav = document.getElementById("mainNav");
+    const button = document.querySelector(".menu-toggle");
+    const backdrop = document.getElementById("mobileNavBackdrop");
+
+    nav.classList.remove("open");
+    button.classList.remove("active");
+    backdrop.classList.remove("show");
+    button.setAttribute("aria-expanded", "false");
+    document.body.classList.remove("nav-open");
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeMenu();
+  });
+
+  window.addEventListener("resize", function () {
+    if (window.innerWidth > 980) closeMenu();
+  });
+</script>
