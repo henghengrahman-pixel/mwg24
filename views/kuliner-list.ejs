@@ -12,70 +12,75 @@
         <span>Kuliner</span>
       </nav>
 
-      <span class="eyebrow">Kuliner</span>
+      <span class="eyebrow">Kuliner Berastagi</span>
       <h1>Kuliner Berastagi Terbaru</h1>
       <p>
         Temukan rekomendasi kuliner Berastagi yang enak, populer, nyaman untuk keluarga,
-        dan cocok dinikmati saat liburan di udara sejuk Berastagi.
+        dan cocok dinikmati saat liburan di udara sejuk Berastagi, Kabupaten Karo,
+        Sumatera Utara.
       </p>
     </div>
   </section>
 
-  <section class="section container">
-    <div class="intro-box reveal">
-      <span class="eyebrow">Rekomendasi Makan</span>
-      <h2>Tempat Makan dan Kuliner Favorit di Berastagi</h2>
-      <p>
-        Halaman ini berisi kumpulan kuliner Berastagi yang banyak dicari pengunjung,
-        mulai dari jajanan hangat, makanan khas, tempat nongkrong, sampai tempat makan
-        keluarga yang nyaman untuk wisatawan.
-      </p>
-      <p>
-        Dengan informasi yang lebih lengkap, pengunjung bisa lebih mudah menentukan
-        tempat makan yang cocok, melihat lokasi, jam buka, hingga memilih kuliner
-        Berastagi yang sesuai dengan selera dan budget.
-      </p>
-    </div>
+  <section class="section">
+    <div class="container">
 
-    <% if (items && items.length) { %>
-      <div class="card-grid">
-        <% items.forEach(item => { %>
-          <article class="card reveal">
-            <a href="/kuliner/<%= item.slug %>">
-              <img
-                src="<%= item.image || '/images/wisata-berastagi-cover.jpg' %>"
-                alt="<%= item.title %> - kuliner di Berastagi"
-                loading="lazy"
-              />
-
-              <div class="card-body">
-                <span class="card-tag">Kuliner</span>
-                <h2><%= item.title %></h2>
-                <p>
-                  <%= item.excerpt || 'Temukan informasi lengkap kuliner favorit di Berastagi.' %>
-                </p>
-
-                <div class="meta-row">
-                  <span><%= item.location || 'Berastagi' %></span>
-                  <% if (item.price_range) { %>
-                    <strong><%= item.price_range %></strong>
-                  <% } %>
-                </div>
-
-                <span class="read-more">Lihat Detail</span>
-              </div>
-            </a>
-          </article>
-        <% }) %>
-      </div>
-    <% } else { %>
-      <div class="empty-state reveal">
-        <h3>Belum ada data kuliner</h3>
+      <div class="intro-box reveal">
+        <span class="eyebrow">Rekomendasi Makan</span>
+        <h2>Tempat Makan dan Kuliner Favorit di Berastagi</h2>
         <p>
-          Data kuliner akan tampil di sini setelah ditambahkan dari panel admin.
+          Halaman ini berisi kumpulan kuliner Berastagi yang banyak dicari pengunjung,
+          mulai dari jajanan hangat, makanan khas, tempat nongkrong, sampai tempat makan
+          keluarga yang nyaman untuk wisatawan.
+        </p>
+        <p>
+          Dengan informasi yang lebih lengkap, pengunjung bisa lebih mudah menentukan
+          tempat makan yang cocok, melihat lokasi, jam buka, hingga memilih kuliner
+          Berastagi yang sesuai dengan selera dan budget.
         </p>
       </div>
-    <% } %>
+
+      <% if (items && items.length) { %>
+        <div class="card-grid">
+          <% items.forEach(item => { %>
+            <article class="card reveal">
+              <a href="/kuliner/<%= item.slug %>">
+                <img
+                  src="<%= item.image || '/images/wisata-berastagi-cover.jpg' %>"
+                  alt="<%= item.title %> - kuliner di Berastagi"
+                  loading="lazy"
+                />
+
+                <div class="card-body">
+                  <span class="card-tag">Kuliner</span>
+                  <h2><%= item.title %></h2>
+                  <p>
+                    <%= item.excerpt || 'Temukan informasi lengkap kuliner favorit di Berastagi.' %>
+                  </p>
+
+                  <div class="meta-row">
+                    <span><%= item.location || 'Berastagi' %></span>
+                    <% if (item.price_range) { %>
+                      <strong><%= item.price_range %></strong>
+                    <% } %>
+                  </div>
+
+                  <span class="read-more">Lihat Detail</span>
+                </div>
+              </a>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state reveal">
+          <h3>Belum ada data kuliner</h3>
+          <p>
+            Data kuliner akan tampil di sini setelah ditambahkan dari panel admin.
+          </p>
+        </div>
+      <% } %>
+
+    </div>
   </section>
 
   <section class="section section-muted">
@@ -102,7 +107,7 @@
     </div>
   </section>
 
-  <section class="section section-muted">
+  <section class="section">
     <div class="container">
       <div class="intro-box reveal">
         <span class="eyebrow">Pertanyaan Umum</span>
