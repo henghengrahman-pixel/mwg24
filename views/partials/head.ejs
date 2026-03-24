@@ -6,15 +6,7 @@
   <!-- META ADSENSE -->
   <meta name="google-adsense-account" content="ca-pub-8313404846350628">
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-11QT8Y3MC6"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-11QT8Y3MC6');
-  </script>
-
+  <!-- SEO / BASIC -->
   <%
     const safeSettings = settings || {};
     const safeSeo = seo || {};
@@ -175,10 +167,8 @@
 
     let customGraph = normalizeJsonLdToGraph(safeSeo.jsonLd).filter(node => node && typeof node === "object");
 
-    // Buang breadcrumb lama supaya tidak bentrok
     customGraph = customGraph.filter((node) => node["@type"] !== "BreadcrumbList");
 
-    // Paksa semua WebPage/CollectionPage pakai breadcrumb ID yang benar
     customGraph = customGraph.map((node) => {
       if (node["@type"] === "WebPage" || node["@type"] === "CollectionPage") {
         return {
@@ -299,7 +289,15 @@
   <link rel="icon" type="image/png" sizes="64x64" href="/favicon/favicon-64x64.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon/favicon-180x180.png">
 
-  <!-- Performance -->
+  <!-- FONT -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- PERFORMANCE -->
   <% if (normalizedBaseUrl) { %>
     <link rel="preconnect" href="<%= normalizedBaseUrl %>" crossorigin>
     <link rel="dns-prefetch" href="<%= normalizedBaseUrl %>">
@@ -346,9 +344,20 @@
     <meta name="twitter:creator" content="<%= twitterCreator %>">
   <% } %>
 
-  <!-- CSS & JS -->
+  <!-- CSS -->
   <link rel="stylesheet" href="/css/style.css">
+
+  <!-- JS -->
   <script defer src="/js/main.js"></script>
+
+  <!-- Google Tag Manager / GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-11QT8Y3MC6"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-11QT8Y3MC6');
+  </script>
 
   <!-- Google AdSense -->
   <script
