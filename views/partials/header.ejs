@@ -5,12 +5,16 @@
       class="logo-text"
       aria-label="Wisata Berastagi - Kembali ke beranda"
     >
-      <strong class="site-title">
-        <%= settings?.site_name || "Wisata Berastagi" %>
-      </strong>
-      <small class="site-tagline">
-        <%= settings?.site_tagline || "Panduan tempat wisata, villa, kuliner & berita Berastagi" %>
-      </small>
+      <span class="logo-badge" aria-hidden="true">WB</span>
+
+      <span class="logo-copy">
+        <strong class="site-title">
+          <%= settings?.site_name || "Wisata Berastagi" %>
+        </strong>
+        <small class="site-tagline">
+          <%= settings?.site_tagline || "Panduan tempat wisata, villa, kuliner & berita Berastagi" %>
+        </small>
+      </span>
     </a>
 
     <button
@@ -61,35 +65,37 @@
     </nav>
   </div>
 
-  <div class="mobile-nav-backdrop" id="mobileNavBackdrop" onclick="closeMenu()"></div>
+  <div
+    class="mobile-nav-backdrop"
+    id="mobileNavBackdrop"
+    onclick="closeMenu()"
+    aria-hidden="true"
+  ></div>
 </header>
 
 <script>
-  function toggleMenu() {
-    const nav = document.getElementById("mainNav");
-    const button = document.querySelector(".menu-toggle");
-    const backdrop = document.getElementById("mobileNavBackdrop");
-    const isOpen = nav.classList.contains("open");
+  function getMenuElements() {
+    return {
+      nav: document.getElementById("mainNav"),
+      button: document.querySelector(".menu-toggle"),
+      backdrop: document.getElementById("mobileNavBackdrop")
+    };
+  }
 
-    if (isOpen) {
-      nav.classList.remove("open");
-      button.classList.remove("active");
-      backdrop.classList.remove("show");
-      button.setAttribute("aria-expanded", "false");
-      document.body.classList.remove("nav-open");
-    } else {
-      nav.classList.add("open");
-      button.classList.add("active");
-      backdrop.classList.add("show");
-      button.setAttribute("aria-expanded", "true");
-      document.body.classList.add("nav-open");
-    }
+  function openMenu() {
+    const { nav, button, backdrop } = getMenuElements();
+    if (!nav || !button || !backdrop) return;
+
+    nav.classList.add("open");
+    button.classList.add("active");
+    backdrop.classList.add("show");
+    button.setAttribute("aria-expanded", "true");
+    document.body.classList.add("nav-open");
   }
 
   function closeMenu() {
-    const nav = document.getElementById("mainNav");
-    const button = document.querySelector(".menu-toggle");
-    const backdrop = document.getElementById("mobileNavBackdrop");
+    const { nav, button, backdrop } = getMenuElements();
+    if (!nav || !button || !backdrop) return;
 
     nav.classList.remove("open");
     button.classList.remove("active");
@@ -98,11 +104,50 @@
     document.body.classList.remove("nav-open");
   }
 
+  function toggleMenu() {
+    const { nav } = getMenuElements();
+    if (!nav) return;
+
+    if (nav.classList.contains("open")) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  }
+
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closeMenu();
+    if (e.key === "Escape") {
+      closeMenu();
+    }
   });
 
   window.addEventListener("resize", function () {
-    if (window.innerWidth > 980) closeMenu();
+    if (window.innerWidth > 980) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener("click", function (e) {
+    const { nav, button } = getMenuElements();
+    if (!nav || !button) return;
+    if (window.innerWidth > 980) return;
+
+    const clickedInsideNav = nav.contains(e.target);
+    const clickedButton = button.contains(e.target);
+
+    if (!clickedInsideNav && !clickedButton && nav.classList.contains("open")) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const navLinks = document.querySelectorAll("#mainNav a");
+    navLinks.forEach(function (link) {
+      link.addEventListener("click", function () {
+        if (window.innerWidth <= 980) {
+          closeMenu();
+        }
+      });
+    });
   });
 </script>
