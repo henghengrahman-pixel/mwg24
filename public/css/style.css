@@ -2795,3 +2795,107 @@ VILLA LIST PAGE FIX
     line-height:1.7;
   }
 }
+/* =========================
+MOBILE READING IMPROVEMENT
+========================= */
+
+@media (max-width: 768px){
+
+  body{
+    font-size:15px;
+  }
+
+  .detail-content,
+  .article-content{
+    font-size:16px;
+    line-height:1.9;
+  }
+
+  .detail-main h1{
+    font-size:26px;
+    line-height:1.25;
+  }
+
+  .intro-box p,
+  .page-hero p{
+    font-size:14px;
+    line-height:1.8;
+  }
+
+  .section{
+    padding:36px 0;
+  }
+
+  .detail-extra-box{
+    padding:18px;
+  }
+
+}
+
+/* =========================
+CARD GRID MOBILE 2 PER ROW
+========================= */
+
+@media (max-width: 600px){
+  .card-grid{
+    grid-template-columns:repeat(2, 1fr);
+    gap:10px;
+  }
+
+  .card-body{
+    padding:10px;
+  }
+
+  .card-body h2,
+  .card-body h3{
+    font-size:13px;
+    line-height:1.35;
+  }
+
+  .card-body p{
+    font-size:11.5px;
+    line-height:1.5;
+  }
+
+  .read-more{
+    font-size:11px;
+  }
+}
+
+/* =========================
+CONTAINER WIDTH LIKE BIG WEBSITE
+========================= */
+
+.container{
+  width:min(1180px, 92%);
+}
+
+@media (max-width: 768px){
+  .container{
+    width:94%;
+  }
+}
+
+/* =========================
+SMOOTH CARD HOVER
+========================= */
+
+.card,
+.villa-card,
+.related-link-card{
+  transition:all .25s ease;
+}
+
+.card:hover,
+.villa-card:hover,
+.related-link-card:hover{
+  transform:translateY(-4px);
+}
+
+/* =========================
+BETTER SPACING BETWEEN SECTIONS
+========================= */
+
+.section + .section{
+  margin-top:-20px;
+}
