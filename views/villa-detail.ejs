@@ -4,80 +4,28 @@
 <body>
   <%- include("partials/header") %>
 
-  <%
-    let galleryImages = [];
-
-    try {
-      if (Array.isArray(item?.images)) {
-        galleryImages = item.images.filter(Boolean);
-      } else if (item?.images) {
-        const parsedImages = JSON.parse(item.images);
-        galleryImages = Array.isArray(parsedImages) ? parsedImages.filter(Boolean) : [];
-      }
-    } catch (e) {
-      galleryImages = [];
-    }
-
-    if (item?.image && !galleryImages.includes(item.image)) {
-      galleryImages.unshift(item.image);
-    }
-
-    if (!galleryImages.length && item?.image) {
-      galleryImages = [item.image];
-    }
-
-    const mainImage = galleryImages[0] || item.image || "/images/wisata-berastagi-cover.jpg";
-    const sideImages = galleryImages.slice(1, 5);
-    const totalImages = galleryImages.length;
-    const extraImagesCount = totalImages > 5 ? totalImages - 5 : 0;
-  %>
-
   <section class="section container detail-layout">
     <article class="detail-main">
+
       <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="/">Beranda</a>
         <span>/</span>
-        <a href="/villa">Villa &amp; Hotel</a>
+        <a href="/villa">Villa & Hotel</a>
         <span>/</span>
         <span><%= item.title %></span>
       </nav>
 
       <section class="villa-gallery-section">
         <div class="villa-gallery-grid <%= totalImages <= 1 ? "single" : "" %>">
-          <button
-            type="button"
-            class="villa-gallery-main"
-            onclick="openVillaLightbox(0)"
-            aria-label="Lihat foto utama <%= item.title %>"
-          >
-            <img
-              src="<%= mainImage %>"
-              alt="<%= item.title %> di Berastagi"
-              loading="eager"
-            >
+          <button type="button" class="villa-gallery-main" onclick="openVillaLightbox(0)">
+            <img src="<%= mainImage %>" alt="<%= item.title %>" loading="eager">
           </button>
 
           <% if (sideImages.length > 0) { %>
             <div class="villa-gallery-side">
               <% sideImages.forEach((img, index) => { %>
-                <button
-                  type="button"
-                  class="villa-gallery-thumb <%= (index === 3 && extraImagesCount > 0) ? 'has-overlay' : '' %>"
-                  onclick="openVillaLightbox(<%= index + 1 %>)"
-                  aria-label="Lihat foto <%= index + 2 %> <%= item.title %>"
-                >
-                  <img
-                    src="<%= img %>"
-                    alt="<%= item.title %> foto <%= index + 2 %>"
-                    loading="lazy"
-                  >
-
-                  <% if (index === 3 && extraImagesCount > 0) { %>
-                    <span class="villa-gallery-overlay">
-                      <strong>+<%= extraImagesCount %></strong>
-                      <span>Lihat Semua Foto</span>
-                    </span>
-                  <% } %>
+                <button type="button" class="villa-gallery-thumb" onclick="openVillaLightbox(<%= index + 1 %>)">
+                  <img src="<%= img %>" alt="<%= item.title %> foto <%= index + 2 %>" loading="lazy">
                 </button>
               <% }) %>
             </div>
@@ -93,7 +41,7 @@
         <% } %>
       </section>
 
-      <span class="eyebrow">Villa &amp; Hotel Berastagi</span>
+      <span class="eyebrow">Villa & Hotel Berastagi</span>
       <h1><%= item.title %></h1>
 
       <div class="detail-meta">
@@ -101,6 +49,12 @@
         <span>Harga: <%= helpers.formatCurrency(item.price || 0) %></span>
         <span>Fasilitas: <%= item.facilities || "-" %></span>
       </div>
+
+      <% if (item.excerpt) { %>
+        <div class="detail-intro">
+          <p><%= item.excerpt %></p>
+        </div>
+      <% } %>
 
       <div class="detail-quick-links">
         <a href="#deskripsi">Deskripsi</a>
@@ -110,12 +64,6 @@
         <a href="#rating">Rating</a>
         <a href="#ulasan">Ulasan</a>
       </div>
-
-      <% if (item.excerpt) { %>
-        <div class="detail-intro">
-          <p><%= item.excerpt %></p>
-        </div>
-      <% } %>
 
       <section id="deskripsi">
         <div class="detail-content article-content">
@@ -164,14 +112,12 @@
           kamu juga bisa melihat <a href="/wisata">tempat wisata di Berastagi</a>,
           <a href="/kuliner">kuliner Berastagi</a>,
           <a href="/berita">berita wisata terbaru</a>, dan
-          <a href="/galeri">galeri foto Berastagi</a>
-          untuk melengkapi rencana perjalanan kamu.
+          <a href="/galeri">galeri foto Berastagi</a>.
         </p>
       </section>
 
       <section class="detail-extra-box" id="faq">
         <h2>FAQ Seputar <%= item.title %></h2>
-
         <div class="faq-list">
           <div class="faq-item">
             <h3>Di mana lokasi <%= item.title %>?</h3>
@@ -180,76 +126,45 @@
 
           <div class="faq-item">
             <h3>Berapa harga menginap di <%= item.title %>?</h3>
-            <p>
-              Harga menginap di <%= item.title %> mulai dari
-              <%= helpers.formatCurrency(item.price || 0) %>.
-              Harga bisa berubah tergantung musim liburan dan ketersediaan kamar.
-            </p>
+            <p>Harga mulai dari <%= helpers.formatCurrency(item.price || 0) %>.</p>
           </div>
 
           <div class="faq-item">
             <h3>Apa saja fasilitas di <%= item.title %>?</h3>
-            <p>
-              Fasilitas yang tersedia di <%= item.title %> antara lain
-              <%= item.facilities || "fasilitas dasar penginapan" %>.
-            </p>
+            <p>Fasilitas antara lain <%= item.facilities || "fasilitas dasar penginapan" %>.</p>
           </div>
 
           <div class="faq-item">
-            <h3>Apakah <%= item.title %> cocok untuk liburan keluarga?</h3>
-            <p>
-              Ya, <%= item.title %> cocok dijadikan pilihan menginap untuk liburan keluarga,
-              pasangan, maupun rombongan yang ingin menikmati suasana sejuk Berastagi.
-            </p>
+            <h3>Apakah cocok untuk liburan keluarga?</h3>
+            <p>Ya, cocok untuk keluarga, pasangan, maupun rombongan.</p>
           </div>
         </div>
       </section>
 
       <section class="detail-extra-box" id="villa-terkait">
-        <h2>Villa &amp; Hotel Terkait di Berastagi</h2>
+        <h2>Villa & Hotel Terkait di Berastagi</h2>
 
         <% if (related && related.length) { %>
           <div class="related-links-grid">
             <% related.forEach(rel => { %>
               <a href="/villa/<%= rel.slug %>" class="related-link-card">
-                <span>Villa &amp; Hotel</span>
+                <span>Villa & Hotel</span>
                 <strong><%= rel.title %></strong>
               </a>
             <% }) %>
           </div>
         <% } else { %>
-          <p>Belum ada villa atau hotel terkait lainnya.</p>
+          <p>Belum ada villa terkait.</p>
         <% } %>
       </section>
 
       <section class="rating-box" id="rating">
         <h2>Rating Pengunjung</h2>
         <p><strong><%= avg || 0 %>/5</strong> dari <%= ratings.length %> ulasan</p>
-
-        <form action="/villa/<%= item.slug %>/rating" method="post" class="inline-form">
-          <input type="text" name="name" placeholder="Nama kamu" required>
-          <select name="rating" required>
-            <option value="">Pilih rating</option>
-            <option value="5">5 - Sangat bagus</option>
-            <option value="4">4 - Bagus</option>
-            <option value="3">3 - Cukup</option>
-            <option value="2">2 - Kurang</option>
-            <option value="1">1 - Buruk</option>
-          </select>
-          <button type="submit">Kirim Rating</button>
-        </form>
       </section>
 
       <section class="comment-box" id="ulasan">
         <h2>Ulasan dan Komentar Pengunjung</h2>
-
-        <form action="/villa/<%= item.slug %>/comment" method="post" class="comment-form">
-          <input type="text" name="name" placeholder="Nama" required>
-          <input type="email" name="email" placeholder="Email (opsional)">
-          <textarea name="comment" rows="5" placeholder="Tulis komentar..." required></textarea>
-          <button type="submit">Kirim Komentar</button>
-        </form>
-
         <div class="comment-list">
           <% comments.forEach(comment => { %>
             <article class="comment-item">
@@ -258,12 +173,9 @@
               <small><%= comment.created_at %></small>
             </article>
           <% }) %>
-
-          <% if (!comments.length) { %>
-            <p>Belum ada komentar yang tampil. Jadilah yang pertama mengirim ulasan untuk penginapan ini.</p>
-          <% } %>
         </div>
       </section>
+
     </article>
 
     <aside class="detail-sidebar">
@@ -276,110 +188,14 @@
         </ul>
 
         <% if (item.booking_url) { %>
-          <a href="<%= item.booking_url %>" target="_blank" rel="noopener" class="btn-primary full">Booking Sekarang</a>
+          <a href="<%= item.booking_url %>" target="_blank" class="btn-primary full">
+            Booking Sekarang
+          </a>
         <% } %>
       </div>
-
-      <div class="sticky-box">
-        <h3>Jelajahi Juga</h3>
-        <a href="/wisata" class="mini-link">Tempat Wisata di Berastagi</a>
-        <a href="/kuliner" class="mini-link">Kuliner Berastagi</a>
-        <a href="/berita" class="mini-link">Berita Wisata Berastagi</a>
-        <a href="/galeri" class="mini-link">Galeri Foto Berastagi</a>
-      </div>
-
-      <div class="sticky-box">
-        <h3>Villa &amp; Hotel Terkait</h3>
-        <% related.forEach(rel => { %>
-          <a href="/villa/<%= rel.slug %>" class="mini-link"><%= rel.title %></a>
-        <% }) %>
-      </div>
     </aside>
+
   </section>
-
-  <div id="villaLightbox" class="villa-lightbox" aria-hidden="true">
-    <button type="button" class="villa-lightbox-close" onclick="closeVillaLightbox()" aria-label="Tutup galeri">
-      &times;
-    </button>
-
-    <button type="button" class="villa-lightbox-nav prev" onclick="changeVillaSlide(-1)" aria-label="Foto sebelumnya">
-      &#10094;
-    </button>
-
-    <div class="villa-lightbox-content">
-      <img id="villaLightboxImage" src="" alt="<%= item.title %>">
-      <div class="villa-lightbox-counter" id="villaLightboxCounter">1 / 1</div>
-    </div>
-
-    <button type="button" class="villa-lightbox-nav next" onclick="changeVillaSlide(1)" aria-label="Foto berikutnya">
-      &#10095;
-    </button>
-  </div>
-
-  <script>
-    const villaGalleryImages = <%- JSON.stringify(galleryImages) %>;
-    let currentVillaSlide = 0;
-
-    function openVillaLightbox(index = 0) {
-      if (!villaGalleryImages.length) return;
-
-      currentVillaSlide = index;
-      const lightbox = document.getElementById("villaLightbox");
-      lightbox.classList.add("active");
-      lightbox.setAttribute("aria-hidden", "false");
-      document.body.style.overflow = "hidden";
-      renderVillaSlide();
-    }
-
-    function closeVillaLightbox() {
-      const lightbox = document.getElementById("villaLightbox");
-      lightbox.classList.remove("active");
-      lightbox.setAttribute("aria-hidden", "true");
-      document.body.style.overflow = "";
-    }
-
-    function changeVillaSlide(step) {
-      if (!villaGalleryImages.length) return;
-
-      currentVillaSlide += step;
-
-      if (currentVillaSlide < 0) {
-        currentVillaSlide = villaGalleryImages.length - 1;
-      }
-
-      if (currentVillaSlide >= villaGalleryImages.length) {
-        currentVillaSlide = 0;
-      }
-
-      renderVillaSlide();
-    }
-
-    function renderVillaSlide() {
-      const imageEl = document.getElementById("villaLightboxImage");
-      const counterEl = document.getElementById("villaLightboxCounter");
-
-      if (!imageEl || !counterEl || !villaGalleryImages.length) return;
-
-      imageEl.src = villaGalleryImages[currentVillaSlide];
-      imageEl.alt = "<%= item.title.replace(/"/g, '&quot;') %> foto " + (currentVillaSlide + 1);
-      counterEl.textContent = (currentVillaSlide + 1) + " / " + villaGalleryImages.length;
-    }
-
-    document.addEventListener("keydown", function (e) {
-      const lightbox = document.getElementById("villaLightbox");
-      if (!lightbox || !lightbox.classList.contains("active")) return;
-
-      if (e.key === "Escape") closeVillaLightbox();
-      if (e.key === "ArrowLeft") changeVillaSlide(-1);
-      if (e.key === "ArrowRight") changeVillaSlide(1);
-    });
-
-    document.getElementById("villaLightbox")?.addEventListener("click", function (e) {
-      if (e.target.id === "villaLightbox") {
-        closeVillaLightbox();
-      }
-    });
-  </script>
 
   <%- include("partials/footer", { settings }) %>
 </body>
