@@ -41,9 +41,14 @@ body{
   line-height:1.7;
   text-rendering:optimizeLegibility;
   -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
 }
 
 body.lightbox-open{
+  overflow:hidden;
+}
+
+body.nav-open{
   overflow:hidden;
 }
 
@@ -101,7 +106,7 @@ HEADER
 .site-header{
   position:sticky;
   top:0;
-  z-index:50;
+  z-index:70;
   backdrop-filter:blur(14px);
   background:rgba(255,255,255,.92);
   border-bottom:1px solid rgba(24,49,36,.08);
@@ -122,7 +127,8 @@ HEADER
   flex-direction:column;
   justify-content:center;
   gap:2px;
-  min-width:max-content;
+  min-width:0;
+  max-width:calc(100% - 74px);
 }
 
 .site-title{
@@ -132,13 +138,15 @@ HEADER
   line-height:1.05;
   letter-spacing:.2px;
   color:var(--text);
+  word-break:break-word;
 }
 
 .site-tagline{
   display:block;
   color:var(--text-muted);
   font-size:12px;
-  margin-top:3px;
+  margin-top:4px;
+  line-height:1.45;
 }
 
 .main-nav{
@@ -175,12 +183,57 @@ HEADER
 
 .menu-toggle{
   display:none;
+  width:48px;
+  height:48px;
   border:none;
   background:linear-gradient(135deg,var(--primary),var(--primary-2));
   color:#fff;
-  padding:10px 12px;
-  border-radius:12px;
+  border-radius:14px;
   box-shadow:0 8px 18px rgba(36,89,63,.18);
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:5px;
+  padding:0;
+  flex-shrink:0;
+}
+
+.menu-toggle span{
+  display:block;
+  width:20px;
+  height:2px;
+  border-radius:999px;
+  background:#fff;
+  transition:transform .25s ease, opacity .25s ease;
+}
+
+.menu-toggle.active span:nth-child(1){
+  transform:translateY(7px) rotate(45deg);
+}
+
+.menu-toggle.active span:nth-child(2){
+  opacity:0;
+}
+
+.menu-toggle.active span:nth-child(3){
+  transform:translateY(-7px) rotate(-45deg);
+}
+
+.mobile-nav-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(6,18,12,.38);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:all .25s ease;
+  z-index:60;
+}
+
+.mobile-nav-backdrop.show{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
 }
 
 /* =========================
@@ -2032,26 +2085,58 @@ RESPONSIVE
   }
 
   .main-nav{
-    display:none;
-    position:absolute;
-    top:74px;
-    right:0;
-    width:min(320px,92vw);
-    background:#fff;
-    border-radius:18px;
-    box-shadow:0 20px 50px rgba(20,54,36,.12);
+    position:fixed;
+    top:82px;
+    left:12px;
+    right:12px;
+    width:auto;
+    max-height:calc(100vh - 100px);
+    overflow:auto;
+    background:rgba(255,255,255,.98);
+    border:1px solid rgba(36,89,63,.08);
+    border-radius:22px;
+    box-shadow:0 24px 60px rgba(20,54,36,.18);
     padding:14px;
+    display:flex;
     flex-direction:column;
-    align-items:flex-start;
-    gap:14px;
+    align-items:stretch;
+    gap:8px;
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    transform:translateY(-10px) scale(.98);
+    transition:all .25s ease;
+    z-index:65;
   }
 
   .main-nav.open{
-    display:flex;
+    opacity:1;
+    visibility:visible;
+    pointer-events:auto;
+    transform:translateY(0) scale(1);
+  }
+
+  .main-nav a{
+    font-size:15px;
+    padding:14px 16px;
+    border-radius:14px;
+    background:#f6faf7;
+    border:1px solid #e5eee7;
+  }
+
+  .main-nav a.active,
+  .main-nav a:hover{
+    background:#edf6ef;
+    color:#183124;
+  }
+
+  .main-nav a.active::after,
+  .main-nav a:hover::after{
+    display:none;
   }
 
   .menu-toggle{
-    display:block;
+    display:flex;
   }
 
   .hero-inner{
@@ -2108,58 +2193,14 @@ RESPONSIVE
   }
 }
 
-@media (max-width: 640px){
-  .section{
-    padding:50px 0;
+@media (max-width: 768px){
+  .container{
+    width:min(var(--max-width), 94%);
   }
 
-  .hero{
-    min-height:auto;
-  }
-
-  .hero-inner{
-    padding:40px 0 48px;
-  }
-
-  .hero-content{
-    padding:22px;
-    border-radius:24px;
-  }
-
-  .hero h1{
-    font-size:clamp(30px,9vw,44px);
-  }
-
-  .hero p,
-  .page-hero p{
-    font-size:16px;
-  }
-
-  .card-body h2,
-  .card-body h3{
-    font-size:19px;
-  }
-
-  .detail-main h1{
-    font-size:32px;
-  }
-
-  .detail-content,
-  .article-content{
-    font-size:17px;
-    line-height:1.9;
-  }
-
-  .article-content h2{
-    font-size:25px;
-  }
-
-  .article-content h3{
-    font-size:21px;
-  }
-
-  .article-content h4{
-    font-size:18px;
+  .nav-wrap{
+    padding:12px 0;
+    gap:14px;
   }
 
   .site-title{
@@ -2167,24 +2208,68 @@ RESPONSIVE
   }
 
   .site-tagline{
-    font-size:11px;
+    display:none;
   }
 
-  .footer-grid{
-    grid-template-columns:1fr;
-    gap:22px;
+  .hero{
+    min-height:auto;
   }
 
-  .footer-col h3{
-    font-size:24px;
+  .hero-inner{
+    padding:34px 0 40px;
   }
 
-  .footer-col h4{
-    font-size:18px;
+  .hero-content{
+    padding:22px 18px;
+    border-radius:24px;
+  }
+
+  .hero h1{
+    font-size:clamp(28px,8.2vw,40px);
+    line-height:1.08;
+    margin-bottom:12px;
+  }
+
+  .hero p,
+  .page-hero p{
+    font-size:15.5px;
+    line-height:1.8;
+  }
+
+  .search-box{
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .search-box input,
+  .search-box button{
+    width:100%;
+  }
+
+  .meta-row{
+    gap:10px;
+  }
+
+  .meta-row .btn-secondary{
+    width:100%;
+  }
+
+  .section{
+    padding:44px 0;
+  }
+
+  .page-hero{
+    padding:38px 0 20px;
   }
 
   .section-title{
-    font-size:28px;
+    font-size:26px;
+    line-height:1.2;
+  }
+
+  .gallery-subtext{
+    font-size:15px;
+    line-height:1.75;
   }
 
   .intro-box,
@@ -2196,8 +2281,90 @@ RESPONSIVE
   .comment-box,
   .admin-card,
   .detail-extra-box{
-    padding:22px;
+    padding:20px;
+    border-radius:20px;
+  }
+
+  .card-grid{
+    grid-template-columns:1fr;
+    gap:16px;
+  }
+
+  .card{
     border-radius:22px;
+  }
+
+  .card img{
+    aspect-ratio:16/10;
+    padding:8px;
+  }
+
+  .card-body{
+    padding:16px;
+  }
+
+  .card-body h2,
+  .card-body h3{
+    font-size:18px;
+    line-height:1.4;
+  }
+
+  .card-body p{
+    font-size:14.5px;
+    line-height:1.75;
+  }
+
+  .detail-main h1{
+    font-size:30px;
+    line-height:1.18;
+  }
+
+  .detail-cover{
+    border-radius:22px;
+    margin-bottom:18px;
+  }
+
+  .detail-content,
+  .article-content{
+    font-size:16.5px;
+    line-height:1.9;
+  }
+
+  .article-content h2{
+    font-size:24px;
+    margin:28px 0 12px;
+  }
+
+  .article-content h3{
+    font-size:20px;
+    margin:24px 0 10px;
+  }
+
+  .article-content h4{
+    font-size:18px;
+  }
+
+  .article-content p{
+    margin:0 0 18px;
+  }
+
+  .article-content ul,
+  .article-content ol{
+    padding-left:20px;
+  }
+
+  .breadcrumb{
+    font-size:13px;
+    gap:6px;
+  }
+
+  .detail-quick-links{
+    gap:8px;
+  }
+
+  .detail-quick-links a{
+    width:100%;
+    justify-content:center;
   }
 
   .premium-gallery-grid{
@@ -2207,31 +2374,54 @@ RESPONSIVE
 
   .premium-gallery-card,
   .premium-gallery-card.large{
-    min-height:260px;
-  }
-
-  .premium-gallery-overlay{
-    padding:18px;
-  }
-
-  .premium-gallery-text h3{
-    font-size:22px;
-  }
-
-  .gallery-subtext{
-    font-size:15px;
-  }
-
-  .gallery-lightbox-dialog{
+    min-height:250px;
     border-radius:22px;
   }
 
+  .premium-gallery-overlay{
+    padding:16px;
+    gap:12px;
+  }
+
+  .premium-gallery-text h3{
+    font-size:20px;
+  }
+
+  .gallery-lightbox-dialog{
+    border-radius:20px;
+  }
+
   .gallery-lightbox-content{
-    padding:18px 18px 22px;
+    padding:18px;
   }
 
   .gallery-lightbox-content h3{
+    font-size:22px;
+  }
+
+  .footer-grid{
+    grid-template-columns:1fr;
+    gap:22px;
+  }
+
+  .footer-inner{
+    padding:42px 0 18px;
+  }
+
+  .footer-col h3{
     font-size:24px;
+  }
+
+  .footer-col h4{
+    font-size:18px;
+  }
+
+  .footer-brand p,
+  .footer-contact li,
+  .footer-links a,
+  .footer-seo-links a{
+    font-size:14px;
+    line-height:1.75;
   }
 
   th,
@@ -2256,26 +2446,6 @@ RESPONSIVE
     width:100%;
   }
 
-  .footer-contact li,
-  .footer-brand p,
-  .footer-links a,
-  .footer-seo-links a{
-    font-size:14px;
-  }
-
-  .detail-quick-links{
-    gap:8px;
-  }
-
-  .detail-quick-links a{
-    width:100%;
-    justify-content:center;
-  }
-
-  .breadcrumb{
-    font-size:13px;
-  }
-
   .villa-gallery-side{
     grid-template-columns:1fr 1fr;
   }
@@ -2292,6 +2462,148 @@ RESPONSIVE
 
   .villa-lightbox-nav.next{
     right:10px;
+  }
+}
+
+@media (max-width: 480px){
+  .container{
+    width:min(var(--max-width), 95%);
+  }
+
+  .nav-wrap{
+    padding:10px 0;
+  }
+
+  .site-title{
+    font-size:17px;
+  }
+
+  .menu-toggle{
+    width:44px;
+    height:44px;
+    border-radius:12px;
+  }
+
+  .main-nav{
+    top:74px;
+    left:10px;
+    right:10px;
+    border-radius:18px;
+    padding:12px;
+  }
+
+  .main-nav a{
+    font-size:14px;
+    padding:13px 14px;
+  }
+
+  .hero-content{
+    padding:18px 16px;
+    border-radius:20px;
+  }
+
+  .eyebrow{
+    font-size:11px;
+    padding:7px 12px;
+    margin-bottom:10px;
+  }
+
+  .hero h1{
+    font-size:clamp(26px,8vw,34px);
+  }
+
+  .hero p,
+  .page-hero p,
+  .intro-box p,
+  .trust-box p,
+  .info-card p,
+  .contact-card p,
+  .search-card p{
+    font-size:15px;
+    line-height:1.8;
+  }
+
+  .section{
+    padding:38px 0;
+  }
+
+  .section-title{
+    font-size:24px;
+  }
+
+  .intro-box,
+  .trust-box,
+  .info-card,
+  .contact-card,
+  .search-card,
+  .rating-box,
+  .comment-box,
+  .admin-card,
+  .detail-extra-box{
+    padding:18px;
+    border-radius:18px;
+  }
+
+  .card{
+    border-radius:20px;
+  }
+
+  .card-body{
+    padding:15px;
+  }
+
+  .card-body h2,
+  .card-body h3{
+    font-size:17px;
+  }
+
+  .card-body p{
+    font-size:14px;
+  }
+
+  .detail-main h1{
+    font-size:26px;
+  }
+
+  .detail-content,
+  .article-content{
+    font-size:16px;
+    line-height:1.85;
+  }
+
+  .detail-intro{
+    padding:16px;
+    border-radius:16px;
+  }
+
+  .detail-extra-item,
+  .related-link-card{
+    padding:14px;
+    border-radius:14px;
+  }
+
+  .premium-gallery-card,
+  .premium-gallery-card.large{
+    min-height:220px;
+  }
+
+  .premium-gallery-text h3{
+    font-size:18px;
+  }
+
+  .gallery-zoom-btn{
+    width:100%;
+    justify-content:center;
+  }
+
+  .gallery-lightbox{
+    padding:10px;
+  }
+
+  .gallery-lightbox-close{
+    width:40px;
+    height:40px;
+    font-size:24px;
   }
 }
 
