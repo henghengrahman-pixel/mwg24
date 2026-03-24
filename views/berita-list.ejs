@@ -12,71 +12,75 @@
         <span>Berita</span>
       </nav>
 
-      <span class="eyebrow">Berita</span>
+      <span class="eyebrow">Berita Berastagi</span>
       <h1>Berita Wisata Berastagi Terbaru</h1>
       <p>
         Ikuti berita terbaru seputar wisata Berastagi, tempat wisata populer,
         kuliner favorit, villa dan hotel, event, serta tips liburan yang bermanfaat
-        untuk pengunjung.
+        untuk pengunjung yang ingin berlibur ke Berastagi.
       </p>
     </div>
   </section>
 
-  <section class="section container">
-    <div class="intro-box reveal">
-      <span class="eyebrow">Info Terbaru</span>
-      <h2>Berita Wisata, Kuliner, Villa, dan Update Liburan di Berastagi</h2>
-      <p>
-        Halaman ini berisi kumpulan berita terbaru tentang wisata Berastagi yang
-        informatif, mudah dibaca, dan relevan untuk wisatawan maupun warga lokal.
-        Kamu bisa menemukan update tentang destinasi wisata, rekomendasi tempat makan,
-        penginapan, suasana liburan, dan informasi menarik lainnya di Berastagi.
-      </p>
-      <p>
-        Dengan membaca berita terbaru ini, pengunjung bisa mendapatkan gambaran yang
-        lebih jelas sebelum berkunjung, memilih tujuan wisata yang cocok, dan menikmati
-        pengalaman liburan yang lebih seru di Berastagi dan sekitarnya.
-      </p>
-    </div>
+  <section class="section">
+    <div class="container">
 
-    <% if (items && items.length) { %>
-      <div class="card-grid">
-        <% items.forEach(item => { %>
-          <article class="card reveal">
-            <a href="/berita/<%= item.slug %>">
-              <img
-                src="<%= item.image || 'https://via.placeholder.com/800x500?text=Berita+Wisata+Berastagi' %>"
-                alt="<%= item.title %> - berita wisata Berastagi"
-                loading="lazy"
-              />
-              <div class="card-body">
-                <% if (item.category) { %>
-                  <span class="card-tag"><%= item.category %></span>
-                <% } else { %>
-                  <span class="card-tag">Berita</span>
-                <% } %>
-
-                <h2><%= item.title %></h2>
-
-                <p>
-                  <%= item.excerpt || 'Baca berita terbaru seputar wisata Berastagi, kuliner, villa, hotel, dan berbagai informasi menarik lainnya.' %>
-                </p>
-
-                <span class="read-more">Baca Selengkapnya</span>
-              </div>
-            </a>
-          </article>
-        <% }) %>
-      </div>
-    <% } else { %>
-      <div class="empty-state reveal">
-        <h3>Belum ada berita</h3>
+      <div class="intro-box reveal">
+        <span class="eyebrow">Info Terbaru</span>
+        <h2>Berita Wisata, Kuliner, Villa, dan Update Liburan di Berastagi</h2>
         <p>
-          Saat ini belum ada berita yang ditampilkan. Silakan cek lagi nanti untuk
-          update terbaru seputar wisata Berastagi.
+          Halaman ini berisi kumpulan berita terbaru tentang wisata Berastagi yang
+          informatif, mudah dibaca, dan relevan untuk wisatawan maupun warga lokal.
+          Kamu bisa menemukan update tentang destinasi wisata, rekomendasi tempat makan,
+          penginapan, suasana liburan, dan informasi menarik lainnya di Berastagi.
+        </p>
+        <p>
+          Dengan membaca berita terbaru ini, pengunjung bisa mendapatkan gambaran yang
+          lebih jelas sebelum berkunjung, memilih tujuan wisata yang cocok, dan menikmati
+          pengalaman liburan yang lebih seru di Berastagi dan sekitarnya.
         </p>
       </div>
-    <% } %>
+
+      <% if (items && items.length) { %>
+        <div class="card-grid">
+          <% items.forEach(item => { %>
+            <article class="card reveal">
+              <a href="/berita/<%= item.slug %>">
+                <img
+                  src="<%= item.image || 'https://via.placeholder.com/800x500?text=Berita+Wisata+Berastagi' %>"
+                  alt="<%= item.title %> - berita wisata Berastagi"
+                  loading="lazy"
+                />
+                <div class="card-body">
+                  <% if (item.category) { %>
+                    <span class="card-tag"><%= item.category %></span>
+                  <% } else { %>
+                    <span class="card-tag">Berita</span>
+                  <% } %>
+
+                  <h2><%= item.title %></h2>
+
+                  <p>
+                    <%= item.excerpt || 'Baca berita terbaru seputar wisata Berastagi, kuliner, villa, hotel, dan berbagai informasi menarik lainnya.' %>
+                  </p>
+
+                  <span class="read-more">Baca Selengkapnya</span>
+                </div>
+              </a>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state reveal">
+          <h3>Belum ada berita</h3>
+          <p>
+            Saat ini belum ada berita yang ditampilkan. Silakan cek lagi nanti untuk
+            update terbaru seputar wisata Berastagi.
+          </p>
+        </div>
+      <% } %>
+
+    </div>
   </section>
 
   <section class="section section-muted">
@@ -103,7 +107,7 @@
     </div>
   </section>
 
-  <section class="section section-muted">
+  <section class="section">
     <div class="container">
       <div class="intro-box reveal">
         <span class="eyebrow">Pertanyaan Umum</span>
