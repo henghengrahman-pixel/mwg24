@@ -1,1352 +1,426 @@
 const express = require("express");
-const router = express.Router();
-
 const { getDb } = require("../lib/db");
+const helpers = require("../lib/helpers");
 const {
   buildSeo,
   buildTitle,
   buildDescription,
-  breadcrumbSchema,
+  makeJsonLdGraph,
   websiteSchema,
   organizationSchema,
   localBusinessSchema,
+  collectionPageSchema,
   webpageSchema,
+  itemListSchema,
   articleSchema,
   touristAttractionSchema,
   lodgingBusinessSchema,
   restaurantSchema,
-  makeJsonLdGraph,
+  breadcrumbSchema,
+  faqSchema,
   absoluteUrl
 } = require("../lib/seo");
-const { excerpt, avgRating, formatCurrency } = require("../lib/helpers");
+
+const router = express.Router();
 
 function getSettings() {
-  return getDb().prepare("SELECT * FROM settings WHERE id = 1").get();
+  const db = getDb();
+  return db.prepare("SELECT * FROM settings WHERE id = 1").get() || {};
+}
+
+router.use((req, res, next) => {
+  res.locals.settings = getSettings();
+  res.locals.helpers = helpers;
+  next();
+});
+
+function normalizeImage(value, fallback = "/images/wisata-berastagi-cover.jpg") {
+  const raw = String(value || "").trim();
+  if (!raw) return fallback;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/public/")) return raw.replace("/public", "");
+  return raw.startsWith("/") ? raw : `/${raw}`;
+}
+
+function parseGalleryImages(value, coverImage = "") {
+  if (Array.isArray(value)) return value.filter(Boolean).map((item) => normalizeImage(item));
+  try {
+    const parsed = JSON.parse(String(value || "[]"));
+    if (Array.isArray(parsed)) return parsed.filter(Boolean).map((item) => normalizeImage(item));
+  } catch {}
+  const fallback = String(value || "")
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => normalizeImage(item));
+  if (fallback.length) return fallback;
+  return coverImage ? [normalizeImage(coverImage)] : [];
+}
+
+function parseDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+function makeListItems(items, prefix) {
+  return (items || []).map((item) => ({ name: item.title, url: `/${prefix}/${item.slug}` }));
+}
+
+function getApprovedComments(itemType, itemId) {
+  return getDb().prepare(
+    "SELECT * FROM comments WHERE item_type = ? AND item_id = ? AND status = 'approved' ORDER BY id DESC"
+  ).all(itemType, itemId);
 }
 
 function getRatings(itemType, itemId) {
-  return getDb()
-    .prepare(`
-      SELECT *
-      FROM ratings
-      WHERE item_type = ? AND item_id = ?
-      ORDER BY created_at DESC, id DESC
-    `)
-    .all(itemType, itemId);
+  return getDb().prepare(
+    "SELECT * FROM ratings WHERE item_type = ? AND item_id = ? ORDER BY id DESC"
+  ).all(itemType, itemId);
 }
 
-function getComments(itemType, itemId, status = "approved") {
-  return getDb()
-    .prepare(`
-      SELECT *
-      FROM comments
-      WHERE item_type = ? AND item_id = ? AND status = ?
-      ORDER BY created_at DESC, id DESC
-    `)
-    .all(itemType, itemId, status);
+function getAverageRating(rows = []) {
+  if (!rows.length) return 0;
+  const total = rows.reduce((sum, row) => sum + Number(row.rating || 0), 0);
+  return Number((total / rows.length).toFixed(1));
 }
 
-function safeDescription(item, fallbackText) {
-  return (
-    item?.meta_description ||
-    excerpt(item?.content || "", 155) ||
-    fallbackText
-  );
-}
-
-function safeParseJsonArray(value) {
-  if (!value) return [];
-  try {
-    const parsed = typeof value === "string" ? JSON.parse(value) : value;
-    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-function safeVillaImages(item) {
-  const images = safeParseJsonArray(item?.images);
-
-  if (item?.image && !images.includes(item.image)) {
-    images.unshift(item.image);
-  }
-
-  return images.filter(Boolean);
-}
-
-function safeImage(item) {
-  if (item?.images) {
-    const villaImages = safeVillaImages(item);
-    if (villaImages.length) return villaImages[0];
-  }
-
-  return item?.image || "/images/wisata-berastagi-cover.jpg";
-}
-
-function safeDate(value) {
-  try {
-    return value ? new Date(value).toISOString() : new Date().toISOString();
-  } catch (error) {
-    return new Date().toISOString();
-  }
-}
-
-function getActiveGallery(limit = null) {
-  const db = getDb();
-
-  if (limit) {
-    return db
-      .prepare(`
-        SELECT *
-        FROM gallery
-        WHERE is_active = 1
-        ORDER BY sort_order ASC, id DESC
-        LIMIT ?
-      `)
-      .all(limit);
-  }
-
-  return db
-    .prepare(`
-      SELECT *
-      FROM gallery
-      WHERE is_active = 1
-      ORDER BY sort_order ASC, id DESC
-    `)
-    .all();
-}
-
-function renderPage(res, view, data = {}) {
-  return res.render(view, {
-    ...data,
-    helpers: { formatCurrency }
-  });
-}
-
-function buildCommonSchemas(baseUrl, settings, page) {
-  return [
-    websiteSchema(baseUrl, settings),
-    organizationSchema(baseUrl, settings),
-    localBusinessSchema(baseUrl, settings),
-    webpageSchema(page)
-  ];
-}
-
-function buildAggregateRating(ratings = []) {
-  if (!ratings.length) return undefined;
-
-  return {
-    "@type": "AggregateRating",
-    ratingValue: Number(avgRating(ratings)),
-    reviewCount: ratings.length,
-    bestRating: 5,
-    worstRating: 1
-  };
-}
-
-/* =========================
-   HOME
-========================= */
 router.get("/", (req, res) => {
   const db = getDb();
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
+  const settings = res.locals.settings;
+  const featuredWisata = db.prepare("SELECT * FROM wisata ORDER BY is_featured DESC, updated_at DESC, id DESC LIMIT 6").all();
+  const featuredVilla = db.prepare("SELECT * FROM villa ORDER BY is_featured DESC, updated_at DESC, id DESC LIMIT 6").all();
+  const latestKuliner = db.prepare("SELECT * FROM kuliner ORDER BY is_featured DESC, updated_at DESC, id DESC LIMIT 6").all();
+  const latestBerita = db.prepare("SELECT * FROM articles WHERE status = 'publish' ORDER BY published_at DESC, id DESC LIMIT 6").all();
+  const galleryItems = db.prepare("SELECT * FROM gallery WHERE is_active = 1 ORDER BY sort_order ASC, id DESC LIMIT 5").all();
 
-  const featuredWisata = db
-    .prepare("SELECT * FROM wisata WHERE is_featured = 1 ORDER BY id DESC LIMIT 6")
-    .all();
+  const faq = [
+    { question: "Apa saja tempat wisata populer di Berastagi?", answer: "Wisata populer di Berastagi antara lain Bukit Gundaling, Gunung Sibayak, Pasar Buah Berastagi, dan berbagai spot alam dataran tinggi Karo." },
+    { question: "Apakah Berastagi cocok untuk liburan keluarga?", answer: "Ya. Berastagi cocok untuk keluarga karena punya udara sejuk, wisata alam, kuliner, dan pilihan penginapan yang beragam." },
+    { question: "Di mana cari villa dan hotel di Berastagi?", answer: "Kamu bisa melihat rekomendasi villa dan hotel di halaman kategori penginapan lengkap dengan harga, fasilitas, dan lokasi." }
+  ];
 
-  const featuredVilla = db
-    .prepare("SELECT * FROM villa WHERE is_featured = 1 ORDER BY id DESC LIMIT 6")
-    .all()
-    .map((item) => ({
-      ...item,
-      images: safeVillaImages(item)
-    }));
-
-  const latestKuliner = db
-    .prepare("SELECT * FROM kuliner ORDER BY id DESC LIMIT 6")
-    .all();
-
-  const latestBerita = db
-    .prepare(`
-      SELECT *
-      FROM articles
-      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
-      LIMIT 6
-    `)
-    .all();
-
-  const galleryItems = getActiveGallery(8);
-  const canonical = `${baseUrl}/`;
-
-  const gallerySchema =
-    galleryItems.length > 0
-      ? {
-          "@context": "https://schema.org",
-          "@type": "ImageGallery",
-          name: "Galeri Keindahan Berastagi",
-          description: "Kumpulan foto pemandangan, wisata, suasana kota, dan panorama terbaik di Berastagi.",
-          url: `${baseUrl}/galeri`,
-          image: galleryItems.map((item) => absoluteUrl(baseUrl, item.image))
-        }
-      : null;
-
-  const title =
-    settings?.homepage_meta_title ||
-    "Wisata Berastagi Terlengkap – Tempat Wisata, Villa, Hotel, Kuliner & Panduan Liburan";
-
-  const description =
-    settings?.homepage_meta_description ||
-    "Panduan wisata Berastagi terlengkap untuk menemukan tempat wisata populer, villa dan hotel terbaik, kuliner khas Karo, berita terbaru, serta tips liburan ke Berastagi Kabupaten Karo Sumatera Utara.";
-
-  const pageSchemas = [
-    ...buildCommonSchemas(baseUrl, settings, {
-      baseUrl,
-      url: canonical,
-      title,
-      description,
-      image: settings?.hero_background || "/images/wisata-berastagi-cover.jpg",
-      breadcrumbItems: [{ name: "Beranda", url: canonical }]
-    }),
-    breadcrumbSchema([{ name: "Beranda", url: canonical }]),
-    gallerySchema
-  ].filter(Boolean);
-
-  renderPage(res, "home", {
-    settings,
-    featuredWisata,
-    featuredVilla,
-    latestKuliner,
-    latestBerita,
-    galleryItems,
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      image: settings?.hero_background || "/images/wisata-berastagi-cover.jpg",
-      keywords: [
-        "wisata berastagi",
-        "tempat wisata berastagi",
-        "villa berastagi",
-        "hotel berastagi",
-        "kuliner berastagi",
-        "liburan berastagi",
-        "berita berastagi",
-        "wisata karo",
-        "penginapan berastagi"
-      ],
-      jsonLd: makeJsonLdGraph(pageSchemas)
-    })
+  const seo = buildSeo({
+    title: settings.homepage_title || "Wisata Berastagi Terlengkap | Tempat Wisata, Villa, Hotel & Kuliner Terbaik",
+    description: settings.homepage_meta_description,
+    canonical: "/",
+    image: settings.hero_background,
+    type: "website",
+    jsonLd: makeJsonLdGraph(
+      websiteSchema(res.locals.baseUrl, settings),
+      organizationSchema(res.locals.baseUrl, settings),
+      localBusinessSchema(res.locals.baseUrl, settings),
+      collectionPageSchema({ baseUrl: res.locals.baseUrl, url: "/", title: settings.homepage_title, description: settings.homepage_meta_description, image: settings.hero_background }),
+      itemListSchema({ baseUrl: res.locals.baseUrl, url: "/wisata", name: "Tempat Wisata di Berastagi", items: makeListItems(featuredWisata, "wisata") }),
+      itemListSchema({ baseUrl: res.locals.baseUrl, url: "/villa", name: "Villa dan Hotel di Berastagi", items: makeListItems(featuredVilla, "villa") }),
+      itemListSchema({ baseUrl: res.locals.baseUrl, url: "/kuliner", name: "Kuliner Berastagi", items: makeListItems(latestKuliner, "kuliner") }),
+      faqSchema(faq, `${res.locals.baseUrl}/#faq`)
+    )
   });
+
+  res.render("home", { settings, featuredWisata, featuredVilla, latestKuliner, latestBerita, galleryItems, seo, helpers });
 });
 
-/* =========================
-   GALLERY
-========================= */
-router.get("/galeri", (req, res) => {
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const galleryItems = getActiveGallery();
-  const canonical = `${baseUrl}/galeri`;
-
-  const title = "Galeri Wisata Berastagi Terindah | Wisata Berastagi";
-  const description =
-    "Lihat galeri foto keindahan Berastagi, mulai dari panorama pegunungan, tempat wisata populer, suasana kota, hingga pemandangan alam terbaik di Kabupaten Karo.";
-
-  renderPage(res, "gallery-list", {
-    settings,
-    items: galleryItems,
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      image: galleryItems.length ? safeImage(galleryItems[0]) : "/images/wisata-berastagi-cover.jpg",
-      keywords: [
-        "galeri berastagi",
-        "foto wisata berastagi",
-        "pemandangan berastagi",
-        "wisata karo"
-      ],
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: galleryItems.length ? safeImage(galleryItems[0]) : "/images/wisata-berastagi-cover.jpg",
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Galeri", url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Galeri", url: canonical }
-        ]),
-        {
-          "@context": "https://schema.org",
-          "@type": "ImageGallery",
-          name: "Galeri Keindahan Berastagi",
-          description: "Galeri foto wisata dan panorama terbaik di Berastagi.",
-          url: canonical,
-          image: galleryItems.map((item) => absoluteUrl(baseUrl, item.image))
-        }
-      )
-    })
-  });
-});
-
-/* =========================
-   WISATA
-========================= */
-router.get("/wisata", (req, res) => {
+function renderCollection(req, res, options) {
+  const { table, view, path, title, description, prefix, introItems, schemaType = "collection" } = options;
   const db = getDb();
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const canonical = `${baseUrl}/wisata`;
-  const items = db.prepare("SELECT * FROM wisata ORDER BY id DESC").all();
-
-  const title = "Tempat Wisata di Berastagi Terbaru & Terfavorit | Wisata Berastagi";
-  const description =
-    "Temukan tempat wisata di Berastagi yang populer, menarik, sejuk, dan cocok untuk liburan keluarga, pasangan, maupun rombongan di Kabupaten Karo.";
-
-  renderPage(res, "wisata-list", {
-    settings,
-    items,
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      keywords: [
-        "tempat wisata berastagi",
-        "wisata berastagi",
-        "objek wisata berastagi",
-        "tempat liburan di berastagi",
-        "wisata karo"
-      ],
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: "/images/wisata-berastagi-cover.jpg",
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Tempat Wisata", url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Tempat Wisata", url: canonical }
-        ])
-      )
-    })
-  });
-});
-
-router.get("/wisata/:slug", (req, res) => {
-  const db = getDb();
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const item = db.prepare("SELECT * FROM wisata WHERE slug = ?").get(req.params.slug);
-
-  if (!item) return res.redirect("/wisata");
-
-  const ratings = getRatings("wisata", item.id);
-  const comments = getComments("wisata", item.id);
-  const related = db
-    .prepare("SELECT * FROM wisata WHERE id != ? ORDER BY id DESC LIMIT 4")
-    .all(item.id);
-
-  const canonical = `${baseUrl}/wisata/${item.slug}`;
-  const title = item.meta_title || buildTitle(item.title, "Wisata Berastagi");
-  const description = buildDescription(
-    safeDescription(item, `${item.title} adalah salah satu tempat wisata di Berastagi yang menarik untuk dikunjungi.`)
-  );
-
-  const attractionSchema = touristAttractionSchema({
-    baseUrl,
-    url: canonical,
-    name: item.title,
+  const items = db.prepare(`SELECT * FROM ${table} ORDER BY is_featured DESC, updated_at DESC, id DESC`).all();
+  const settings = res.locals.settings;
+  const breadcrumbs = [{ name: "Beranda", url: "/" }, { name: title, url: path }];
+  const faq = introItems || [];
+  const seo = buildSeo({
+    title: `${title} | Wisata Berastagi`,
     description,
-    image: safeImage(item)
+    canonical: path,
+    image: settings.hero_background,
+    type: "website",
+    breadcrumbs,
+    jsonLd: makeJsonLdGraph(
+      collectionPageSchema({ baseUrl: res.locals.baseUrl, url: path, title, description, image: settings.hero_background, breadcrumbItems: breadcrumbs }),
+      itemListSchema({ baseUrl: res.locals.baseUrl, url: path, name: title, items: makeListItems(items, prefix) }),
+      breadcrumbSchema(breadcrumbs, res.locals.baseUrl, path),
+      faqSchema(faq, `${res.locals.baseUrl}${path}#faq`)
+    )
   });
+  res.render(view, { settings, items, seo, helpers });
+}
 
-  const aggregateRating = buildAggregateRating(ratings);
-  if (aggregateRating) {
-    attractionSchema.aggregateRating = aggregateRating;
-  }
+router.get("/wisata", (req, res) => renderCollection(req, res, {
+  table: "wisata",
+  view: "wisata-list",
+  path: "/wisata",
+  title: "Tempat Wisata di Berastagi",
+  description: "Temukan tempat wisata di Berastagi yang populer, menarik, dan cocok untuk liburan keluarga, pasangan, maupun rombongan di dataran tinggi Karo.",
+  prefix: "wisata",
+  introItems: [
+    { question: "Apa saja tempat wisata populer di Berastagi?", answer: "Tempat wisata populer di Berastagi antara lain Bukit Gundaling, Gunung Sibayak, Pasar Buah Berastagi, dan berbagai wisata alam lainnya." }
+  ]
+}));
 
-  renderPage(res, "wisata-detail", {
-    settings,
-    item,
-    comments,
-    ratings,
-    related,
-    avg: avgRating(ratings),
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      type: "article",
-      image: safeImage(item),
-      keywords: [
-        item.title,
-        "tempat wisata berastagi",
-        "wisata berastagi",
-        "liburan berastagi",
-        "wisata karo"
-      ],
-      section: "Wisata",
-      tags: [item.title, "Wisata Berastagi", "Kabupaten Karo"],
-      publishedTime: safeDate(item.created_at),
-      modifiedTime: safeDate(item.updated_at || item.created_at),
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: safeImage(item),
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Tempat Wisata", url: `${baseUrl}/wisata` },
-            { name: item.title, url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Tempat Wisata", url: `${baseUrl}/wisata` },
-          { name: item.title, url: canonical }
-        ]),
-        attractionSchema,
-        articleSchema({
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: safeImage(item),
-          datePublished: safeDate(item.created_at),
-          dateModified: safeDate(item.updated_at || item.created_at),
-          authorName: settings?.site_name || "Wisata Berastagi",
-          siteName: settings?.site_name || "Wisata Berastagi",
-          keywords: [item.title, "tempat wisata berastagi", "wisata berastagi"]
-        })
-      )
-    })
+router.get("/villa", (req, res) => renderCollection(req, res, {
+  table: "villa",
+  view: "villa-list",
+  path: "/villa",
+  title: "Villa dan Hotel di Berastagi",
+  description: "Temukan rekomendasi villa dan hotel di Berastagi yang nyaman, bersih, dan cocok untuk keluarga, pasangan, maupun rombongan.",
+  prefix: "villa",
+  introItems: [
+    { question: "Apakah Berastagi punya banyak pilihan villa dan hotel?", answer: "Ya. Berastagi punya banyak pilihan villa, hotel, dan penginapan untuk keluarga maupun rombongan." }
+  ]
+}));
+
+router.get("/kuliner", (req, res) => renderCollection(req, res, {
+  table: "kuliner",
+  view: "kuliner-list",
+  path: "/kuliner",
+  title: "Kuliner Berastagi",
+  description: "Temukan rekomendasi kuliner Berastagi yang enak, populer, nyaman untuk keluarga, dan cocok dinikmati saat liburan di udara sejuk dataran tinggi.",
+  prefix: "kuliner",
+  introItems: [
+    { question: "Apa saja kuliner terkenal di Berastagi?", answer: "Kuliner terkenal di Berastagi meliputi jagung bakar, makanan khas Karo, serta berbagai tempat makan favorit di pusat kota dan area wisata." }
+  ]
+}));
+
+router.get("/berita", (req, res) => {
+  const db = getDb();
+  const settings = res.locals.settings;
+  const items = db.prepare("SELECT * FROM articles WHERE status = 'publish' ORDER BY published_at DESC, id DESC").all();
+  const breadcrumbs = [{ name: "Beranda", url: "/" }, { name: "Berita Wisata Berastagi", url: "/berita" }];
+  const seo = buildSeo({
+    title: "Berita Wisata Berastagi Terbaru | Info Liburan, Event, Kuliner & Hotel",
+    description: "Ikuti berita terbaru seputar wisata Berastagi, event, kuliner, penginapan, dan tips liburan yang relevan untuk pengunjung Kabupaten Karo.",
+    canonical: "/berita",
+    image: settings.hero_background,
+    breadcrumbs,
+    jsonLd: makeJsonLdGraph(
+      collectionPageSchema({ baseUrl: res.locals.baseUrl, url: "/berita", title: "Berita Wisata Berastagi", description: "Kumpulan berita wisata Berastagi terbaru.", image: settings.hero_background, breadcrumbItems: breadcrumbs }),
+      itemListSchema({ baseUrl: res.locals.baseUrl, url: "/berita", name: "Berita Wisata Berastagi", items: makeListItems(items, "berita") }),
+      breadcrumbSchema(breadcrumbs, res.locals.baseUrl, "/berita")
+    )
   });
+  res.render("berita-list", { settings, items, seo, helpers });
 });
+
+router.get("/galeri", (req, res) => {
+  const db = getDb();
+  const settings = res.locals.settings;
+  const items = db.prepare("SELECT * FROM gallery WHERE is_active = 1 ORDER BY sort_order ASC, id DESC").all();
+  const breadcrumbs = [{ name: "Beranda", url: "/" }, { name: "Galeri Berastagi", url: "/galeri" }];
+  const seo = buildSeo({
+    title: "Galeri Berastagi | Foto Tempat Wisata, Panorama Alam & Suasana Liburan",
+    description: "Lihat galeri foto Berastagi yang menampilkan panorama alam, destinasi wisata, suasana kota, dan pesona terbaik dataran tinggi Karo.",
+    canonical: "/galeri",
+    image: items[0]?.image || settings.hero_background,
+    breadcrumbs,
+    jsonLd: makeJsonLdGraph(
+      collectionPageSchema({ baseUrl: res.locals.baseUrl, url: "/galeri", title: "Galeri Berastagi", description: "Galeri foto keindahan Berastagi.", image: items[0]?.image || settings.hero_background, breadcrumbItems: breadcrumbs }),
+      breadcrumbSchema(breadcrumbs, res.locals.baseUrl, "/galeri")
+    )
+  });
+  res.render("gallery-list", { settings, items, seo, helpers });
+});
+
+function renderDetail(req, res, options) {
+  const { table, itemType, slug, view, pathPrefix, sectionLabel, schemaBuilder, faqBuilder } = options;
+  const db = getDb();
+  const settings = res.locals.settings;
+  const item = db.prepare(`SELECT * FROM ${table} WHERE slug = ?`).get(slug);
+  if (!item) return res.status(404).render("about", { settings, seo: { title: "404 | Data Tidak Ditemukan", noindex: true } });
+
+  item.image = normalizeImage(item.image);
+  const comments = getApprovedComments(itemType, item.id);
+  const ratings = getRatings(itemType, item.id);
+  const avg = getAverageRating(ratings);
+  const related = db.prepare(`SELECT * FROM ${table} WHERE id != ? ORDER BY is_featured DESC, updated_at DESC, id DESC LIMIT 6`).all(item.id);
+  const breadcrumbs = [
+    { name: "Beranda", url: "/" },
+    { name: sectionLabel, url: pathPrefix },
+    { name: item.title, url: `${pathPrefix}/${item.slug}` }
+  ];
+  const faq = faqBuilder ? faqBuilder(item) : [];
+  const seo = buildSeo({
+    title: item.meta_title || buildTitle(item.title, "Wisata Berastagi"),
+    description: item.meta_description || buildDescription(item.excerpt || item.content, settings.homepage_meta_description),
+    canonical: `${pathPrefix}/${item.slug}`,
+    image: item.image,
+    type: itemType === "berita" ? "article" : "website",
+    breadcrumbs,
+    publishedTime: parseDate(item.published_at || item.created_at),
+    modifiedTime: parseDate(item.updated_at || item.created_at),
+    section: sectionLabel,
+    jsonLd: makeJsonLdGraph(
+      webpageSchema({ baseUrl: res.locals.baseUrl, url: `${pathPrefix}/${item.slug}`, title: item.meta_title || item.title, description: item.meta_description || item.excerpt || item.content, image: item.image, breadcrumbItems: breadcrumbs }),
+      breadcrumbSchema(breadcrumbs, res.locals.baseUrl, `${pathPrefix}/${item.slug}`),
+      schemaBuilder(item, settings),
+      faqSchema(faq, `${res.locals.baseUrl}${pathPrefix}/${item.slug}#faq`)
+    )
+  });
+  res.render(view, { settings, item, related, comments, ratings, avg, totalImages: 0, mainImage: item.image, sideImages: [], seo, helpers });
+}
+
+router.get("/wisata/:slug", (req, res) => renderDetail(req, res, {
+  table: "wisata",
+  itemType: "wisata",
+  slug: req.params.slug,
+  view: "wisata-detail",
+  pathPrefix: "/wisata",
+  sectionLabel: "Tempat Wisata",
+  schemaBuilder: (item) => touristAttractionSchema({ baseUrl: res.locals.baseUrl, url: `/wisata/${item.slug}`, name: item.title, description: item.meta_description || item.excerpt || item.content, image: item.image }),
+  faqBuilder: (item) => [
+    { question: `Di mana lokasi ${item.title}?`, answer: `${item.title} berada di ${item.location || "kawasan Berastagi, Kabupaten Karo"}.` },
+    { question: `Berapa harga tiket masuk ${item.title}?`, answer: `Harga tiket masuk ${item.title} sekitar ${helpers.formatCurrency(item.ticket_price || 0)}.` }
+  ]
+}));
 
 router.post("/wisata/:slug/comment", (req, res) => {
   const db = getDb();
-  const item = db.prepare("SELECT * FROM wisata WHERE slug = ?").get(req.params.slug);
-
-  if (!item) return res.redirect("/wisata");
-
-  const name = String(req.body.name || "").trim();
-  const email = String(req.body.email || "").trim();
-  const comment = String(req.body.comment || "").trim();
-
-  if (name && comment) {
-    db.prepare(`
-      INSERT INTO comments (item_type, item_id, name, email, comment, status)
-      VALUES (?, ?, ?, ?, ?, 'pending')
-    `).run("wisata", item.id, name, email, comment);
+  const item = db.prepare("SELECT id FROM wisata WHERE slug = ?").get(req.params.slug);
+  if (item && req.body.name && req.body.comment) {
+    db.prepare("INSERT INTO comments (item_type, item_id, name, email, comment, status) VALUES ('wisata', ?, ?, ?, ?, 'pending')").run(item.id, String(req.body.name).trim(), String(req.body.email || "").trim(), String(req.body.comment).trim());
   }
-
-  res.redirect(`/wisata/${item.slug}#ulasan`);
+  res.redirect(`/wisata/${req.params.slug}#ulasan`);
 });
-
 router.post("/wisata/:slug/rating", (req, res) => {
   const db = getDb();
-  const item = db.prepare("SELECT * FROM wisata WHERE slug = ?").get(req.params.slug);
-
-  if (!item) return res.redirect("/wisata");
-
-  const name = String(req.body.name || "Pengunjung").trim();
-  let rating = Number(req.body.rating || 0);
-
-  if (rating < 1) rating = 1;
-  if (rating > 5) rating = 5;
-
-  db.prepare(`
-    INSERT INTO ratings (item_type, item_id, name, rating)
-    VALUES (?, ?, ?, ?)
-  `).run("wisata", item.id, name, rating);
-
-  res.redirect(`/wisata/${item.slug}#rating`);
-});
-
-/* =========================
-   VILLA
-========================= */
-router.get("/villa", (req, res) => {
-  const db = getDb();
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const canonical = `${baseUrl}/villa`;
-
-  const items = db
-    .prepare("SELECT * FROM villa ORDER BY id DESC")
-    .all()
-    .map((item) => ({
-      ...item,
-      images: safeVillaImages(item)
-    }));
-
-  const title = "Villa dan Hotel di Berastagi Terbaik | Wisata Berastagi";
-  const description =
-    "Temukan rekomendasi villa dan hotel di Berastagi yang nyaman, bersih, sejuk, dan cocok untuk keluarga, pasangan, maupun rombongan liburan.";
-
-  renderPage(res, "villa-list", {
-    settings,
-    items,
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      keywords: [
-        "villa berastagi",
-        "hotel berastagi",
-        "penginapan berastagi",
-        "tempat menginap di berastagi"
-      ],
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: "/images/wisata-berastagi-cover.jpg",
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Villa & Hotel", url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Villa & Hotel", url: canonical }
-        ])
-      )
-    })
-  });
+  const item = db.prepare("SELECT id FROM wisata WHERE slug = ?").get(req.params.slug);
+  const rating = Number(req.body.rating || 0);
+  if (item && rating >= 1 && rating <= 5) {
+    db.prepare("INSERT INTO ratings (item_type, item_id, name, rating) VALUES ('wisata', ?, ?, ?)").run(item.id, String(req.body.name || "Pengunjung").trim(), rating);
+  }
+  res.redirect(`/wisata/${req.params.slug}#rating`);
 });
 
 router.get("/villa/:slug", (req, res) => {
   const db = getDb();
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const rawItem = db.prepare("SELECT * FROM villa WHERE slug = ?").get(req.params.slug);
-
-  if (!rawItem) return res.redirect("/villa");
-
-  const item = {
-    ...rawItem,
-    images: safeVillaImages(rawItem)
-  };
-
+  const settings = res.locals.settings;
+  const item = db.prepare("SELECT * FROM villa WHERE slug = ?").get(req.params.slug);
+  if (!item) return res.status(404).render("about", { settings, seo: { title: "404 | Data Tidak Ditemukan", noindex: true } });
+  const comments = getApprovedComments("villa", item.id);
   const ratings = getRatings("villa", item.id);
-  const comments = getComments("villa", item.id);
-  const related = db
-    .prepare("SELECT * FROM villa WHERE id != ? ORDER BY id DESC LIMIT 4")
-    .all(item.id)
-    .map((rel) => ({
-      ...rel,
-      images: safeVillaImages(rel)
-    }));
-
-  const canonical = `${baseUrl}/villa/${item.slug}`;
-  const title = item.meta_title || buildTitle(item.title, "Villa & Hotel di Berastagi");
-  const description = buildDescription(
-    safeDescription(item, `${item.title} adalah salah satu pilihan villa dan hotel di Berastagi yang bisa dipertimbangkan untuk liburan.`)
-  );
-
-  const lodgingSchema = lodgingBusinessSchema({
-    baseUrl,
-    url: canonical,
-    name: item.title,
-    description,
-    image: safeImage(item)
+  const avg = getAverageRating(ratings);
+  const related = db.prepare("SELECT * FROM villa WHERE id != ? ORDER BY is_featured DESC, updated_at DESC, id DESC LIMIT 6").all(item.id);
+  item.image = normalizeImage(item.image);
+  const allImages = Array.from(new Set([item.image, ...parseGalleryImages(item.images, item.image)])).filter(Boolean);
+  const mainImage = allImages[0] || item.image;
+  const sideImages = allImages.slice(1, 5);
+  const breadcrumbs = [{ name: "Beranda", url: "/" }, { name: "Villa & Hotel", url: "/villa" }, { name: item.title, url: `/villa/${item.slug}` }];
+  const faq = [
+    { question: `Di mana lokasi ${item.title}?`, answer: `${item.title} berada di ${item.location || "Berastagi, Kabupaten Karo"}.` },
+    { question: `Berapa harga menginap di ${item.title}?`, answer: `Harga mulai dari ${helpers.formatCurrency(item.price || 0)}.` }
+  ];
+  const seo = buildSeo({
+    title: item.meta_title || buildTitle(item.title, "Villa dan Hotel Berastagi"),
+    description: item.meta_description || buildDescription(item.excerpt || item.content, settings.homepage_meta_description),
+    canonical: `/villa/${item.slug}`,
+    image: item.image,
+    breadcrumbs,
+    jsonLd: makeJsonLdGraph(
+      webpageSchema({ baseUrl: res.locals.baseUrl, url: `/villa/${item.slug}`, title: item.meta_title || item.title, description: item.meta_description || item.excerpt || item.content, image: item.image, breadcrumbItems: breadcrumbs }),
+      lodgingBusinessSchema({ baseUrl: res.locals.baseUrl, url: `/villa/${item.slug}`, name: item.title, description: item.meta_description || item.excerpt || item.content, image: item.image }),
+      breadcrumbSchema(breadcrumbs, res.locals.baseUrl, `/villa/${item.slug}`),
+      faqSchema(faq, `${res.locals.baseUrl}/villa/${item.slug}#faq`)
+    )
   });
-
-  const aggregateRating = buildAggregateRating(ratings);
-  if (aggregateRating) {
-    lodgingSchema.aggregateRating = aggregateRating;
-  }
-
-  renderPage(res, "villa-detail", {
-    settings,
-    item,
-    comments,
-    ratings,
-    related,
-    avg: avgRating(ratings),
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      type: "article",
-      image: safeImage(item),
-      keywords: [
-        item.title,
-        "villa berastagi",
-        "hotel berastagi",
-        "penginapan berastagi",
-        "villa dan hotel di berastagi"
-      ],
-      section: "Villa",
-      tags: [item.title, "Villa Berastagi", "Hotel Berastagi"],
-      publishedTime: safeDate(item.created_at),
-      modifiedTime: safeDate(item.updated_at || item.created_at),
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: safeImage(item),
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Villa & Hotel", url: `${baseUrl}/villa` },
-            { name: item.title, url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Villa & Hotel", url: `${baseUrl}/villa` },
-          { name: item.title, url: canonical }
-        ]),
-        lodgingSchema,
-        articleSchema({
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: safeImage(item),
-          datePublished: safeDate(item.created_at),
-          dateModified: safeDate(item.updated_at || item.created_at),
-          authorName: settings?.site_name || "Wisata Berastagi",
-          siteName: settings?.site_name || "Wisata Berastagi",
-          keywords: [item.title, "villa berastagi", "hotel berastagi"]
-        })
-      )
-    })
-  });
+  res.render("villa-detail", { settings, item, related, comments, ratings, avg, totalImages: allImages.length, mainImage, sideImages, seo, helpers });
 });
 
-router.post("/villa/:slug/comment", (req, res) => {
-  const db = getDb();
-  const item = db.prepare("SELECT * FROM villa WHERE slug = ?").get(req.params.slug);
-
-  if (!item) return res.redirect("/villa");
-
-  const name = String(req.body.name || "").trim();
-  const email = String(req.body.email || "").trim();
-  const comment = String(req.body.comment || "").trim();
-
-  if (name && comment) {
-    db.prepare(`
-      INSERT INTO comments (item_type, item_id, name, email, comment, status)
-      VALUES (?, ?, ?, ?, ?, 'pending')
-    `).run("villa", item.id, name, email, comment);
-  }
-
-  res.redirect(`/villa/${item.slug}#ulasan`);
-});
-
-router.post("/villa/:slug/rating", (req, res) => {
-  const db = getDb();
-  const item = db.prepare("SELECT * FROM villa WHERE slug = ?").get(req.params.slug);
-
-  if (!item) return res.redirect("/villa");
-
-  const name = String(req.body.name || "Pengunjung").trim();
-  let rating = Number(req.body.rating || 0);
-
-  if (rating < 1) rating = 1;
-  if (rating > 5) rating = 5;
-
-  db.prepare(`
-    INSERT INTO ratings (item_type, item_id, name, rating)
-    VALUES (?, ?, ?, ?)
-  `).run("villa", item.id, name, rating);
-
-  res.redirect(`/villa/${item.slug}#rating`);
-});
-
-/* =========================
-   KULINER
-========================= */
-router.get("/kuliner", (req, res) => {
-  const db = getDb();
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const canonical = `${baseUrl}/kuliner`;
-  const items = db.prepare("SELECT * FROM kuliner ORDER BY id DESC").all();
-
-  const title = "Kuliner Berastagi Enak, Populer & Wajib Dicoba | Wisata Berastagi";
-  const description =
-    "Temukan rekomendasi kuliner Berastagi yang enak, populer, dan wajib dicoba saat liburan ke Berastagi, mulai dari makanan khas hingga tempat makan favorit.";
-
-  renderPage(res, "kuliner-list", {
-    settings,
-    items,
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      keywords: [
-        "kuliner berastagi",
-        "makanan di berastagi",
-        "tempat makan di berastagi",
-        "kuliner karo",
-        "makanan khas karo"
-      ],
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: "/images/wisata-berastagi-cover.jpg",
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Kuliner", url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Kuliner", url: canonical }
-        ])
-      )
-    })
-  });
-});
-
-router.get("/kuliner/:slug", (req, res) => {
-  const db = getDb();
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const item = db.prepare("SELECT * FROM kuliner WHERE slug = ?").get(req.params.slug);
-
-  if (!item) return res.redirect("/kuliner");
-
-  const ratings = getRatings("kuliner", item.id);
-  const comments = getComments("kuliner", item.id);
-  const related = db
-    .prepare("SELECT * FROM kuliner WHERE id != ? ORDER BY id DESC LIMIT 4")
-    .all(item.id);
-
-  const canonical = `${baseUrl}/kuliner/${item.slug}`;
-  const title = item.meta_title || buildTitle(item.title, "Kuliner Berastagi");
-  const description = buildDescription(
-    safeDescription(item, `${item.title} adalah salah satu rekomendasi kuliner Berastagi yang menarik untuk dicoba.`)
-  );
-
-  const restoSchema = restaurantSchema({
-    baseUrl,
-    url: canonical,
-    name: item.title,
-    description,
-    image: safeImage(item)
-  });
-
-  const aggregateRating = buildAggregateRating(ratings);
-  if (aggregateRating) {
-    restoSchema.aggregateRating = aggregateRating;
-  }
-
-  renderPage(res, "kuliner-detail", {
-    settings,
-    item,
-    comments,
-    ratings,
-    related,
-    avg: avgRating(ratings),
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      type: "article",
-      image: safeImage(item),
-      keywords: [
-        item.title,
-        "kuliner berastagi",
-        "makanan di berastagi",
-        "tempat makan di berastagi",
-        "kuliner karo"
-      ],
-      section: "Kuliner",
-      tags: [item.title, "Kuliner Berastagi", "Makanan Karo"],
-      publishedTime: safeDate(item.created_at),
-      modifiedTime: safeDate(item.updated_at || item.created_at),
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: safeImage(item),
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Kuliner", url: `${baseUrl}/kuliner` },
-            { name: item.title, url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Kuliner", url: `${baseUrl}/kuliner` },
-          { name: item.title, url: canonical }
-        ]),
-        restoSchema,
-        articleSchema({
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: safeImage(item),
-          datePublished: safeDate(item.created_at),
-          dateModified: safeDate(item.updated_at || item.created_at),
-          authorName: settings?.site_name || "Wisata Berastagi",
-          siteName: settings?.site_name || "Wisata Berastagi",
-          keywords: [item.title, "kuliner berastagi", "kuliner karo"]
-        })
-      )
-    })
-  });
-});
+router.get("/kuliner/:slug", (req, res) => renderDetail(req, res, {
+  table: "kuliner",
+  itemType: "kuliner",
+  slug: req.params.slug,
+  view: "kuliner-detail",
+  pathPrefix: "/kuliner",
+  sectionLabel: "Kuliner",
+  schemaBuilder: (item) => restaurantSchema({ baseUrl: res.locals.baseUrl, url: `/kuliner/${item.slug}`, name: item.title, description: item.meta_description || item.excerpt || item.content, image: item.image }),
+  faqBuilder: (item) => [
+    { question: `Di mana lokasi ${item.title}?`, answer: `${item.title} berada di ${item.location || "Berastagi, Kabupaten Karo"}.` },
+    { question: `Berapa kisaran harga di ${item.title}?`, answer: `Kisaran harga di ${item.title} adalah ${item.price_range || "menyesuaikan menu yang dipilih"}.` }
+  ]
+}));
 
 router.post("/kuliner/:slug/comment", (req, res) => {
   const db = getDb();
-  const item = db.prepare("SELECT * FROM kuliner WHERE slug = ?").get(req.params.slug);
-
-  if (!item) return res.redirect("/kuliner");
-
-  const name = String(req.body.name || "").trim();
-  const email = String(req.body.email || "").trim();
-  const comment = String(req.body.comment || "").trim();
-
-  if (name && comment) {
-    db.prepare(`
-      INSERT INTO comments (item_type, item_id, name, email, comment, status)
-      VALUES (?, ?, ?, ?, ?, 'pending')
-    `).run("kuliner", item.id, name, email, comment);
+  const item = db.prepare("SELECT id FROM kuliner WHERE slug = ?").get(req.params.slug);
+  if (item && req.body.name && req.body.comment) {
+    db.prepare("INSERT INTO comments (item_type, item_id, name, email, comment, status) VALUES ('kuliner', ?, ?, ?, ?, 'pending')").run(item.id, String(req.body.name).trim(), String(req.body.email || "").trim(), String(req.body.comment).trim());
   }
-
-  res.redirect(`/kuliner/${item.slug}#ulasan`);
+  res.redirect(`/kuliner/${req.params.slug}#ulasan`);
 });
-
 router.post("/kuliner/:slug/rating", (req, res) => {
   const db = getDb();
-  const item = db.prepare("SELECT * FROM kuliner WHERE slug = ?").get(req.params.slug);
-
-  if (!item) return res.redirect("/kuliner");
-
-  const name = String(req.body.name || "Pengunjung").trim();
-  let rating = Number(req.body.rating || 0);
-
-  if (rating < 1) rating = 1;
-  if (rating > 5) rating = 5;
-
-  db.prepare(`
-    INSERT INTO ratings (item_type, item_id, name, rating)
-    VALUES (?, ?, ?, ?)
-  `).run("kuliner", item.id, name, rating);
-
-  res.redirect(`/kuliner/${item.slug}#rating`);
-});
-
-/* =========================
-   BERITA
-========================= */
-router.get("/berita", (req, res) => {
-  const db = getDb();
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const canonical = `${baseUrl}/berita`;
-
-  const items = db
-    .prepare(`
-      SELECT *
-      FROM articles
-      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
-    `)
-    .all();
-
-  const title = "Berita Wisata Berastagi Terbaru Hari Ini | Wisata Berastagi";
-  const description =
-    "Baca berita wisata Berastagi terbaru seputar tempat wisata, villa, kuliner, event, suasana kota, dan tips liburan di Kabupaten Karo.";
-
-  renderPage(res, "berita-list", {
-    settings,
-    items,
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      keywords: [
-        "berita wisata berastagi",
-        "berita berastagi",
-        "info wisata berastagi",
-        "kabar berastagi",
-        "event berastagi"
-      ],
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: "/images/wisata-berastagi-cover.jpg",
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Berita", url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Berita", url: canonical }
-        ])
-      )
-    })
-  });
+  const item = db.prepare("SELECT id FROM kuliner WHERE slug = ?").get(req.params.slug);
+  const rating = Number(req.body.rating || 0);
+  if (item && rating >= 1 && rating <= 5) {
+    db.prepare("INSERT INTO ratings (item_type, item_id, name, rating) VALUES ('kuliner', ?, ?, ?)").run(item.id, String(req.body.name || "Pengunjung").trim(), rating);
+  }
+  res.redirect(`/kuliner/${req.params.slug}#rating`);
 });
 
 router.get("/berita/:slug", (req, res) => {
   const db = getDb();
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-
-  const item = db
-    .prepare("SELECT * FROM articles WHERE slug = ?")
-    .get(req.params.slug);
-
-  if (!item) return res.redirect("/berita");
-
-  const comments = getComments("berita", item.id);
-  const related = db
-    .prepare(`
-      SELECT *
-      FROM articles
-      WHERE id != ?
-      ORDER BY COALESCE(published_at, created_at) DESC, id DESC
-      LIMIT 4
-    `)
-    .all(item.id);
-
-  const canonical = `${baseUrl}/berita/${item.slug}`;
-  const title = item.meta_title || buildTitle(item.title, "Berita Wisata Berastagi");
-  const description = buildDescription(
-    safeDescription(item, `${item.title} adalah berita terbaru seputar wisata Berastagi, villa, kuliner, dan tips liburan.`)
-  );
-
-  renderPage(res, "berita-detail", {
-    settings,
-    item,
-    comments,
-    related,
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      type: "article",
-      image: safeImage(item),
-      keywords: [
-        item.title,
-        "berita wisata berastagi",
-        "berita berastagi",
-        "info berastagi"
-      ],
-      section: "Berita",
-      tags: [item.title, "Berita Berastagi", "Wisata Berastagi"],
-      publishedTime: safeDate(item.published_at || item.created_at),
-      modifiedTime: safeDate(item.updated_at || item.created_at),
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: safeImage(item),
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Berita", url: `${baseUrl}/berita` },
-            { name: item.title, url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Berita", url: `${baseUrl}/berita` },
-          { name: item.title, url: canonical }
-        ]),
-        articleSchema({
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: safeImage(item),
-          datePublished: safeDate(item.published_at || item.created_at),
-          dateModified: safeDate(item.updated_at || item.created_at),
-          authorName: settings?.site_name || "Wisata Berastagi",
-          siteName: settings?.site_name || "Wisata Berastagi",
-          keywords: [item.title, "berita wisata berastagi", "berita berastagi"]
-        }),
-        {
-          "@context": "https://schema.org",
-          "@type": "NewsArticle",
-          headline: item.title,
-          description,
-          image: [absoluteUrl(baseUrl, safeImage(item))],
-          mainEntityOfPage: canonical,
-          datePublished: safeDate(item.published_at || item.created_at),
-          dateModified: safeDate(item.updated_at || item.created_at),
-          author: {
-            "@type": "Organization",
-            name: settings?.site_name || "Wisata Berastagi"
-          },
-          publisher: {
-            "@type": "Organization",
-            name: settings?.site_name || "Wisata Berastagi",
-            logo: {
-              "@type": "ImageObject",
-              url: absoluteUrl(baseUrl, settings?.logo || settings?.hero_background || "/images/wisata-berastagi-cover.jpg")
-            }
-          }
-        }
-      )
-    })
+  const settings = res.locals.settings;
+  const item = db.prepare("SELECT * FROM articles WHERE slug = ? AND status = 'publish'").get(req.params.slug);
+  if (!item) return res.status(404).render("about", { settings, seo: { title: "404 | Artikel Tidak Ditemukan", noindex: true } });
+  const related = db.prepare("SELECT * FROM articles WHERE id != ? AND status = 'publish' ORDER BY published_at DESC, id DESC LIMIT 6").all(item.id);
+  item.image = normalizeImage(item.image);
+  const breadcrumbs = [{ name: "Beranda", url: "/" }, { name: "Berita", url: "/berita" }, { name: item.title, url: `/berita/${item.slug}` }];
+  const faq = [
+    { question: "Berita ini membahas tentang apa?", answer: item.excerpt || helpers.excerpt(item.content || "Informasi wisata Berastagi.", 160) },
+    { question: "Kapan berita ini dipublikasikan?", answer: item.published_at || item.created_at || "Sesuai tanggal yang tertera di halaman artikel." }
+  ];
+  const seo = buildSeo({
+    title: item.meta_title || buildTitle(item.title, "Berita Wisata Berastagi"),
+    description: item.meta_description || buildDescription(item.excerpt || item.content, settings.homepage_meta_description),
+    canonical: `/berita/${item.slug}`,
+    image: item.image,
+    type: "article",
+    breadcrumbs,
+    publishedTime: parseDate(item.published_at || item.created_at),
+    modifiedTime: parseDate(item.updated_at || item.created_at),
+    section: "Berita",
+    jsonLd: makeJsonLdGraph(
+      webpageSchema({ baseUrl: res.locals.baseUrl, url: `/berita/${item.slug}`, title: item.meta_title || item.title, description: item.meta_description || item.excerpt || item.content, image: item.image, breadcrumbItems: breadcrumbs }),
+      articleSchema({ baseUrl: res.locals.baseUrl, url: `/berita/${item.slug}`, title: item.title, description: item.meta_description || item.excerpt || item.content, image: item.image, datePublished: parseDate(item.published_at || item.created_at), dateModified: parseDate(item.updated_at || item.created_at), keywords: [item.category, item.title, "berita wisata berastagi"] }),
+      breadcrumbSchema(breadcrumbs, res.locals.baseUrl, `/berita/${item.slug}`),
+      faqSchema(faq, `${res.locals.baseUrl}/berita/${item.slug}#faq`)
+    )
   });
+  res.render("berita-detail", { settings, item, related, seo, helpers });
 });
 
-router.post("/berita/:slug/comment", (req, res) => {
-  const db = getDb();
-  const item = db
-    .prepare("SELECT * FROM articles WHERE slug = ?")
-    .get(req.params.slug);
-
-  if (!item) return res.redirect("/berita");
-
-  const name = String(req.body.name || "").trim();
-  const email = String(req.body.email || "").trim();
-  const comment = String(req.body.comment || "").trim();
-
-  if (name && comment) {
-    db.prepare(`
-      INSERT INTO comments (item_type, item_id, name, email, comment, status)
-      VALUES (?, ?, ?, ?, ?, 'pending')
-    `).run("berita", item.id, name, email, comment);
-  }
-
-  res.redirect(`/berita/${item.slug}#ulasan`);
-});
-
-/* =========================
-   BACKWARD COMPATIBILITY
-========================= */
-router.get("/artikel", (req, res) => {
-  return res.redirect(301, "/berita");
-});
-
-router.get("/artikel/:slug", (req, res) => {
-  return res.redirect(301, `/berita/${req.params.slug}`);
-});
-
-router.post("/artikel/:slug/comment", (req, res) => {
-  return res.redirect(307, `/berita/${req.params.slug}/comment`);
-});
-
-/* =========================
-   HALAMAN STATIS
-========================= */
 router.get("/about", (req, res) => {
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const canonical = `${baseUrl}/about`;
-
-  const title = "Tentang Wisata Berastagi | Portal Wisata Berastagi";
-  const description =
-    "Tentang Wisata Berastagi, portal informasi wisata yang membahas tempat wisata, villa dan hotel, kuliner, berita terbaru, serta tips liburan di Berastagi.";
-
-  renderPage(res, "about", {
-    settings,
-    path: "/about",
-    pageTitle: "Tentang Wisata Berastagi",
-    pageContent:
-      "Wisata Berastagi adalah website panduan wisata yang fokus pada informasi tempat wisata, villa dan hotel, kuliner, berita terbaru, dan tips liburan terbaik di Berastagi.",
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: settings?.hero_background || "/images/wisata-berastagi-cover.jpg",
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Tentang Kami", url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Tentang Kami", url: canonical }
-        ])
-      )
-    })
-  });
+  const settings = res.locals.settings;
+  const seo = buildSeo({ title: "Tentang Wisata Berastagi | Portal Informasi Wisata Berastagi", description: "Kenali website Wisata Berastagi yang menyediakan panduan tempat wisata, penginapan, kuliner, dan berita terbaru di Kabupaten Karo.", canonical: "/about", image: settings.hero_background });
+  res.render("about", { settings, seo, helpers });
 });
-
 router.get("/contact", (req, res) => {
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const canonical = `${baseUrl}/contact`;
-
-  const title = "Kontak Wisata Berastagi | Hubungi Kami";
-  const description =
-    "Hubungi Wisata Berastagi untuk promosi, kerja sama, informasi wisata, villa dan hotel, kuliner, maupun pertanyaan lainnya.";
-
-  renderPage(res, "contact", {
-    settings,
-    path: "/contact",
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: settings?.hero_background || "/images/wisata-berastagi-cover.jpg",
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Kontak", url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Kontak", url: canonical }
-        ])
-      )
-    })
-  });
+  const settings = res.locals.settings;
+  const seo = buildSeo({ title: "Kontak Wisata Berastagi | Hubungi Kami untuk Info Wisata, Villa & Kuliner", description: "Hubungi tim Wisata Berastagi untuk informasi wisata, kerja sama promosi, villa, hotel, kuliner, dan panduan liburan di Berastagi.", canonical: "/contact", image: settings.hero_background });
+  res.render("contact", { settings, seo, helpers });
 });
-
 router.get("/privacy-policy", (req, res) => {
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const canonical = `${baseUrl}/privacy-policy`;
-
-  const title = "Kebijakan Privasi | Wisata Berastagi";
-  const description =
-    "Baca kebijakan privasi Wisata Berastagi mengenai penggunaan data, cookie, analitik, dan layanan pihak ketiga seperti Google AdSense.";
-
-  renderPage(res, "privacy", {
-    settings,
-    path: "/privacy-policy",
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      noindex: false,
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: settings?.hero_background || "/images/wisata-berastagi-cover.jpg",
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Kebijakan Privasi", url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Kebijakan Privasi", url: canonical }
-        ])
-      )
-    })
-  });
+  const settings = res.locals.settings;
+  const seo = buildSeo({ title: "Kebijakan Privasi | Wisata Berastagi", description: "Baca kebijakan privasi website Wisata Berastagi terkait pengumpulan data, cookie, dan perlindungan informasi pengguna.", canonical: "/privacy-policy", image: settings.hero_background });
+  res.render("privacy", { settings, seo, helpers });
 });
-
 router.get("/disclaimer", (req, res) => {
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
-  const canonical = `${baseUrl}/disclaimer`;
-
-  const title = "Disclaimer | Wisata Berastagi";
-  const description =
-    "Baca disclaimer Wisata Berastagi terkait informasi, ulasan, akurasi data, dan tanggung jawab penggunaan konten di website ini.";
-
-  renderPage(res, "disclaimer", {
-    settings,
-    path: "/disclaimer",
-    seo: buildSeo({
-      title,
-      description,
-      canonical,
-      noindex: false,
-      jsonLd: makeJsonLdGraph(
-        ...buildCommonSchemas(baseUrl, settings, {
-          baseUrl,
-          url: canonical,
-          title,
-          description,
-          image: settings?.hero_background || "/images/wisata-berastagi-cover.jpg",
-          breadcrumbItems: [
-            { name: "Beranda", url: `${baseUrl}/` },
-            { name: "Disclaimer", url: canonical }
-          ]
-        }),
-        breadcrumbSchema([
-          { name: "Beranda", url: `${baseUrl}/` },
-          { name: "Disclaimer", url: canonical }
-        ])
-      )
-    })
-  });
+  const settings = res.locals.settings;
+  const seo = buildSeo({ title: "Disclaimer | Wisata Berastagi", description: "Baca disclaimer website Wisata Berastagi terkait akurasi informasi wisata, harga, jadwal, dan tautan pihak ketiga.", canonical: "/disclaimer", image: settings.hero_background });
+  res.render("disclaimer", { settings, seo, helpers });
 });
 
-/* =========================
-   REDIRECT ROUTE LAMA
-========================= */
-router.get("/tentang", (req, res) => {
-  return res.redirect(301, "/about");
-});
-
-router.get("/kontak", (req, res) => {
-  return res.redirect(301, "/contact");
-});
-
-/* =========================
-   SEARCH
-========================= */
 router.get("/cari", (req, res) => {
   const db = getDb();
-  const settings = getSettings();
-  const baseUrl = res.locals.baseUrl;
+  const settings = res.locals.settings;
   const q = String(req.query.q || "").trim();
-
-  let wisata = [];
-  let villa = [];
-  let kuliner = [];
-  let berita = [];
-
-  if (q) {
-    const like = `%${q}%`;
-
-    wisata = db
-      .prepare("SELECT * FROM wisata WHERE title LIKE ? OR content LIKE ? ORDER BY id DESC")
-      .all(like, like);
-
-    villa = db
-      .prepare("SELECT * FROM villa WHERE title LIKE ? OR content LIKE ? ORDER BY id DESC")
-      .all(like, like)
-      .map((item) => ({
-        ...item,
-        images: safeVillaImages(item)
-      }));
-
-    kuliner = db
-      .prepare("SELECT * FROM kuliner WHERE title LIKE ? OR content LIKE ? ORDER BY id DESC")
-      .all(like, like);
-
-    berita = db
-      .prepare(`
-        SELECT *
-        FROM articles
-        WHERE title LIKE ? OR content LIKE ?
-        ORDER BY COALESCE(published_at, created_at) DESC, id DESC
-      `)
-      .all(like, like);
-  }
-
-  renderPage(res, "search", {
-    settings,
-    q,
-    wisata,
-    villa,
-    kuliner,
-    berita,
-    seo: buildSeo({
-      title: q ? `Hasil Pencarian "${q}" | Wisata Berastagi` : "Pencarian | Wisata Berastagi",
-      description: q
-        ? `Hasil pencarian untuk ${q} di Wisata Berastagi.`
-        : "Cari tempat wisata, villa, kuliner, dan berita di Wisata Berastagi.",
-      canonical: `${baseUrl}/cari${q ? `?q=${encodeURIComponent(q)}` : ""}`,
-      noindex: true
-    })
-  });
-});
-
-/* =========================
-   SITEMAP
-========================= */
-router.get("/sitemap.xml", (req, res) => {
-  const db = getDb();
-  const baseUrl = res.locals.baseUrl;
-  const now = new Date().toISOString();
-
-  const wisata = db.prepare("SELECT slug, updated_at, created_at FROM wisata").all();
-  const villa = db.prepare("SELECT slug, updated_at, created_at FROM villa").all();
-  const kuliner = db.prepare("SELECT slug, updated_at, created_at FROM kuliner").all();
-  const berita = db
-    .prepare("SELECT slug, updated_at, created_at, published_at FROM articles")
-    .all();
-
-  const urls = [
-    { loc: `${baseUrl}/`, lastmod: now },
-    { loc: `${baseUrl}/wisata`, lastmod: now },
-    { loc: `${baseUrl}/villa`, lastmod: now },
-    { loc: `${baseUrl}/kuliner`, lastmod: now },
-    { loc: `${baseUrl}/berita`, lastmod: now },
-    { loc: `${baseUrl}/galeri`, lastmod: now },
-    { loc: `${baseUrl}/about`, lastmod: now },
-    { loc: `${baseUrl}/contact`, lastmod: now },
-    { loc: `${baseUrl}/privacy-policy`, lastmod: now },
-    { loc: `${baseUrl}/disclaimer`, lastmod: now },
-
-    ...wisata.map((item) => ({
-      loc: `${baseUrl}/wisata/${item.slug}`,
-      lastmod: item.updated_at || item.created_at || now
-    })),
-
-    ...villa.map((item) => ({
-      loc: `${baseUrl}/villa/${item.slug}`,
-      lastmod: item.updated_at || item.created_at || now
-    })),
-
-    ...kuliner.map((item) => ({
-      loc: `${baseUrl}/kuliner/${item.slug}`,
-      lastmod: item.updated_at || item.created_at || now
-    })),
-
-    ...berita.map((item) => ({
-      loc: `${baseUrl}/berita/${item.slug}`,
-      lastmod: item.updated_at || item.published_at || item.created_at || now
-    }))
-  ];
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls
-  .map(
-    (url) => `
-  <url>
-    <loc>${url.loc}</loc>
-    <lastmod>${safeDate(url.lastmod)}</lastmod>
-  </url>`
-  )
-  .join("")}
-</urlset>`;
-
-  res.type("application/xml").send(xml);
+  const like = `%${q}%`;
+  const searchIn = (table, extra = "") => q ? db.prepare(`SELECT * FROM ${table} WHERE (title LIKE ? OR excerpt LIKE ? OR content LIKE ?) ${extra} ORDER BY updated_at DESC, id DESC LIMIT 10`).all(like, like, like) : [];
+  const wisata = searchIn("wisata");
+  const villa = searchIn("villa");
+  const kuliner = searchIn("kuliner");
+  const berita = q ? db.prepare("SELECT * FROM articles WHERE status = 'publish' AND (title LIKE ? OR excerpt LIKE ? OR content LIKE ?) ORDER BY published_at DESC, id DESC LIMIT 10").all(like, like, like) : [];
+  const seo = buildSeo({ title: q ? `Hasil Pencarian: ${q} | Wisata Berastagi` : "Pencarian | Wisata Berastagi", description: q ? `Hasil pencarian untuk ${q} di website Wisata Berastagi.` : "Cari tempat wisata, penginapan, kuliner, dan berita di Wisata Berastagi.", canonical: q ? `/cari?q=${encodeURIComponent(q)}` : "/cari", noindex: true });
+  res.render("search", { settings, q, wisata, villa, kuliner, berita, seo, helpers });
 });
 
 module.exports = router;
