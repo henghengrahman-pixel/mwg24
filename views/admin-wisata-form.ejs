@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+
+    <main class="admin-main">
+      <div class="admin-head">
+        <div>
+          <h1><%= item && item.id ? "Edit Wisata" : "Tambah Wisata" %></h1>
+          <p class="admin-subtitle">
+            Kelola destinasi wisata Berastagi dengan konten yang rapi, informatif, dan ramah SEO.
+          </p>
+        </div>
+      </div>
+
+      <% if (typeof error !== "undefined" && error) { %>
+        <div class="alert-error"><%= error %></div>
+      <% } %>
+
+      <form
+        id="wisataForm"
+        action="/admin/wisata/save"
+        method="post"
+        enctype="multipart/form-data"
+        class="admin-form"
+      >
+        <input type="hidden" name="id" value="<%= item?.id || '' %>">
+        <input type="hidden" name="current_image" value="<%= item?.image || '' %>">
+
+        <div class="form-grid">
+          <div class="form-group full">
+            <label for="title">Judul Wisata</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value="<%= item?.title || '' %>"
+              placeholder="Contoh: Bukit Gundaling Berastagi"
+              required
+            >
+          </div>
+
+          <div class="form-group full">
+            <label for="slug">Slug (URL)</label>
+            <input
+              type="text"
+              id="slug"
+              name="slug"
+              value="<%= item?.slug || '' %>"
+              placeholder="otomatis jika kosong"
+            >
+            <small class="form-hint">URL akan menjadi: /wisata/slug-anda</small>
+          </div>
+
+          <div class="form-group full">
+            <label for="excerpt">Excerpt / Ringkasan</label>
+            <textarea
+              id="excerpt"
+              name="excerpt"
+              rows="3"
+              placeholder="Ringkasan singkat wisata untuk preview halaman utama dan halaman kategori"
+            ><%= item?.excerpt || '' %></textarea>
+          </div>
+
+          <div class="form-divider full">Konten Wisata</div>
+
+          <div class="form-group full">
+            <label for="editor">Isi Konten</label>
+            <textarea
+              id="editor"
+              name="content"
+              rows="16"
+              placeholder="Tulis informasi lengkap wisata di sini..."
+            ><%= item?.content || '' %></textarea>
+            <small class="form-hint">
+              Gunakan toolbar untuk heading, paragraf, link, list, dan tambah gambar di tengah konten.
+            </small>
+          </div>
+
+          <div class="form-group full">
+            <label for="image">Gambar Utama</label>
+
+            <% if (item?.image) { %>
+              <div class="image-preview">
+                <img
+                  src="<%= item.image %>"
+                  alt="Preview gambar wisata"
+                  style="max-width: 240px; width: 100%; height: auto; border-radius: 12px;"
+                >
+              </div>
+            <% } %>
+
+            <input type="file" id="image" name="image" accept="image/*">
+            <small class="form-hint">Upload gambar baru jika ingin mengganti gambar utama lama.</small>
+          </div>
+
+          <div class="form-divider full">Informasi Wisata</div>
+
+          <div class="form-group">
+            <label for="location">Lokasi</label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value="<%= item?.location || '' %>"
+              placeholder="Contoh: Jalan Jamin Ginting, Berastagi"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="ticket_price">Harga Tiket</label>
+            <input
+              type="text"
+              id="ticket_price"
+              name="ticket_price"
+              value="<%= item?.ticket_price || '' %>"
+              placeholder="Contoh: 15000"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="open_hours">Jam Buka</label>
+            <input
+              type="text"
+              id="open_hours"
+              name="open_hours"
+              value="<%= item?.open_hours || '' %>"
+              placeholder="Contoh: 08.00 - 18.00"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="maps_url">Link Maps</label>
+            <input
+              type="url"
+              id="maps_url"
+              name="maps_url"
+              value="<%= item?.maps_url || '' %>"
+              placeholder="https://maps.google.com/..."
+            >
+          </div>
+
+          <div class="form-group full">
+            <label class="checkbox-line" for="is_featured">
+              <input
+                type="checkbox"
+                id="is_featured"
+                name="is_featured"
+                value="1"
+                <%= Number(item?.is_featured || 0) === 1 ? "checked" : "" %>
+              >
+              Jadikan unggulan
+            </label>
+          </div>
+
+          <div class="form-divider full">Panduan Penulisan</div>
+
+          <div class="info-card form-group full">
+            <p><strong>Tips konten wisata yang bagus:</strong></p>
+            <ul>
+              <li>Tulis pembuka singkat tentang daya tarik utama wisata.</li>
+              <li>Gunakan Heading 2 untuk bagian seperti lokasi, fasilitas, harga tiket, dan tips kunjungan.</li>
+              <li>Tambahkan gambar di tengah artikel agar pengunjung lebih tertarik.</li>
+              <li>Masukkan informasi penting seperti jam buka, harga, dan link maps.</li>
+              <li>Gunakan paragraf pendek agar nyaman dibaca di HP.</li>
+            </ul>
+          </div>
+
+          <div class="form-divider full">Pengaturan SEO</div>
+
+          <div class="form-group full">
+            <label for="meta_title">Meta Title</label>
+            <input
+              type="text"
+              id="meta_title"
+              name="meta_title"
+              value="<%= item?.meta_title || '' %>"
+              placeholder="Judul SEO (jika kosong otomatis)"
+            >
+          </div>
+
+          <div class="form-group full">
+            <label for="meta_description">Meta Description</label>
+            <textarea
+              id="meta_description"
+              name="meta_description"
+              rows="3"
+              placeholder="Deskripsi singkat untuk Google"
+            ><%= item?.meta_description || '' %></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">
+            <%= item && item.id ? "Update Wisata" : "Simpan Wisata" %>
+          </button>
+
+          <a href="/admin/wisata" class="btn-secondary">
+            Batal
+          </a>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
+  <script>
+    const titleInput = document.getElementById("title");
+    const slugInput = document.getElementById("slug");
+    const wisataForm = document.getElementById("wisataForm");
+
+    function makeSlug(text) {
+      return String(text || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+
+    if (titleInput && slugInput) {
+      titleInput.addEventListener("input", function () {
+        if (!slugInput.dataset.editedManually || !slugInput.value.trim()) {
+          slugInput.value = makeSlug(titleInput.value);
+        }
+      });
+
+      slugInput.addEventListener("input", function () {
+        slugInput.dataset.editedManually = "true";
+      });
+    }
+
+    tinymce.init({
+      selector: "#editor",
+      height: 560,
+      menubar: false,
+      branding: false,
+      promotion: false,
+      plugins: [
+        "advlist",
+        "autolink",
+        "lists",
+        "link",
+        "image",
+        "charmap",
+        "preview",
+        "anchor",
+        "searchreplace",
+        "visualblocks",
+        "code",
+        "fullscreen",
+        "insertdatetime",
+        "media",
+        "table",
+        "wordcount"
+      ],
+      toolbar:
+        "undo redo | blocks | " +
+        "bold italic underline | forecolor backcolor | " +
+        "alignleft aligncenter alignright alignjustify | " +
+        "bullist numlist outdent indent | " +
+        "link image media table | removeformat code preview fullscreen",
+      block_formats: "Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4",
+      content_style: `
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 16px;
+          line-height: 1.75;
+          color: #183124;
+          padding: 16px;
+        }
+        p {
+          margin: 0 0 16px;
+        }
+        h2, h3, h4 {
+          margin: 24px 0 12px;
+          color: #183124;
+          line-height: 1.3;
+        }
+        ul, ol {
+          margin: 0 0 16px;
+          padding-left: 22px;
+        }
+        img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 12px;
+        }
+        a {
+          color: #24593f;
+        }
+      `,
+      image_title: true,
+      automatic_uploads: true,
+      file_picker_types: "image",
+      relative_urls: false,
+      remove_script_host: false,
+      convert_urls: false,
+      paste_data_images: true,
+      image_caption: true,
+      image_advtab: true,
+      images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/admin/upload-image");
+        xhr.withCredentials = false;
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            progress((e.loaded / e.total) * 100);
+          }
+        };
+
+        xhr.onload = function () {
+          if (xhr.status < 200 || xhr.status >= 300) {
+            reject("HTTP Error: " + xhr.status);
+            return;
+          }
+
+          let json;
+          try {
+            json = JSON.parse(xhr.responseText);
+          } catch (err) {
+            reject("Response upload tidak valid");
+            return;
+          }
+
+          if (!json || typeof json.location !== "string") {
+            reject("Lokasi gambar tidak ditemukan");
+            return;
+          }
+
+          resolve(json.location);
+        };
+
+        xhr.onerror = function () {
+          reject("Upload gambar gagal. Coba lagi.");
+        };
+
+        const formData = new FormData();
+        formData.append("image", blobInfo.blob(), blobInfo.filename());
+        xhr.send(formData);
+      })
+    });
+
+    if (wisataForm) {
+      wisataForm.addEventListener("submit", function (e) {
+        if (window.tinymce) {
+          tinymce.triggerSave();
+        }
+
+        const titleValue = document.getElementById("title").value.trim();
+        const editorContent = document.getElementById("editor").value.trim();
+
+        if (!titleValue) {
+          e.preventDefault();
+          alert("Judul wisata wajib diisi.");
+          return;
+        }
+
+        const plainText = editorContent
+          .replace(/<style[\s\S]*?<\/style>/gi, " ")
+          .replace(/<script[\s\S]*?<\/script>/gi, " ")
+          .replace(/<[^>]*>/g, " ")
+          .replace(/&nbsp;/gi, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        if (!plainText) {
+          e.preventDefault();
+          alert("Konten wisata wajib diisi.");
+          return;
+        }
+
+        if (slugInput && slugInput.value.trim()) {
+          slugInput.value = makeSlug(slugInput.value);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

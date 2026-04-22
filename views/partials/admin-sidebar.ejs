@@ -1,0 +1,39 @@
+<aside class="admin-sidebar">
+  <h2>Admin Panel</h2>
+
+  <a href="/admin" class="<%= (path || '') === '/admin' ? 'active' : '' %>">
+    Dashboard
+  </a>
+
+  <a href="/admin/wisata" class="<%= (path || '').startsWith('/admin/wisata') ? 'active' : '' %>">
+    Kelola Wisata
+  </a>
+
+  <a href="/admin/villa" class="<%= (path || '').startsWith('/admin/villa') ? 'active' : '' %>">
+    Kelola Villa
+  </a>
+
+  <a href="/admin/kuliner" class="<%= (path || '').startsWith('/admin/kuliner') ? 'active' : '' %>">
+    Kelola Kuliner
+  </a>
+
+  <a href="/admin/berita" class="<%= (path || '').startsWith('/admin/berita') || (path || '').startsWith('/admin/articles') ? 'active' : '' %>">
+    Kelola Berita
+  </a>
+
+  <a href="/admin/gallery" class="<%= (path || '').startsWith('/admin/gallery') ? 'active' : '' %>">
+    Kelola Galeri
+  </a>
+
+  <a href="/admin/comments" class="<%= (path || '').startsWith('/admin/comments') ? 'active' : '' %>">
+    Komentar
+  </a>
+
+  <a href="/admin/settings" class="<%= (path || '').startsWith('/admin/settings') ? 'active' : '' %>">
+    Pengaturan
+  </a>
+
+  <a href="/admin/logout">
+    Logout
+  </a>
+</aside>
