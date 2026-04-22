@@ -11,47 +11,31 @@ const { siteSeoDefaults } = require("./lib/seo");
 
 const app = express();
 
+/* =========================
+   ENV
+========================= */
 const PORT = Number(process.env.PORT) || 3000;
 const RAW_BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, "");
-const SESSION_SECRET = process.env.SESSION_SECRET || "wisata-berastagi-secret";
+const SESSION_SECRET = process.env.SESSION_SECRET || "wisata-secret";
 const IS_PROD = process.env.NODE_ENV === "production";
 
+/* =========================
+   DIR
+========================= */
 const DATA_DIR =
   process.env.DATA_DIR && fs.existsSync(process.env.DATA_DIR)
     ? process.env.DATA_DIR
     : path.join(__dirname, "data");
-
-const UPLOADS_DIR =
-  process.env.DATA_DIR && fs.existsSync(process.env.DATA_DIR)
-    ? path.join(process.env.DATA_DIR, "uploads")
-    : path.join(__dirname, "uploads");
 
 const PUBLIC_DIR = path.join(__dirname, "public");
 const VIEWS_DIR = path.join(__dirname, "views");
 const DB_PATH = path.join(DATA_DIR, "database.sqlite");
 const SESSION_DB_PATH = path.join(DATA_DIR, "sessions.sqlite");
 
-const REQUIRED_DIRS = [
-  DATA_DIR,
-  UPLOADS_DIR,
-  PUBLIC_DIR,
-  VIEWS_DIR,
-  path.join(PUBLIC_DIR, "css"),
-  path.join(PUBLIC_DIR, "js"),
-  path.join(PUBLIC_DIR, "images"),
-  path.join(PUBLIC_DIR, "favicon"),
-  path.join(UPLOADS_DIR, "wisata"),
-  path.join(UPLOADS_DIR, "villa"),
-  path.join(UPLOADS_DIR, "kuliner"),
-  path.join(UPLOADS_DIR, "berita"),
-  path.join(UPLOADS_DIR, "gallery"),
-  path.join(UPLOADS_DIR, "general")
-];
-
-for (const dir of REQUIRED_DIRS) {
-  fs.mkdirSync(dir, { recursive: true });
-}
+fs.mkdirSync(DATA_DIR, { recursive: true });
+fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+fs.mkdirSync(VIEWS_DIR, { recursive: true });
 
 initDb(DB_PATH);
 
@@ -69,16 +53,9 @@ function normalizeUrlPath(urlPath = "/") {
 }
 
 function getRequestBaseUrl(req) {
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  const proto = forwardedProto ? String(forwardedProto).split(",")[0].trim() : req.protocol;
+  const proto = (req.headers["x-forwarded-proto"] || req.protocol).split(",")[0];
   const host = req.headers["x-forwarded-host"] || req.get("host");
   return `${proto}://${host}`.replace(/\/+$/, "");
-}
-
-function shouldRedirectToBase(req) {
-  if (!IS_PROD) return false;
-  const requestBase = getRequestBaseUrl(req);
-  return requestBase !== BASE_URL;
 }
 
 function cleanCanonical(baseUrl, req) {
@@ -86,18 +63,9 @@ function cleanCanonical(baseUrl, req) {
   return `${baseUrl}${pathname === "/" ? "/" : pathname}`;
 }
 
-function defaultSettingsFallback() {
-  return {
-    site_name: "Wisata Berastagi",
-    site_tagline: "Panduan wisata Berastagi terlengkap"
-  };
-}
-
 function xmlEscape(value = "") {
   return String(value)
     .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
@@ -111,7 +79,7 @@ function lastmod(value) {
 }
 
 /* =========================
-   BASIC HEADERS
+   SECURITY HEADERS
 ========================= */
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -121,40 +89,32 @@ app.use((req, res, next) => {
 });
 
 /* =========================
-   CANONICAL HOST + TRAILING SLASH
+   CANONICAL FIX + REDIRECT
 ========================= */
 app.use((req, res, next) => {
-  if (shouldRedirectToBase(req)) {
-    const target = `${BASE_URL}${req.originalUrl}`;
-    return res.redirect(301, target);
+  const requestBase = getRequestBaseUrl(req);
+
+  if (IS_PROD && requestBase !== BASE_URL) {
+    return res.redirect(301, BASE_URL + req.originalUrl);
   }
 
-  if (
-    req.path.length > 1 &&
-    req.path.endsWith("/") &&
-    !req.path.startsWith("/admin")
-  ) {
-    const query = req.originalUrl.includes("?")
-      ? req.originalUrl.slice(req.originalUrl.indexOf("?"))
-      : "";
-    const normalizedPath = req.path.replace(/\/+$/, "");
-    return res.redirect(301, `${normalizedPath}${query}`);
+  if (req.path.length > 1 && req.path.endsWith("/")) {
+    return res.redirect(301, req.path.replace(/\/+$/, ""));
   }
 
   next();
 });
 
 /* =========================
-   BODY PARSER
+   BODY
 ========================= */
-app.use(express.urlencoded({ extended: true, limit: "20mb" }));
-app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 /* =========================
    STATIC
 ========================= */
 app.use(express.static(PUBLIC_DIR));
-app.use("/uploads", express.static(UPLOADS_DIR));
 
 /* =========================
    SESSION
@@ -168,67 +128,30 @@ app.use(
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    rolling: true,
-    proxy: true,
     cookie: {
-      maxAge: 1000 * 60 * 60 * 24 * 7,
+      secure: IS_PROD,
       httpOnly: true,
-      sameSite: "lax",
-      secure: IS_PROD
+      sameSite: "lax"
     }
   })
 );
 
 /* =========================
-   APP LOCALS
-========================= */
-app.locals.baseUrl = BASE_URL;
-app.locals.site = siteSeoDefaults();
-app.locals.currentYear = new Date().getFullYear();
-
-/* =========================
-   GLOBAL LOCALS + SEO + BREADCRUMB
+   GLOBAL SEO LOCALS
 ========================= */
 app.use((req, res, next) => {
-  const normalizedPath = normalizeUrlPath(req.path);
   const canonical = cleanCanonical(BASE_URL, req);
 
   res.locals.baseUrl = BASE_URL;
-  res.locals.path = normalizedPath;
-  res.locals.query = req.query;
-  res.locals.session = req.session;
-  res.locals.currentYear = new Date().getFullYear();
-  res.locals.requestUrl = `${BASE_URL}${req.originalUrl}`;
-  res.locals.canonicalUrl = canonical;
   res.locals.canonical = canonical;
 
-  res.locals.seoDefaults = {
-    title: "Wisata Berastagi Terlengkap – Tempat Wisata, Villa, Hotel, Kuliner & Panduan Liburan",
-    description:
-      "Wisata Berastagi adalah panduan lengkap tempat wisata di Berastagi Sumatera Utara, mulai dari destinasi populer, villa dan hotel, kuliner, berita, hingga tips liburan terbaik.",
-    canonical
+  res.locals.seo = {
+    title: "Wisata Berastagi Terlengkap",
+    description: "Tempat wisata, villa, kuliner, berita Berastagi terbaru",
+    canonical,
+    image: `${BASE_URL}/images/cover.jpg`,
+    noindex: false
   };
-
-  // default breadcrumb
-  res.locals.breadcrumbCategory = "";
-  res.locals.breadcrumbCategorySlug = "";
-
-  if (normalizedPath === "/berita" || normalizedPath.startsWith("/berita/")) {
-    res.locals.breadcrumbCategory = "Berita";
-    res.locals.breadcrumbCategorySlug = "berita";
-  } else if (normalizedPath === "/wisata" || normalizedPath.startsWith("/wisata/")) {
-    res.locals.breadcrumbCategory = "Tempat Wisata";
-    res.locals.breadcrumbCategorySlug = "wisata";
-  } else if (normalizedPath === "/villa" || normalizedPath.startsWith("/villa/")) {
-    res.locals.breadcrumbCategory = "Villa & Hotel";
-    res.locals.breadcrumbCategorySlug = "villa";
-  } else if (normalizedPath === "/kuliner" || normalizedPath.startsWith("/kuliner/")) {
-    res.locals.breadcrumbCategory = "Kuliner";
-    res.locals.breadcrumbCategorySlug = "kuliner";
-  } else if (normalizedPath === "/galeri" || normalizedPath.startsWith("/galeri/")) {
-    res.locals.breadcrumbCategory = "Galeri";
-    res.locals.breadcrumbCategorySlug = "galeri";
-  }
 
   next();
 });
@@ -237,11 +160,10 @@ app.use((req, res, next) => {
    ROBOTS
 ========================= */
 app.get("/robots.txt", (req, res) => {
-  res.type("text/plain; charset=UTF-8").send(
+  res.type("text/plain").send(
 `User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /cari
 
 Sitemap: ${BASE_URL}/sitemap.xml`
   );
@@ -254,95 +176,37 @@ app.get("/sitemap.xml", (req, res) => {
   const db = getDb();
   const now = new Date().toISOString();
 
-  const wisata = db
-    .prepare("SELECT slug, COALESCE(updated_at, created_at) AS updated_at FROM wisata ORDER BY id DESC")
-    .all();
-
-  const villa = db
-    .prepare("SELECT slug, COALESCE(updated_at, created_at) AS updated_at FROM villa ORDER BY id DESC")
-    .all();
-
-  const kuliner = db
-    .prepare("SELECT slug, COALESCE(updated_at, created_at) AS updated_at FROM kuliner ORDER BY id DESC")
-    .all();
-
-  const berita = db
-    .prepare("SELECT slug, COALESCE(updated_at, published_at, created_at) AS updated_at FROM articles ORDER BY id DESC")
-    .all();
-
-  const staticPages = [
-    { url: `${BASE_URL}/`, updated_at: now },
-    { url: `${BASE_URL}/wisata`, updated_at: now },
-    { url: `${BASE_URL}/villa`, updated_at: now },
-    { url: `${BASE_URL}/kuliner`, updated_at: now },
-    { url: `${BASE_URL}/berita`, updated_at: now },
-    { url: `${BASE_URL}/galeri`, updated_at: now },
-    { url: `${BASE_URL}/about`, updated_at: now },
-    { url: `${BASE_URL}/contact`, updated_at: now },
-    { url: `${BASE_URL}/privacy-policy`, updated_at: now },
-    { url: `${BASE_URL}/disclaimer`, updated_at: now }
+  const tables = [
+    { name: "wisata", path: "wisata" },
+    { name: "villa", path: "villa" },
+    { name: "kuliner", path: "kuliner" },
+    { name: "articles", path: "berita" }
   ];
 
-  let urls = "";
+  let urls = `
+<url>
+<loc>${BASE_URL}/</loc>
+<lastmod>${now}</lastmod>
+</url>`;
 
-  staticPages.forEach((page) => {
-    urls += `
-  <url>
-    <loc>${xmlEscape(page.url)}</loc>
-    <lastmod>${lastmod(page.updated_at)}</lastmod>
-  </url>`;
+  tables.forEach((t) => {
+    const rows = db
+      .prepare(`SELECT slug, COALESCE(updated_at, created_at) as updated_at FROM ${t.name}`)
+      .all();
+
+    rows.forEach((r) => {
+      urls += `
+<url>
+<loc>${xmlEscape(`${BASE_URL}/${t.path}/${r.slug}`)}</loc>
+<lastmod>${lastmod(r.updated_at)}</lastmod>
+</url>`;
+    });
   });
 
-  wisata.forEach((item) => {
-    urls += `
-  <url>
-    <loc>${xmlEscape(`${BASE_URL}/wisata/${item.slug}`)}</loc>
-    <lastmod>${lastmod(item.updated_at)}</lastmod>
-  </url>`;
-  });
-
-  villa.forEach((item) => {
-    urls += `
-  <url>
-    <loc>${xmlEscape(`${BASE_URL}/villa/${item.slug}`)}</loc>
-    <lastmod>${lastmod(item.updated_at)}</lastmod>
-  </url>`;
-  });
-
-  kuliner.forEach((item) => {
-    urls += `
-  <url>
-    <loc>${xmlEscape(`${BASE_URL}/kuliner/${item.slug}`)}</loc>
-    <lastmod>${lastmod(item.updated_at)}</lastmod>
-  </url>`;
-  });
-
-  berita.forEach((item) => {
-    urls += `
-  <url>
-    <loc>${xmlEscape(`${BASE_URL}/berita/${item.slug}`)}</loc>
-    <lastmod>${lastmod(item.updated_at)}</lastmod>
-  </url>`;
-  });
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  res.header("Content-Type", "application/xml");
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}
-</urlset>`;
-
-  res.header("Content-Type", "application/xml; charset=UTF-8");
-  res.send(xml);
-});
-
-/* =========================
-   HEALTH
-========================= */
-app.get("/health", (req, res) => {
-  res.json({
-    ok: true,
-    site: "Wisata Berastagi",
-    baseUrl: BASE_URL,
-    environment: process.env.NODE_ENV || "development"
-  });
+</urlset>`);
 });
 
 /* =========================
@@ -356,15 +220,10 @@ app.use("/admin", adminRoutes);
 ========================= */
 app.use((req, res) => {
   res.status(404).render("about", {
-    settings: defaultSettingsFallback(),
-    path: normalizeUrlPath(req.path),
-    pageTitle: "404 - Halaman Tidak Ditemukan",
-    pageContent:
-      "Maaf, halaman yang kamu cari tidak tersedia atau mungkin sudah dipindahkan.",
     seo: {
-      title: "Halaman Tidak Ditemukan | Wisata Berastagi",
-      description: "Halaman yang kamu cari tidak tersedia di website Wisata Berastagi.",
-      canonical: `${BASE_URL}${normalizeUrlPath(req.path)}`,
+      title: "404 Halaman Tidak Ditemukan",
+      description: "Halaman tidak ditemukan",
+      canonical: BASE_URL + req.path,
       noindex: true
     }
   });
@@ -374,31 +233,17 @@ app.use((req, res) => {
    ERROR
 ========================= */
 app.use((err, req, res, next) => {
-  console.error("APP ERROR:", err);
-
-  if (res.headersSent) {
-    return next(err);
-  }
-
+  console.error(err);
   res.status(500).render("about", {
-    settings: defaultSettingsFallback(),
-    path: normalizeUrlPath(req.path),
-    pageTitle: "500 - Terjadi Kesalahan",
-    pageContent:
-      "Maaf, sedang terjadi kendala pada sistem. Silakan coba lagi beberapa saat.",
     seo: {
-      title: "Terjadi Kesalahan | Wisata Berastagi",
-      description: "Terjadi kendala pada website Wisata Berastagi.",
-      canonical: `${BASE_URL}${normalizeUrlPath(req.path)}`,
+      title: "Error Server",
+      description: "Terjadi kesalahan",
+      canonical: BASE_URL + req.path,
       noindex: true
     }
   });
 });
 
 app.listen(PORT, () => {
-  console.log(`Wisata Berastagi running on port ${PORT}`);
-  console.log(`Base URL: ${BASE_URL}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`Data dir: ${DATA_DIR}`);
-  console.log(`Uploads dir: ${UPLOADS_DIR}`);
+  console.log("RUNNING:", BASE_URL);
 });
