@@ -1,8 +1,4 @@
 const express = require("express");
-const path = require("path");
-const fs = require("fs");
-const multer = require("multer");
-
 const router = express.Router();
 const { getDb } = require("../lib/db");
 const { requireAdmin } = require("../middleware/auth");
@@ -10,72 +6,29 @@ const { makeSlug, excerpt } = require("../lib/helpers");
 const { buildSeo } = require("../lib/seo");
 
 /* =========================
-   PATH SETUP
-========================= */
-const baseUploadDir =
-  process.env.DATA_DIR && fs.existsSync(process.env.DATA_DIR)
-    ? process.env.DATA_DIR
-    : path.join(__dirname, "..");
-
-const dataDir = path.join(baseUploadDir, "uploads");
-fs.mkdirSync(dataDir, { recursive: true });
-
-/* =========================
    HELPERS
 ========================= */
+function clean(value) {
+  return String(value || "").trim();
+}
+
 function isValidUrl(url) {
-  return /^https?:\/\/.+/i.test(String(url || "").trim());
+  return /^https?:\/\/.+/i.test(url);
 }
 
-function cleanText(v) {
-  return String(v || "").trim();
-}
-
-function cleanHtml(v) {
-  return String(v || "").trim();
-}
-
-function plainTextFromHtml(v) {
-  return String(v || "")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function boolToInt(v) {
-  return v ? 1 : 0;
-}
-
-function safeExcerpt(content) {
-  return excerpt(plainTextFromHtml(content), 155);
-}
-
-function ensureMeta(title, metaTitle) {
-  return cleanText(metaTitle || `${title} | Wisata Berastagi`);
-}
-
-function ensureMetaDesc(content, metaDesc) {
-  return cleanText(metaDesc || safeExcerpt(content));
-}
-
-function deleteUploadedFileByUrl(fileUrlPath) {
-  if (!fileUrlPath) return;
-
-  try {
-    const cleanPath = fileUrlPath.replace(/^\/+/, "");
-    const absolute = path.join(baseUploadDir, cleanPath);
-
-    if (absolute.includes("uploads") && fs.existsSync(absolute)) {
-      fs.unlinkSync(absolute);
-    }
-  } catch (err) {
-    console.error("Gagal hapus file:", err.message);
+function validateImage(url, res, view, title, item) {
+  if (!url || !isValidUrl(url)) {
+    return res.status(400).render(view, {
+      seo: buildSeo({ title, noindex: true }),
+      item,
+      error: "Gambar wajib URL valid (http/https)"
+    });
   }
 }
 
 function uniqueSlug(table, slug, id = null) {
   const db = getDb();
-  let base = cleanText(slug) || `item-${Date.now()}`;
+  let base = clean(slug) || `item-${Date.now()}`;
   let final = base;
   let i = 2;
 
@@ -105,12 +58,12 @@ router.post("/login", (req, res) => {
   const db = getDb();
   const user = db
     .prepare("SELECT * FROM users WHERE username=? AND password=?")
-    .get(cleanText(req.body.username), cleanText(req.body.password));
+    .get(clean(req.body.username), clean(req.body.password));
 
   if (!user) {
-    return res.render("login", {
+    return res.status(401).render("login", {
       seo: buildSeo({ title: "Login Admin", noindex: true }),
-      error: "Login gagal"
+      error: "Login salah"
     });
   }
 
@@ -125,7 +78,24 @@ router.get("/logout", (req, res) => {
 router.use(requireAdmin);
 
 /* =========================
-   WISATA (URL MODE)
+   DASHBOARD
+========================= */
+router.get("/", (req, res) => {
+  const db = getDb();
+
+  res.render("admin-dashboard", {
+    seo: buildSeo({ title: "Dashboard", noindex: true }),
+    stats: {
+      wisata: db.prepare("SELECT COUNT(*) as t FROM wisata").get().t,
+      villa: db.prepare("SELECT COUNT(*) as t FROM villa").get().t,
+      kuliner: db.prepare("SELECT COUNT(*) as t FROM kuliner").get().t,
+      berita: db.prepare("SELECT COUNT(*) as t FROM articles").get().t
+    }
+  });
+});
+
+/* =========================
+   WISATA
 ========================= */
 router.get("/wisata", (req, res) => {
   const items = getDb().prepare("SELECT * FROM wisata ORDER BY id DESC").all();
@@ -156,153 +126,183 @@ router.get("/wisata/edit/:id", (req, res) => {
 });
 
 router.post("/wisata/save", (req, res) => {
-  try {
-    const db = getDb();
-    const id = req.body.id ? Number(req.body.id) : null;
+  const db = getDb();
+  const id = req.body.id ? Number(req.body.id) : null;
 
-    const title = cleanText(req.body.title);
-    const content = cleanHtml(req.body.content);
-    const image = cleanText(req.body.image);
+  const title = clean(req.body.title);
+  const content = clean(req.body.content);
+  const image = clean(req.body.image);
 
-    if (!title || !plainTextFromHtml(content)) {
-      return res.render("admin-wisata-form", {
-        seo: buildSeo({ title: "Error", noindex: true }),
-        item: req.body,
-        error: "Judul & konten wajib"
-      });
-    }
+  const error = validateImage(
+    image,
+    res,
+    "admin-wisata-form",
+    id ? "Edit Wisata" : "Tambah Wisata",
+    req.body
+  );
+  if (error) return;
 
-    if (!isValidUrl(image)) {
-      return res.render("admin-wisata-form", {
-        seo: buildSeo({ title: "Error", noindex: true }),
-        item: req.body,
-        error: "URL gambar wajib valid (https://...)"
-      });
-    }
+  const slug = uniqueSlug("wisata", makeSlug(req.body.slug || title), id);
 
-    const slug = uniqueSlug("wisata", makeSlug(req.body.slug || title), id);
+  const payload = {
+    id,
+    title,
+    slug,
+    excerpt: excerpt(content, 150),
+    content,
+    image,
+    location: clean(req.body.location),
+    meta_title: clean(req.body.meta_title || title),
+    meta_description: excerpt(content, 150)
+  };
 
-    const payload = {
-      id,
-      title,
-      slug,
-      excerpt: cleanText(req.body.excerpt || safeExcerpt(content)),
-      content,
-      image,
-      location: cleanText(req.body.location),
-      ticket_price: cleanText(req.body.ticket_price),
-      open_hours: cleanText(req.body.open_hours),
-      maps_url: cleanText(req.body.maps_url),
-      meta_title: ensureMeta(title, req.body.meta_title),
-      meta_description: ensureMetaDesc(content, req.body.meta_description),
-      is_featured: boolToInt(req.body.is_featured)
-    };
-
-    if (id) {
-      db.prepare(`
-        UPDATE wisata SET
-        title=@title, slug=@slug, excerpt=@excerpt, content=@content,
-        image=@image, location=@location, ticket_price=@ticket_price,
-        open_hours=@open_hours, maps_url=@maps_url,
-        meta_title=@meta_title, meta_description=@meta_description,
-        is_featured=@is_featured, updated_at=CURRENT_TIMESTAMP
-        WHERE id=@id
-      `).run(payload);
-    } else {
-      db.prepare(`
-        INSERT INTO wisata (
-          title, slug, excerpt, content, image,
-          location, ticket_price, open_hours, maps_url,
-          meta_title, meta_description, is_featured
-        ) VALUES (
-          @title, @slug, @excerpt, @content, @image,
-          @location, @ticket_price, @open_hours, @maps_url,
-          @meta_title, @meta_description, @is_featured
-        )
-      `).run(payload);
-    }
-
-    res.redirect("/admin/wisata");
-  } catch (e) {
-    console.error(e);
-    res.redirect("/admin/wisata");
+  if (id) {
+    db.prepare(`
+      UPDATE wisata SET
+      title=@title, slug=@slug, excerpt=@excerpt, content=@content,
+      image=@image, location=@location,
+      meta_title=@meta_title, meta_description=@meta_description
+      WHERE id=@id
+    `).run(payload);
+  } else {
+    db.prepare(`
+      INSERT INTO wisata
+      (title, slug, excerpt, content, image, location, meta_title, meta_description)
+      VALUES
+      (@title,@slug,@excerpt,@content,@image,@location,@meta_title,@meta_description)
+    `).run(payload);
   }
-});
 
-router.post("/wisata/delete/:id", (req, res) => {
-  getDb().prepare("DELETE FROM wisata WHERE id=?").run(req.params.id);
   res.redirect("/admin/wisata");
 });
 
 /* =========================
-   VILLA (URL MODE)
+   VILLA
 ========================= */
+router.get("/villa", (req, res) => {
+  const items = getDb().prepare("SELECT * FROM villa ORDER BY id DESC").all();
+
+  res.render("admin-villa", {
+    seo: buildSeo({ title: "Admin Villa", noindex: true }),
+    items
+  });
+});
+
 router.post("/villa/save", (req, res) => {
-  try {
-    const db = getDb();
-    const id = req.body.id ? Number(req.body.id) : null;
+  const db = getDb();
+  const id = req.body.id ? Number(req.body.id) : null;
 
-    const title = cleanText(req.body.title);
-    const content = cleanHtml(req.body.content);
-    const image = cleanText(req.body.image);
+  const title = clean(req.body.title);
+  const image = clean(req.body.image);
 
-    if (!isValidUrl(image)) throw new Error("URL gambar tidak valid");
+  const error = validateImage(
+    image,
+    res,
+    "admin-villa-form",
+    id ? "Edit Villa" : "Tambah Villa",
+    req.body
+  );
+  if (error) return;
 
-    const slug = uniqueSlug("villa", makeSlug(req.body.slug || title), id);
+  const slug = uniqueSlug("villa", makeSlug(req.body.slug || title), id);
 
-    const gallery = req.body.gallery_urls
-      ? req.body.gallery_urls.split(",").map(x => x.trim()).filter(isValidUrl)
-      : [];
+  const payload = {
+    id,
+    title,
+    slug,
+    image,
+    price: clean(req.body.price),
+    location: clean(req.body.location),
+    meta_title: clean(req.body.meta_title || title),
+    meta_description: excerpt(req.body.content || "", 150)
+  };
 
-    const payload = {
-      id,
-      title,
-      slug,
-      excerpt: safeExcerpt(content),
-      content,
-      image,
-      images: JSON.stringify(gallery),
-      price: cleanText(req.body.price),
-      location: cleanText(req.body.location),
-      facilities: cleanText(req.body.facilities),
-      booking_url: cleanText(req.body.booking_url),
-      contact_phone: cleanText(req.body.contact_phone),
-      maps_url: cleanText(req.body.maps_url),
-      meta_title: ensureMeta(title, req.body.meta_title),
-      meta_description: ensureMetaDesc(content, req.body.meta_description),
-      is_featured: boolToInt(req.body.is_featured)
-    };
-
-    if (id) {
-      db.prepare(`UPDATE villa SET
-        title=@title, slug=@slug, excerpt=@excerpt, content=@content,
-        image=@image, images=@images, price=@price,
-        location=@location, facilities=@facilities,
-        booking_url=@booking_url, contact_phone=@contact_phone,
-        maps_url=@maps_url, meta_title=@meta_title,
-        meta_description=@meta_description,
-        is_featured=@is_featured,
-        updated_at=CURRENT_TIMESTAMP
-        WHERE id=@id`).run(payload);
-    } else {
-      db.prepare(`INSERT INTO villa (
-        title, slug, excerpt, content, image, images,
-        price, location, facilities, booking_url,
-        contact_phone, maps_url,
-        meta_title, meta_description, is_featured
-      ) VALUES (
-        @title, @slug, @excerpt, @content, @image, @images,
-        @price, @location, @facilities, @booking_url,
-        @contact_phone, @maps_url,
-        @meta_title, @meta_description, @is_featured
-      )`).run(payload);
-    }
-
-    res.redirect("/admin/villa");
-  } catch (e) {
-    console.error(e);
-    res.redirect("/admin/villa");
+  if (id) {
+    db.prepare(`UPDATE villa SET title=@title,slug=@slug,image=@image WHERE id=@id`).run(payload);
+  } else {
+    db.prepare(`INSERT INTO villa (title,slug,image) VALUES (@title,@slug,@image)`).run(payload);
   }
+
+  res.redirect("/admin/villa");
+});
+
+/* =========================
+   KULINER
+========================= */
+router.post("/kuliner/save", (req, res) => {
+  const db = getDb();
+  const id = req.body.id ? Number(req.body.id) : null;
+
+  const title = clean(req.body.title);
+  const image = clean(req.body.image);
+
+  const error = validateImage(
+    image,
+    res,
+    "admin-kuliner-form",
+    id ? "Edit Kuliner" : "Tambah Kuliner",
+    req.body
+  );
+  if (error) return;
+
+  const slug = uniqueSlug("kuliner", makeSlug(req.body.slug || title), id);
+
+  const payload = {
+    id,
+    title,
+    slug,
+    image,
+    location: clean(req.body.location)
+  };
+
+  if (id) {
+    db.prepare(`UPDATE kuliner SET title=@title,slug=@slug,image=@image WHERE id=@id`).run(payload);
+  } else {
+    db.prepare(`INSERT INTO kuliner (title,slug,image) VALUES (@title,@slug,@image)`).run(payload);
+  }
+
+  res.redirect("/admin/kuliner");
+});
+
+/* =========================
+   BERITA
+========================= */
+router.post("/berita/save", (req, res) => {
+  const db = getDb();
+  const id = req.body.id ? Number(req.body.id) : null;
+
+  const title = clean(req.body.title);
+  const image = clean(req.body.image);
+  const content = clean(req.body.content);
+
+  const error = validateImage(
+    image,
+    res,
+    "admin-article-form",
+    id ? "Edit Berita" : "Tambah Berita",
+    req.body
+  );
+  if (error) return;
+
+  const slug = uniqueSlug("articles", makeSlug(req.body.slug || title), id);
+
+  const payload = {
+    id,
+    title,
+    slug,
+    content,
+    image,
+    meta_title: title,
+    meta_description: excerpt(content, 150)
+  };
+
+  if (id) {
+    db.prepare(`UPDATE articles SET title=@title,slug=@slug,image=@image WHERE id=@id`).run(payload);
+  } else {
+    db.prepare(`INSERT INTO articles (title,slug,image,content) VALUES (@title,@slug,@image,@content)`).run(payload);
+  }
+
+  res.redirect("/admin/berita");
 });
 
 module.exports = router;
