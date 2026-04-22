@@ -617,143 +617,105 @@ router.get("/villa/edit/:id", (req, res) => {
   });
 });
 
-router.post(
-  "/villa/save",
-  (req, res, next) => {
-    const uploader = villaUpload.fields([
-      { name: "image", maxCount: 1 },
-      { name: "gallery_images", maxCount: 10 }
-    ]);
+router.post("/villa/save", (req, res) => {
+  try {
+    const db = getDb();
 
-    uploader(req, res, function (err) {
-      if (err instanceof multer.MulterError) {
-        return renderFormError(
-          res,
-          "admin-villa-form",
-          req.body?.id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
-          err.message || "Upload gambar gagal.",
-          preserveVillaFormItem(req.body),
-          400
-        );
-      }
+    const id = req.body.id ? Number(req.body.id) : null;
+    const title = cleanText(req.body.title);
+    const content = cleanHtml(req.body.content);
 
-      if (err) {
-        return renderFormError(
-          res,
-          "admin-villa-form",
-          req.body?.id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
-          err.message || "Upload file gagal.",
-          preserveVillaFormItem(req.body),
-          400
-        );
-      }
+    const validationError = requireBasicContent(
+      title,
+      content,
+      res,
+      "admin-villa-form",
+      id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
+      req.body
+    );
+    if (validationError) return;
 
-      next();
-    });
-  },
-  (req, res) => {
-    try {
-      const db = getDb();
-      const id = req.body.id ? Number(req.body.id) : null;
-      const title = cleanText(req.body.title);
-      const content = cleanHtml(req.body.content);
-      const oldItem = id ? db.prepare("SELECT * FROM villa WHERE id = ?").get(id) : null;
+    const slug = uniqueSlug("villa", makeSlug(req.body.slug || title), id);
 
-      const itemForView = preserveVillaFormItem(req.body, oldItem);
+    // 🔥 IMAGE URL (TANPA UPLOAD)
+    const image = cleanText(req.body.image);
 
-      const validationError = requireBasicContent(
-        title,
-        content,
-        res,
-        "admin-villa-form",
-        id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
-        itemForView
-      );
-      if (validationError) return;
+    // 🔥 GALLERY URL → ARRAY
+    const gallery = req.body.gallery_urls
+      ? req.body.gallery_urls.split(",").map(x => x.trim()).filter(Boolean)
+      : [];
 
-      const slug = uniqueSlug("villa", makeSlug(req.body.slug || title), id);
+    const payload = {
+      id,
+      title,
+      slug,
+      excerpt: cleanText(req.body.excerpt || excerpt(plainTextFromHtml(content), 150)),
+      content,
+      image,
+      images: JSON.stringify(gallery),
+      price: cleanText(req.body.price),
+      location: cleanText(req.body.location),
+      facilities: cleanText(req.body.facilities),
+      booking_url: cleanText(req.body.booking_url),
+      contact_phone: cleanText(req.body.contact_phone),
+      maps_url: cleanText(req.body.maps_url),
+      meta_title: cleanText(req.body.meta_title || `${title} | Villa Berastagi`),
+      meta_description: cleanText(req.body.meta_description || excerpt(plainTextFromHtml(content), 150)),
+      is_featured: boolToInt(req.body.is_featured)
+    };
 
-      const mainImageFile = req.files?.image?.[0] || null;
-      const image = fallbackImage(req.body.current_image, mainImageFile, "villa");
-
-      const oldGalleryImages = safeParseJsonArray(req.body.current_gallery_images || oldItem?.images);
-      const newGalleryImages = villaImagesFromFiles(req.files?.gallery_images || []);
-      const mergedGalleryImages = [...oldGalleryImages, ...newGalleryImages];
-
-      const payload = {
-        id,
-        title,
-        slug,
-        excerpt: cleanText(req.body.excerpt || excerpt(plainTextFromHtml(content), 150)),
-        content,
-        image,
-        images: JSON.stringify(mergedGalleryImages),
-        price: cleanText(req.body.price),
-        location: cleanText(req.body.location),
-        facilities: cleanText(req.body.facilities),
-        booking_url: cleanText(req.body.booking_url),
-        contact_phone: cleanText(req.body.contact_phone),
-        maps_url: cleanText(req.body.maps_url),
-        meta_title: cleanText(req.body.meta_title || `${title} | Villa Berastagi`),
-        meta_description: cleanText(req.body.meta_description || excerpt(plainTextFromHtml(content), 150)),
-        is_featured: boolToInt(req.body.is_featured)
-      };
-
-      if (id) {
-        db.prepare(`
-          UPDATE villa
-          SET
-            title = @title,
-            slug = @slug,
-            excerpt = @excerpt,
-            content = @content,
-            image = @image,
-            images = @images,
-            price = @price,
-            location = @location,
-            facilities = @facilities,
-            booking_url = @booking_url,
-            contact_phone = @contact_phone,
-            maps_url = @maps_url,
-            meta_title = @meta_title,
-            meta_description = @meta_description,
-            is_featured = @is_featured,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE id = @id
-        `).run(payload);
-
-        if (mainImageFile && oldItem?.image && oldItem.image !== image) {
-          deleteUploadedFileByUrl(oldItem.image);
-        }
-      } else {
-        db.prepare(`
-          INSERT INTO villa (
-            title, slug, excerpt, content, image, images, price, location, facilities, booking_url, contact_phone, maps_url,
-            meta_title, meta_description, is_featured
-          ) VALUES (
-            @title, @slug, @excerpt, @content, @image, @images, @price, @location, @facilities, @booking_url, @contact_phone, @maps_url,
-            @meta_title, @meta_description, @is_featured
-          )
-        `).run(payload);
-      }
-
-      res.redirect("/admin/villa");
-    } catch (error) {
-      console.error("GAGAL SIMPAN VILLA:", error);
-
-      const itemForView = preserveVillaFormItem(req.body);
-
-      return renderFormError(
-        res,
-        "admin-villa-form",
-        req.body.id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
-        error.message || "Data villa gagal disimpan.",
-        itemForView,
-        500
-      );
+    if (id) {
+      db.prepare(`
+        UPDATE villa SET
+          title=@title,
+          slug=@slug,
+          excerpt=@excerpt,
+          content=@content,
+          image=@image,
+          images=@images,
+          price=@price,
+          location=@location,
+          facilities=@facilities,
+          booking_url=@booking_url,
+          contact_phone=@contact_phone,
+          maps_url=@maps_url,
+          meta_title=@meta_title,
+          meta_description=@meta_description,
+          is_featured=@is_featured,
+          updated_at=CURRENT_TIMESTAMP
+        WHERE id=@id
+      `).run(payload);
+    } else {
+      db.prepare(`
+        INSERT INTO villa (
+          title, slug, excerpt, content, image, images,
+          price, location, facilities, booking_url,
+          contact_phone, maps_url,
+          meta_title, meta_description, is_featured
+        ) VALUES (
+          @title, @slug, @excerpt, @content, @image, @images,
+          @price, @location, @facilities, @booking_url,
+          @contact_phone, @maps_url,
+          @meta_title, @meta_description, @is_featured
+        )
+      `).run(payload);
     }
+
+    res.redirect("/admin/villa");
+
+  } catch (error) {
+    console.error("GAGAL SIMPAN VILLA:", error);
+
+    return renderFormError(
+      res,
+      "admin-villa-form",
+      req.body.id ? "Edit Villa | Wisata Berastagi" : "Tambah Villa | Wisata Berastagi",
+      error.message || "Gagal simpan villa",
+      req.body,
+      500
+    );
   }
-);
+});
 
 router.post("/villa/delete/:id", (req, res) => {
   const db = getDb();
