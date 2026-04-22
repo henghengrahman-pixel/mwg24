@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+
+  <section class="section container detail-layout">
+    <article class="detail-main">
+
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Beranda</a>
+        <span>/</span>
+        <a href="/wisata">Tempat Wisata</a>
+        <span>/</span>
+        <span><%= item.title %></span>
+      </nav>
+
+      <img
+        src="<%= item.image %>"
+        alt="<%= item.title %> di Berastagi"
+        class="detail-cover"
+        loading="lazy"
+      />
+
+      <span class="eyebrow">Wisata Berastagi</span>
+      <h1><%= item.title %></h1>
+
+      <div class="detail-meta">
+        <span>Lokasi: <%= item.location %></span>
+        <span>Jam buka: <%= item.open_hours || '-' %></span>
+        <span>Tiket: <%= helpers.formatCurrency(item.ticket_price || 0) %></span>
+      </div>
+
+      <% if (item.excerpt) { %>
+        <div class="detail-intro">
+          <p><%= item.excerpt %></p>
+        </div>
+      <% } %>
+
+      <div class="detail-quick-links">
+        <a href="#deskripsi">Deskripsi</a>
+        <a href="#info-wisata">Info Wisata</a>
+        <a href="#wisata-terkait">Wisata Terkait</a>
+        <a href="#faq">FAQ</a>
+        <a href="#rating">Rating</a>
+        <a href="#ulasan">Ulasan</a>
+      </div>
+
+      <section id="deskripsi">
+        <div class="detail-content article-content">
+          <%
+            const rawContent = item.content || "";
+            const hasHtmlTags = /<\/?[a-z][\s\S]*>/i.test(rawContent);
+          %>
+
+          <% if (hasHtmlTags) { %>
+            <%- rawContent %>
+          <% } else { %>
+            <%- rawContent
+              .split(/\n\s*\n/)
+              .map(paragraph => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+              .join("") %>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="detail-extra-box" id="info-wisata">
+        <h2>Informasi Wisata <%= item.title %></h2>
+        <div class="detail-extra-grid">
+          <div class="detail-extra-item">
+            <strong>Lokasi</strong>
+            <p><%= item.location || "-" %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Jam Buka</strong>
+            <p><%= item.open_hours || "-" %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Harga Tiket</strong>
+            <p><%= helpers.formatCurrency(item.ticket_price || 0) %></p>
+          </div>
+          <div class="detail-extra-item">
+            <strong>Kategori</strong>
+            <p>Tempat Wisata Berastagi</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-extra-box">
+        <h2>Jelajahi Wisata Berastagi Lainnya</h2>
+        <p>
+          Sedang mencari referensi liburan lain? Lihat juga
+          <a href="/wisata">tempat wisata di Berastagi</a>,
+          <a href="/villa">villa dan hotel di Berastagi</a>,
+          <a href="/kuliner">kuliner khas Berastagi</a>, dan
+          <a href="/berita">berita wisata Berastagi terbaru</a>
+          agar rencana perjalanan kamu makin lengkap.
+        </p>
+      </section>
+
+      <section class="detail-extra-box" id="faq">
+        <h2>FAQ Seputar <%= item.title %></h2>
+
+        <div class="faq-list">
+          <div class="faq-item">
+            <h3>Di mana lokasi <%= item.title %>?</h3>
+            <p><%= item.title %> berlokasi di <%= item.location || "kawasan Berastagi, Kabupaten Karo" %>.</p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Berapa harga tiket masuk <%= item.title %>?</h3>
+            <p>
+              Harga tiket sekitar <%= helpers.formatCurrency(item.ticket_price || 0) %>.
+              Sebaiknya cek kembali sebelum berkunjung jika ada perubahan harga.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Jam buka <%= item.title %> sampai jam berapa?</h3>
+            <p>
+              Jam operasional <%= item.title %> adalah
+              <%= item.open_hours || "mengikuti jam operasional lokasi wisata setempat" %>.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apakah <%= item.title %> cocok untuk liburan keluarga?</h3>
+            <p>
+              Ya, <%= item.title %> cocok untuk liburan santai di Berastagi,
+              terutama untuk pengunjung yang ingin menikmati suasana sejuk
+              dan panorama alam dataran tinggi.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-extra-box" id="wisata-terkait">
+        <h2>Wisata Terkait di Berastagi</h2>
+
+        <% if (related && related.length) { %>
+          <div class="related-links-grid">
+            <% related.forEach(rel => { %>
+              <a href="/wisata/<%= rel.slug %>" class="related-link-card">
+                <span>Tempat Wisata</span>
+                <strong><%= rel.title %></strong>
+              </a>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <p>Belum ada wisata terkait lainnya.</p>
+        <% } %>
+      </section>
+
+      <section class="rating-box" id="rating">
+        <h2>Rating Pengunjung</h2>
+        <p><strong><%= avg || 0 %>/5</strong> dari <%= ratings.length %> ulasan</p>
+
+        <form action="/wisata/<%= item.slug %>/rating" method="post" class="inline-form">
+          <input type="text" name="name" placeholder="Nama kamu" required />
+          <select name="rating" required>
+            <option value="">Pilih rating</option>
+            <option value="5">5 - Sangat bagus</option>
+            <option value="4">4 - Bagus</option>
+            <option value="3">3 - Cukup</option>
+            <option value="2">2 - Kurang</option>
+            <option value="1">1 - Buruk</option>
+          </select>
+          <button type="submit">Kirim Rating</button>
+        </form>
+      </section>
+
+      <section class="comment-box" id="ulasan">
+        <h2>Ulasan dan Komentar Pengunjung</h2>
+
+        <form action="/wisata/<%= item.slug %>/comment" method="post" class="comment-form">
+          <input type="text" name="name" placeholder="Nama" required />
+          <input type="email" name="email" placeholder="Email (opsional)" />
+          <textarea name="comment" rows="5" placeholder="Tulis komentar..." required></textarea>
+          <button type="submit">Kirim Komentar</button>
+        </form>
+
+        <div class="comment-list">
+          <% comments.forEach(comment => { %>
+            <article class="comment-item">
+              <h3><%= comment.name %></h3>
+              <p><%= comment.comment %></p>
+              <small><%= comment.created_at %></small>
+            </article>
+          <% }) %>
+
+          <% if (!comments.length) { %>
+            <p>Belum ada komentar. Jadilah yang pertama memberi ulasan.</p>
+          <% } %>
+        </div>
+      </section>
+
+    </article>
+
+    <aside class="detail-sidebar">
+      <div class="sticky-box">
+        <h3>Informasi Singkat</h3>
+        <ul class="info-list">
+          <li><strong>Lokasi:</strong> <%= item.location %></li>
+          <li><strong>Tiket:</strong> <%= helpers.formatCurrency(item.ticket_price || 0) %></li>
+          <li><strong>Jam buka:</strong> <%= item.open_hours || '-' %></li>
+        </ul>
+
+        <% if (item.maps_url) { %>
+          <a href="<%= item.maps_url %>" target="_blank" rel="noopener" class="btn-primary full">
+            Lihat Maps
+          </a>
+        <% } %>
+      </div>
+
+      <div class="sticky-box">
+        <h3>Jelajahi Juga</h3>
+        <a href="/villa" class="mini-link">Villa & Hotel di Berastagi</a>
+        <a href="/kuliner" class="mini-link">Kuliner Berastagi</a>
+        <a href="/berita" class="mini-link">Berita Wisata Berastagi</a>
+        <a href="/galeri" class="mini-link">Galeri Foto Berastagi</a>
+      </div>
+
+      <div class="sticky-box">
+        <h3>Wisata Terkait</h3>
+        <% related.forEach(rel => { %>
+          <a href="/wisata/<%= rel.slug %>" class="mini-link"><%= rel.title %></a>
+        <% }) %>
+      </div>
+    </aside>
+
+  </section>
+
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>

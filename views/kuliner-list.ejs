@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+
+  <section class="page-hero small">
+    <div class="container">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Beranda</a>
+        <span>/</span>
+        <span>Kuliner</span>
+      </nav>
+
+      <span class="eyebrow">Kuliner Berastagi</span>
+      <h1>Kuliner Berastagi Terbaru</h1>
+      <p>
+        Temukan rekomendasi kuliner Berastagi yang enak, populer, nyaman untuk keluarga,
+        dan cocok dinikmati saat liburan di udara sejuk Berastagi, Kabupaten Karo,
+        Sumatera Utara.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+
+      <div class="intro-box reveal">
+        <span class="eyebrow">Rekomendasi Makan</span>
+        <h2>Tempat Makan dan Kuliner Favorit di Berastagi</h2>
+        <p>
+          Halaman ini berisi kumpulan kuliner Berastagi yang banyak dicari pengunjung,
+          mulai dari jajanan hangat, makanan khas, tempat nongkrong, sampai tempat makan
+          keluarga yang nyaman untuk wisatawan.
+        </p>
+        <p>
+          Dengan informasi yang lebih lengkap, pengunjung bisa lebih mudah menentukan
+          tempat makan yang cocok, melihat lokasi, jam buka, hingga memilih kuliner
+          Berastagi yang sesuai dengan selera dan budget.
+        </p>
+      </div>
+
+      <% if (items && items.length) { %>
+        <div class="card-grid">
+          <% items.forEach(item => { %>
+            <article class="card reveal">
+              <a href="/kuliner/<%= item.slug %>">
+                <img
+                  src="<%= item.image || '/images/wisata-berastagi-cover.jpg' %>"
+                  alt="<%= item.title %> - kuliner di Berastagi"
+                  loading="lazy"
+                />
+
+                <div class="card-body">
+                  <span class="card-tag">Kuliner</span>
+                  <h2><%= item.title %></h2>
+                  <p>
+                    <%= item.excerpt || 'Temukan informasi lengkap kuliner favorit di Berastagi.' %>
+                  </p>
+
+                  <div class="meta-row">
+                    <span><%= item.location || 'Berastagi' %></span>
+                    <% if (item.price_range) { %>
+                      <strong><%= item.price_range %></strong>
+                    <% } %>
+                  </div>
+
+                  <span class="read-more">Lihat Detail</span>
+                </div>
+              </a>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state reveal">
+          <h3>Belum ada data kuliner</h3>
+          <p>
+            Data kuliner akan tampil di sini setelah ditambahkan dari panel admin.
+          </p>
+        </div>
+      <% } %>
+
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="container">
+      <div class="intro-box reveal">
+        <span class="eyebrow">Jelajahi Berastagi</span>
+        <h2>Kuliner, Wisata, dan Penginapan Berastagi dalam Satu Website</h2>
+        <p>
+          Selain mencari <strong>kuliner Berastagi</strong>, kamu juga bisa melihat
+          <a href="/wisata">tempat wisata di Berastagi</a>,
+          <a href="/villa">villa dan hotel di Berastagi</a>,
+          <a href="/berita">berita wisata terbaru</a>, dan
+          <a href="/galeri">galeri foto Berastagi</a>
+          agar rencana liburan kamu jadi lebih lengkap.
+        </p>
+
+        <div class="detail-quick-links">
+          <a href="/wisata">Tempat Wisata Berastagi</a>
+          <a href="/villa">Villa &amp; Hotel Berastagi</a>
+          <a href="/berita">Berita Wisata</a>
+          <a href="/galeri">Galeri Berastagi</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="intro-box reveal">
+        <span class="eyebrow">Pertanyaan Umum</span>
+        <h2>FAQ Kuliner Berastagi</h2>
+
+        <div class="faq-list">
+          <div class="faq-item">
+            <h3>Apa saja kuliner terkenal di Berastagi?</h3>
+            <p>
+              Kuliner terkenal di Berastagi biasanya meliputi makanan khas Karo,
+              jagung bakar, jajanan hangat, tempat makan keluarga, dan berbagai
+              pilihan kuliner yang cocok dinikmati di udara sejuk dataran tinggi.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apakah di Berastagi banyak tempat makan untuk keluarga?</h3>
+            <p>
+              Ya, Berastagi memiliki banyak tempat makan yang cocok untuk keluarga,
+              pasangan, maupun rombongan wisatawan.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Kapan waktu terbaik menikmati kuliner di Berastagi?</h3>
+            <p>
+              Kuliner Berastagi bisa dinikmati pagi, siang, maupun malam, terutama
+              saat cuaca dingin karena banyak makanan hangat yang terasa lebih nikmat.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apakah website ini juga punya info wisata dan penginapan?</h3>
+            <p>
+              Ya, selain kuliner, website ini juga menyediakan informasi tempat wisata,
+              villa, hotel, galeri, dan berita wisata Berastagi.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>

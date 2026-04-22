@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+
+    <main class="admin-main">
+      <div class="admin-head">
+        <div>
+          <h1>Pengaturan Website</h1>
+          <p class="admin-subtitle">
+            Atur identitas website, kontak, SEO homepage, dan tampilan hero Wisata Berastagi.
+          </p>
+        </div>
+      </div>
+
+      <form action="/admin/settings" method="post" class="admin-form">
+        <div class="form-grid">
+          <div class="form-divider full">Identitas Website</div>
+
+          <div class="form-group">
+            <label for="site_name">Nama Website</label>
+            <input
+              type="text"
+              id="site_name"
+              name="site_name"
+              value="<%= settings.site_name || '' %>"
+              placeholder="Contoh: Wisata Berastagi"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="site_tagline">Tagline</label>
+            <input
+              type="text"
+              id="site_tagline"
+              name="site_tagline"
+              value="<%= settings.site_tagline || '' %>"
+              placeholder="Contoh: Tempat wisata, villa, kuliner & berita"
+            >
+          </div>
+
+          <div class="form-divider full">Kontak Website</div>
+
+          <div class="form-group">
+            <label for="contact_phone">Nomor HP / WA</label>
+            <input
+              type="text"
+              id="contact_phone"
+              name="contact_phone"
+              value="<%= settings.contact_phone || '' %>"
+              placeholder="Contoh: 0812-xxxx-xxxx"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="contact_email">Email</label>
+            <input
+              type="email"
+              id="contact_email"
+              name="contact_email"
+              value="<%= settings.contact_email || '' %>"
+              placeholder="Contoh: info@wisataberastagi.com"
+            >
+          </div>
+
+          <div class="form-group full">
+            <label for="address">Alamat</label>
+            <textarea
+              id="address"
+              name="address"
+              rows="3"
+              placeholder="Masukkan alamat lengkap"
+            ><%= settings.address || '' %></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label for="footer_text">Footer Text</label>
+            <textarea
+              id="footer_text"
+              name="footer_text"
+              rows="3"
+              placeholder="Teks singkat di bagian footer website"
+            ><%= settings.footer_text || '' %></textarea>
+          </div>
+
+          <div class="form-divider full">SEO Homepage</div>
+
+          <div class="form-group full">
+            <label for="homepage_title">Homepage Title</label>
+            <input
+              type="text"
+              id="homepage_title"
+              name="homepage_title"
+              value="<%= settings.homepage_title || '' %>"
+              placeholder="Judul SEO untuk halaman utama"
+            >
+          </div>
+
+          <div class="form-group full">
+            <label for="homepage_meta_description">Homepage Meta Description</label>
+            <textarea
+              id="homepage_meta_description"
+              name="homepage_meta_description"
+              rows="3"
+              placeholder="Deskripsi SEO untuk homepage"
+            ><%= settings.homepage_meta_description || '' %></textarea>
+          </div>
+
+          <div class="form-divider full">Hero Section Homepage</div>
+
+          <div class="form-group full">
+            <label for="hero_title">Hero Title</label>
+            <input
+              type="text"
+              id="hero_title"
+              name="hero_title"
+              value="<%= settings.hero_title || '' %>"
+              placeholder="Judul besar di homepage"
+            >
+          </div>
+
+          <div class="form-group full">
+            <label for="hero_subtitle">Hero Subtitle</label>
+            <textarea
+              id="hero_subtitle"
+              name="hero_subtitle"
+              rows="3"
+              placeholder="Subjudul di homepage"
+            ><%= settings.hero_subtitle || '' %></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label for="hero_background">Hero Background URL</label>
+            <input
+              type="text"
+              id="hero_background"
+              name="hero_background"
+              value="<%= settings.hero_background || '' %>"
+              placeholder="/images/wisata-berastagi-cover.jpg atau https://..."
+            >
+            <small class="form-hint">
+              Isi dengan path gambar lokal atau URL gambar penuh.
+            </small>
+          </div>
+
+          <div class="form-group full">
+            <label for="logo">Logo URL</label>
+            <input
+              type="text"
+              id="logo"
+              name="logo"
+              value="<%= settings.logo || '' %>"
+              placeholder="/favicon/favicon-512x512.png atau https://..."
+            >
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Simpan Pengaturan</button>
+          <a href="/admin" class="btn-secondary">Kembali ke Dashboard</a>
+        </div>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

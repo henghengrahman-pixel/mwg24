@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+
+    <main class="admin-main">
+      <div class="admin-head">
+        <div>
+          <h1><%= item && item.id ? "Edit Berita" : "Tambah Berita" %></h1>
+          <p class="admin-subtitle">
+            Buat berita yang rapi, mudah dibaca, dan ramah mesin pencari untuk website Wisata Berastagi.
+          </p>
+        </div>
+      </div>
+
+      <% if (typeof error !== "undefined" && error) { %>
+        <div class="alert-error"><%= error %></div>
+      <% } %>
+
+      <form
+        id="articleForm"
+        action="/admin/berita/save"
+        method="post"
+        enctype="multipart/form-data"
+        class="admin-form"
+      >
+        <input type="hidden" name="id" value="<%= item?.id || '' %>">
+        <input type="hidden" name="current_image" value="<%= item?.image || '' %>">
+
+        <div class="form-grid">
+          <div class="form-group full">
+            <label for="title">Judul Berita</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              placeholder="Contoh: Tempat Wisata Berastagi yang Wajib Dikunjungi"
+              value="<%= item?.title || '' %>"
+              required
+            >
+          </div>
+
+          <div class="form-group full">
+            <label for="slug">Slug (URL)</label>
+            <input
+              type="text"
+              id="slug"
+              name="slug"
+              placeholder="otomatis jika kosong"
+              value="<%= item?.slug || '' %>"
+            >
+            <small class="form-hint">URL akan menjadi: /berita/slug-anda</small>
+          </div>
+
+          <div class="form-group">
+            <label for="category">Kategori</label>
+            <select id="category" name="category">
+              <option value="berita" <%= item?.category === "berita" || !item?.category ? "selected" : "" %>>Berita</option>
+              <option value="wisata" <%= item?.category === "wisata" ? "selected" : "" %>>Wisata</option>
+              <option value="kuliner" <%= item?.category === "kuliner" ? "selected" : "" %>>Kuliner</option>
+              <option value="tips" <%= item?.category === "tips" ? "selected" : "" %>>Tips Liburan</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="published_at">Tanggal Publish</label>
+            <input
+              type="datetime-local"
+              id="published_at"
+              name="published_at"
+              value="<%= item?.published_at ? String(item.published_at).replace(' ', 'T').slice(0, 16) : '' %>"
+            >
+            <small class="form-hint">Kosongkan jika ingin memakai waktu sekarang.</small>
+          </div>
+
+          <div class="form-group full">
+            <label for="excerpt">Ringkasan Berita (Excerpt)</label>
+            <textarea
+              id="excerpt"
+              name="excerpt"
+              rows="3"
+              placeholder="Ringkasan singkat berita untuk preview di homepage dan halaman berita"
+            ><%= item?.excerpt || '' %></textarea>
+            <small class="form-hint">Buat ringkasan singkat, padat, dan menarik agar klik artikel lebih tinggi.</small>
+          </div>
+
+          <div class="form-divider full">Konten Artikel</div>
+
+          <div class="form-group full">
+            <label for="editor">Konten Berita</label>
+            <textarea
+              id="editor"
+              name="content"
+              rows="18"
+              placeholder="Tulis isi berita lengkap di sini..."
+            ><%= item?.content || '' %></textarea>
+            <small class="form-hint">
+              Gunakan toolbar untuk heading, bold, italic, link, list, tabel, dan tambah gambar di tengah artikel.
+            </small>
+          </div>
+
+          <div class="form-group full">
+            <label for="image_url">URL Gambar Utama</label>
+            <% if (item?.image) { %>
+              <div class="image-preview">
+                <img src="<%= item.image %>" alt="Preview gambar berita" style="max-width: 240px; width: 100%; height: auto; border-radius: 12px;">
+              </div>
+            <% } %>
+            <input type="text" id="image_url" name="image_url" value="<%= item?.image || '' %>" placeholder="https://... atau /images/...">
+            <small class="form-hint">Bisa pakai link gambar. Kalau upload file juga, file upload akan diprioritaskan.</small>
+          </div>
+
+          <div class="form-group full">
+            <label for="image">Upload Gambar Manual</label>
+            <input type="file" id="image" name="image" accept="image/*">
+            <small class="form-hint">Khusus artikel, gambar bisa upload manual atau pakai link.</small>
+          </div>
+
+          <div class="form-divider full">Panduan Penulisan</div>
+
+          <div class="info-card form-group full">
+            <p><strong>Tips artikel yang rapi:</strong></p>
+            <ul>
+              <li>Pakai judul yang jelas, alami, dan mengandung kata kunci utama.</li>
+              <li>Gunakan Heading 2 untuk subjudul utama dan Heading 3 untuk penjelasan tambahan.</li>
+              <li>Tambahkan gambar di tengah artikel agar lebih menarik dan lebih enak dibaca.</li>
+              <li>Gunakan paragraf pendek supaya nyaman dibaca di HP.</li>
+              <li>Tambahkan link internal ke halaman wisata, kuliner, atau villa bila relevan.</li>
+            </ul>
+          </div>
+
+          <div class="form-divider full">Pengaturan SEO</div>
+
+          <div class="form-group full">
+            <label for="meta_title">Meta Title</label>
+            <input
+              type="text"
+              id="meta_title"
+              name="meta_title"
+              placeholder="Judul SEO (jika kosong otomatis)"
+              value="<%= item?.meta_title || '' %>"
+            >
+            <small class="form-hint">Usahakan singkat, jelas, dan tetap menarik di hasil pencarian Google.</small>
+          </div>
+
+          <div class="form-group full">
+            <label for="meta_description">Meta Description</label>
+            <textarea
+              id="meta_description"
+              name="meta_description"
+              rows="3"
+              placeholder="Deskripsi untuk Google"
+            ><%= item?.meta_description || '' %></textarea>
+            <small class="form-hint">Disarankan 130–160 karakter dan mengandung kata kunci utama.</small>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">
+            <%= item && item.id ? "Update Berita" : "Simpan Berita" %>
+          </button>
+
+          <a href="/admin/berita" class="btn-secondary">
+            Batal
+          </a>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
+  <script>
+    const titleInput = document.getElementById("title");
+    const slugInput = document.getElementById("slug");
+    const articleForm = document.getElementById("articleForm");
+
+    function makeSlug(text) {
+      return String(text || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+
+    if (titleInput && slugInput) {
+      titleInput.addEventListener("input", function () {
+        if (!slugInput.dataset.editedManually || !slugInput.value.trim()) {
+          slugInput.value = makeSlug(titleInput.value);
+        }
+      });
+
+      slugInput.addEventListener("input", function () {
+        slugInput.dataset.editedManually = "true";
+      });
+    }
+
+    tinymce.init({
+      selector: "#editor",
+      height: 580,
+      menubar: false,
+      branding: false,
+      promotion: false,
+      plugins: [
+        "advlist",
+        "autolink",
+        "lists",
+        "link",
+        "image",
+        "charmap",
+        "preview",
+        "anchor",
+        "searchreplace",
+        "visualblocks",
+        "code",
+        "fullscreen",
+        "insertdatetime",
+        "media",
+        "table",
+        "wordcount"
+      ],
+      toolbar:
+        "undo redo | blocks | " +
+        "bold italic underline | forecolor backcolor | " +
+        "alignleft aligncenter alignright alignjustify | " +
+        "bullist numlist outdent indent | " +
+        "link image media table | removeformat code preview fullscreen",
+      block_formats: "Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4",
+      content_style: `
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 16px;
+          line-height: 1.75;
+          color: #183124;
+          padding: 16px;
+        }
+        p {
+          margin: 0 0 16px;
+        }
+        h2, h3, h4 {
+          margin: 24px 0 12px;
+          color: #183124;
+          line-height: 1.3;
+        }
+        ul, ol {
+          margin: 0 0 16px;
+          padding-left: 22px;
+        }
+        img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 12px;
+        }
+        a {
+          color: #24593f;
+        }
+      `,
+      image_title: true,
+      automatic_uploads: true,
+      file_picker_types: "image",
+      relative_urls: false,
+      remove_script_host: false,
+      convert_urls: false,
+      paste_data_images: true,
+      image_caption: true,
+      image_advtab: true,
+      images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/admin/upload-image");
+        xhr.withCredentials = false;
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            progress((e.loaded / e.total) * 100);
+          }
+        };
+
+        xhr.onload = function () {
+          if (xhr.status < 200 || xhr.status >= 300) {
+            reject("HTTP Error: " + xhr.status);
+            return;
+          }
+
+          let json;
+          try {
+            json = JSON.parse(xhr.responseText);
+          } catch (err) {
+            reject("Response upload tidak valid");
+            return;
+          }
+
+          if (!json || typeof json.location !== "string") {
+            reject("Lokasi gambar tidak ditemukan");
+            return;
+          }
+
+          resolve(json.location);
+        };
+
+        xhr.onerror = function () {
+          reject("Upload gambar gagal. Coba lagi.");
+        };
+
+        const formData = new FormData();
+        formData.append("image", blobInfo.blob(), blobInfo.filename());
+        xhr.send(formData);
+      })
+    });
+
+    if (articleForm) {
+      articleForm.addEventListener("submit", function (e) {
+        if (window.tinymce) {
+          tinymce.triggerSave();
+        }
+
+        const editorElement = document.getElementById("editor");
+        const titleValue = document.getElementById("title").value.trim();
+        const editorContent = editorElement.value.trim();
+
+        if (!titleValue) {
+          e.preventDefault();
+          alert("Judul berita wajib diisi.");
+          return;
+        }
+
+        const plainText = editorContent
+          .replace(/<style[\s\S]*?<\/style>/gi, " ")
+          .replace(/<script[\s\S]*?<\/script>/gi, " ")
+          .replace(/<[^>]*>/g, " ")
+          .replace(/&nbsp;/gi, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        if (!plainText) {
+          e.preventDefault();
+          alert("Konten berita wajib diisi.");
+          return;
+        }
+
+        if (slugInput && slugInput.value.trim()) {
+          slugInput.value = makeSlug(slugInput.value);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
