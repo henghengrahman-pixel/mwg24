@@ -1,227 +1,244 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
-const multer = require("multer");
-const { getDb } = require("../lib/db");
-const { makeSlug, excerpt } = require("../lib/helpers");
-const { requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
+const { getDb } = require("../lib/db");
+const { requireAdmin } = require("../middleware/auth");
+const { makeSlug, excerpt } = require("../lib/helpers");
+const { buildSeo } = require("../lib/seo");
 
-const dataRoot = process.env.DATA_DIR && fs.existsSync(process.env.DATA_DIR)
-  ? process.env.DATA_DIR
-  : path.join(__dirname, "..", "data");
+/* =========================
+   HELPER
+========================= */
 
-const uploadsBase = path.join(dataRoot, "uploads");
-const beritaUploads = path.join(uploadsBase, "berita");
-
-fs.mkdirSync(uploadsBase, { recursive: true });
-fs.mkdirSync(beritaUploads, { recursive: true });
-
-/* ================= MULTER ================= */
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, beritaUploads),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || "").toLowerCase() || ".jpg";
-    const base = makeSlug(path.basename(file.originalname || `berita-${Date.now()}`, ext)) || `berita-${Date.now()}`;
-    cb(null, `${base}-${Date.now()}${ext}`);
-  }
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 8 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => cb(null, /^image\//.test(file.mimetype || ""))
-});
-
-/* FIX MULTIPART ERROR */
-function safeUploadNone(req, res, next) {
-  upload.none()(req, res, function (err) {
-    if (err) return next();
-    next();
-  });
+function cleanText(v) {
+  return String(v || "").trim();
 }
 
-/* ================= HELPERS ================= */
-function normalizeImageInput(value, fallback = "") {
-  const raw = String(value || "").trim();
-  if (!raw) return fallback;
-  if (/^https?:\/\//i.test(raw)) return raw;
-  if (raw.startsWith("/uploads/") || raw.startsWith("/images/") || raw.startsWith("/favicon/")) return raw;
-  return raw.startsWith("/") ? raw : `/${raw}`;
+function cleanHtml(v) {
+  return String(v || "").trim();
 }
 
-function parseMultiUrls(value) {
-  return Array.from(
-    new Set(
-      String(value || "")
-        .split(/\r?\n|,/)
-        .map((item) => item.trim())
-        .filter(Boolean)
-        .map((item) => normalizeImageInput(item))
-    )
-  );
+function plainTextFromHtml(value) {
+  return String(value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function getSettings() {
-  return getDb().prepare("SELECT * FROM settings WHERE id = 1").get() || {};
+function boolToInt(v) {
+  return v ? 1 : 0;
 }
 
-function dashboardStats() {
+function uniqueSlug(table, slug, id = null) {
   const db = getDb();
-  return {
-    wisata: db.prepare("SELECT COUNT(*) total FROM wisata").get().total,
-    villa: db.prepare("SELECT COUNT(*) total FROM villa").get().total,
-    kuliner: db.prepare("SELECT COUNT(*) total FROM kuliner").get().total,
-    berita: db.prepare("SELECT COUNT(*) total FROM articles").get().total,
-    gallery: db.prepare("SELECT COUNT(*) total FROM gallery").get().total,
-    comments: db.prepare("SELECT COUNT(*) total FROM comments").get().total
-  };
+  let base = cleanText(slug) || `item-${Date.now()}`;
+  let final = base;
+  let i = 2;
+
+  while (true) {
+    const exists = id
+      ? db.prepare(`SELECT id FROM ${table} WHERE slug=? AND id!=?`).get(final, id)
+      : db.prepare(`SELECT id FROM ${table} WHERE slug=?`).get(final);
+
+    if (!exists) return final;
+    final = `${base}-${i++}`;
+  }
 }
 
-function adminPath(pathname = "") {
-  return `/admin${pathname}`;
+function requireBasic(title, content, res, view, titleSeo, item = null) {
+  if (!title || !plainTextFromHtml(content)) {
+    return res.render(view, {
+      seo: buildSeo({ title: titleSeo, noindex: true }),
+      item,
+      error: "Judul & konten wajib"
+    });
+  }
 }
 
-/* ================= GLOBAL ================= */
-router.use((req, res, next) => {
-  res.locals.settings = getSettings();
-  next();
-});
+/* =========================
+   LOGIN
+========================= */
 
-/* ================= LOGIN ================= */
 router.get("/login", (req, res) => {
-  if (req.session?.isAdmin) return res.redirect("/admin");
-  res.render("login", { error: "", seo: { title: "Login Admin", noindex: true } });
+  if (req.session.isAdmin) return res.redirect("/admin");
+  res.render("login", {
+    seo: buildSeo({ title: "Login Admin", noindex: true }),
+    error: null
+  });
 });
 
 router.post("/login", (req, res) => {
-  const username = String(req.body.username || "").trim();
-  const password = String(req.body.password || "").trim();
-
-  const user = getDb().prepare("SELECT * FROM users WHERE username = ? AND password = ?").get(username, password);
+  const db = getDb();
+  const user = db.prepare("SELECT * FROM users WHERE username=? AND password=?")
+    .get(req.body.username, req.body.password);
 
   if (!user) {
-    return res.render("login", { error: "Login gagal", seo: { noindex: true } });
+    return res.render("login", {
+      seo: buildSeo({ title: "Login Admin", noindex: true }),
+      error: "Login gagal"
+    });
   }
 
   req.session.isAdmin = true;
   res.redirect("/admin");
 });
 
+router.get("/logout", (req, res) => {
+  req.session.destroy(() => res.redirect("/admin/login"));
+});
+
 router.use(requireAdmin);
 
-/* ================= DASHBOARD ================= */
+/* =========================
+   DASHBOARD
+========================= */
+
 router.get("/", (req, res) => {
+  const db = getDb();
   res.render("admin-dashboard", {
-    stats: dashboardStats(),
-    seo: { noindex: true }
+    seo: buildSeo({ title: "Dashboard", noindex: true }),
+    stats: {
+      wisata: db.prepare("SELECT COUNT(*) as total FROM wisata").get().total,
+      villa: db.prepare("SELECT COUNT(*) as total FROM villa").get().total,
+      kuliner: db.prepare("SELECT COUNT(*) as total FROM kuliner").get().total,
+      berita: db.prepare("SELECT COUNT(*) as total FROM articles").get().total
+    }
   });
 });
 
-/* ================= LIST ================= */
-function listRoute(pathname, table, view) {
-  router.get(pathname, (req, res) => {
-    const items = getDb().prepare(`SELECT * FROM ${table} ORDER BY id DESC`).all();
-    res.render(view, { items, seo: { noindex: true } });
-  });
-}
+/* =========================
+   WISATA (URL IMAGE)
+========================= */
 
-listRoute("/wisata", "wisata", "admin-wisata");
-listRoute("/villa", "villa", "admin-villa");
-listRoute("/kuliner", "kuliner", "admin-kuliner");
-listRoute("/berita", "articles", "admin-articles");
+router.post("/wisata/save", (req, res) => {
+  try {
+    const db = getDb();
+    const id = req.body.id || null;
+    const title = cleanText(req.body.title);
+    const content = cleanHtml(req.body.content);
 
-/* ================= SAVE WISATA ================= */
-router.post("/wisata/save", safeUploadNone, (req, res) => {
-  const db = getDb();
-  const id = Number(req.body.id || 0);
-  const title = req.body.title;
+    const err = requireBasic(title, content, res, "admin-wisata-form", "Form Wisata", req.body);
+    if (err) return;
 
-  if (!title) return res.redirect("/admin/wisata");
+    const payload = {
+      id,
+      title,
+      slug: uniqueSlug("wisata", makeSlug(req.body.slug || title), id),
+      excerpt: excerpt(plainTextFromHtml(content), 150),
+      content,
+      image: cleanText(req.body.image), // 🔥 URL
+      location: cleanText(req.body.location),
+      ticket_price: cleanText(req.body.ticket_price),
+      open_hours: cleanText(req.body.open_hours),
+      maps_url: cleanText(req.body.maps_url),
+      meta_title: cleanText(req.body.meta_title || title),
+      meta_description: cleanText(req.body.meta_description),
+      is_featured: boolToInt(req.body.is_featured)
+    };
 
-  const data = {
-    title,
-    slug: makeSlug(req.body.slug || title),
-    excerpt: req.body.excerpt || excerpt(req.body.content || "", 155),
-    content: req.body.content || "",
-    image: normalizeImageInput(req.body.image || req.body.current_image, "/images/default.jpg"),
-    location: req.body.location || "",
-    ticket_price: req.body.ticket_price || "",
-    open_hours: req.body.open_hours || "",
-    maps_url: req.body.maps_url || "",
-    meta_title: req.body.meta_title || title,
-    meta_description: req.body.meta_description || "",
-    is_featured: req.body.is_featured ? 1 : 0
-  };
+    if (id) {
+      db.prepare(`
+        UPDATE wisata SET
+        title=@title, slug=@slug, excerpt=@excerpt, content=@content,
+        image=@image, location=@location, ticket_price=@ticket_price,
+        open_hours=@open_hours, maps_url=@maps_url,
+        meta_title=@meta_title, meta_description=@meta_description,
+        is_featured=@is_featured
+        WHERE id=@id
+      `).run(payload);
+    } else {
+      db.prepare(`
+        INSERT INTO wisata
+        (title,slug,excerpt,content,image,location,ticket_price,open_hours,maps_url,meta_title,meta_description,is_featured)
+        VALUES
+        (@title,@slug,@excerpt,@content,@image,@location,@ticket_price,@open_hours,@maps_url,@meta_title,@meta_description,@is_featured)
+      `).run(payload);
+    }
 
-  if (id) {
-    db.prepare(`UPDATE wisata SET title=@title, slug=@slug, excerpt=@excerpt, content=@content, image=@image WHERE id=@id`)
-      .run({ id, ...data });
-  } else {
-    db.prepare(`INSERT INTO wisata (title,slug,excerpt,content,image) VALUES (@title,@slug,@excerpt,@content,@image)`)
-      .run(data);
+    res.redirect("/admin/wisata");
+  } catch (e) {
+    res.send(e.message);
   }
-
-  res.redirect("/admin/wisata");
 });
 
-/* ================= SAVE KULINER (FIX ERROR UTAMA) ================= */
-router.post("/kuliner/save", safeUploadNone, (req, res) => {
+/* =========================
+   KULINER
+========================= */
+
+router.post("/kuliner/save", (req, res) => {
   const db = getDb();
-  const id = Number(req.body.id || 0);
-  const title = req.body.title;
 
-  if (!title) return res.redirect("/admin/kuliner");
-
-  const data = {
-    title,
-    slug: makeSlug(req.body.slug || title),
-    excerpt: req.body.excerpt || excerpt(req.body.content || "", 155),
-    content: req.body.content || "",
-    image: normalizeImageInput(req.body.image || req.body.current_image, "/images/default.jpg"),
-    location: req.body.location || "",
-    price_range: req.body.price_range || "",
-    open_hours: req.body.open_hours || "",
-    contact_phone: req.body.contact_phone || "",
-    maps_url: req.body.maps_url || "",
-    meta_title: req.body.meta_title || title,
-    meta_description: req.body.meta_description || "",
-    is_featured: req.body.is_featured ? 1 : 0
+  const payload = {
+    id: req.body.id || null,
+    title: cleanText(req.body.title),
+    slug: uniqueSlug("kuliner", makeSlug(req.body.slug || req.body.title), req.body.id),
+    excerpt: excerpt(req.body.content, 150),
+    content: req.body.content,
+    image: cleanText(req.body.image), // 🔥 URL
+    location: req.body.location,
+    price_range: req.body.price_range,
+    open_hours: req.body.open_hours
   };
 
-  if (id) {
-    db.prepare(`UPDATE kuliner SET title=@title, slug=@slug, content=@content, image=@image WHERE id=@id`)
-      .run({ id, ...data });
+  if (payload.id) {
+    db.prepare("UPDATE kuliner SET title=@title,slug=@slug,content=@content,image=@image WHERE id=@id").run(payload);
   } else {
-    db.prepare(`INSERT INTO kuliner (title,slug,content,image) VALUES (@title,@slug,@content,@image)`)
-      .run(data);
+    db.prepare("INSERT INTO kuliner (title,slug,content,image) VALUES (@title,@slug,@content,@image)").run(payload);
   }
 
   res.redirect("/admin/kuliner");
 });
 
-/* ================= SAVE BERITA ================= */
-router.post("/berita/save", upload.single("image"), (req, res) => {
+/* =========================
+   VILLA
+========================= */
+
+router.post("/villa/save", (req, res) => {
   const db = getDb();
-  const title = req.body.title;
 
-  if (!title) return res.redirect("/admin/berita");
+  const payload = {
+    id: req.body.id || null,
+    title: req.body.title,
+    slug: uniqueSlug("villa", makeSlug(req.body.slug || req.body.title), req.body.id),
+    content: req.body.content,
+    image: cleanText(req.body.image), // 🔥 URL
+    images: JSON.stringify(req.body.gallery || [])
+  };
 
-  const image = req.file
-    ? `/uploads/berita/${req.file.filename}`
-    : normalizeImageInput(req.body.current_image);
+  if (payload.id) {
+    db.prepare("UPDATE villa SET title=@title,slug=@slug,content=@content,image=@image,images=@images WHERE id=@id").run(payload);
+  } else {
+    db.prepare("INSERT INTO villa (title,slug,content,image,images) VALUES (@title,@slug,@content,@image,@images)").run(payload);
+  }
 
-  db.prepare(`INSERT INTO articles (title,slug,image) VALUES (?,?,?)`)
-    .run(title, makeSlug(title), image);
+  res.redirect("/admin/villa");
+});
+
+/* =========================
+   BERITA
+========================= */
+
+router.post("/berita/save", (req, res) => {
+  const db = getDb();
+
+  const payload = {
+    id: req.body.id || null,
+    title: req.body.title,
+    slug: uniqueSlug("articles", makeSlug(req.body.slug || req.body.title), req.body.id),
+    content: req.body.content,
+    image: cleanText(req.body.image), // 🔥 URL
+    excerpt: excerpt(req.body.content, 150)
+  };
+
+  if (payload.id) {
+    db.prepare("UPDATE articles SET title=@title,slug=@slug,content=@content,image=@image WHERE id=@id").run(payload);
+  } else {
+    db.prepare("INSERT INTO articles (title,slug,content,image) VALUES (@title,@slug,@content,@image)").run(payload);
+  }
 
   res.redirect("/admin/berita");
-});
-
-/* ================= DELETE ================= */
-router.post("/kuliner/delete/:id", (req, res) => {
-  getDb().prepare("DELETE FROM kuliner WHERE id = ?").run(req.params.id);
-  res.redirect("/admin/kuliner");
 });
 
 module.exports = router;
