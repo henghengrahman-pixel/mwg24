@@ -17,6 +17,9 @@ const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, "");
 const SESSION_SECRET = process.env.SESSION_SECRET || "wisata-berastagi-secret";
 const IS_PROD = process.env.NODE_ENV === "production";
 
+/* =========================
+   DIR
+========================= */
 const DATA_DIR =
   process.env.DATA_DIR && fs.existsSync(process.env.DATA_DIR)
     ? process.env.DATA_DIR
@@ -27,9 +30,6 @@ const VIEWS_DIR = path.join(__dirname, "views");
 const DB_PATH = path.join(DATA_DIR, "database.sqlite");
 const SESSION_DB_PATH = path.join(DATA_DIR, "sessions.sqlite");
 
-/* =========================
-   CREATE DIR
-========================= */
 const REQUIRED_DIRS = [
   DATA_DIR,
   PUBLIC_DIR,
@@ -46,13 +46,16 @@ for (const dir of REQUIRED_DIRS) {
 
 initDb(DB_PATH);
 
+/* =========================
+   CONFIG
+========================= */
 app.set("view engine", "ejs");
 app.set("views", VIEWS_DIR);
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
 
 /* =========================
-   HELPERS
+   HELPER
 ========================= */
 function normalizeUrlPath(urlPath = "/") {
   if (!urlPath || urlPath === "/") return "/";
@@ -60,16 +63,14 @@ function normalizeUrlPath(urlPath = "/") {
 }
 
 function getRequestBaseUrl(req) {
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  const proto = forwardedProto ? String(forwardedProto).split(",")[0].trim() : req.protocol;
+  const proto = req.headers["x-forwarded-proto"]?.split(",")[0] || req.protocol;
   const host = req.headers["x-forwarded-host"] || req.get("host");
   return `${proto}://${host}`.replace(/\/+$/, "");
 }
 
 function shouldRedirectToBase(req) {
   if (!IS_PROD) return false;
-  const requestBase = getRequestBaseUrl(req);
-  return requestBase !== BASE_URL;
+  return getRequestBaseUrl(req) !== BASE_URL;
 }
 
 function cleanCanonical(baseUrl, req) {
@@ -100,7 +101,7 @@ function lastmod(value) {
 }
 
 /* =========================
-   SECURITY HEADERS
+   SECURITY
 ========================= */
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -134,7 +135,7 @@ app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 app.use(express.json({ limit: "20mb" }));
 
 /* =========================
-   STATIC
+   STATIC (NO UPLOADS)
 ========================= */
 app.use(express.static(PUBLIC_DIR));
 
@@ -174,6 +175,7 @@ app.use((req, res, next) => {
 
   res.locals.baseUrl = BASE_URL;
   res.locals.path = normalizedPath;
+  res.locals.query = req.query;
   res.locals.session = req.session;
   res.locals.canonical = canonical;
 
@@ -192,23 +194,36 @@ Sitemap: ${BASE_URL}/sitemap.xml`);
 });
 
 /* =========================
-   SITEMAP
+   SITEMAP (FULL)
 ========================= */
 app.get("/sitemap.xml", (req, res) => {
   const db = getDb();
   const now = new Date().toISOString();
 
   const wisata = db.prepare("SELECT slug FROM wisata").all();
-  const urls = wisata.map(w => `
-  <url>
-    <loc>${BASE_URL}/wisata/${w.slug}</loc>
-    <lastmod>${now}</lastmod>
-  </url>`).join("");
+  const villa = db.prepare("SELECT slug FROM villa").all();
+  const kuliner = db.prepare("SELECT slug FROM kuliner").all();
+  const berita = db.prepare("SELECT slug FROM articles").all();
+
+  let urls = "";
+
+  const push = (url) => {
+    urls += `<url><loc>${xmlEscape(url)}</loc><lastmod>${now}</lastmod></url>`;
+  };
+
+  push(`${BASE_URL}/`);
+  push(`${BASE_URL}/wisata`);
+  push(`${BASE_URL}/villa`);
+  push(`${BASE_URL}/kuliner`);
+  push(`${BASE_URL}/berita`);
+
+  wisata.forEach(i => push(`${BASE_URL}/wisata/${i.slug}`));
+  villa.forEach(i => push(`${BASE_URL}/villa/${i.slug}`));
+  kuliner.forEach(i => push(`${BASE_URL}/kuliner/${i.slug}`));
+  berita.forEach(i => push(`${BASE_URL}/berita/${i.slug}`));
 
   res.type("application/xml").send(`<?xml version="1.0"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls}
-</urlset>`);
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
 });
 
 /* =========================
@@ -218,15 +233,30 @@ app.use("/", publicRoutes);
 app.use("/admin", adminRoutes);
 
 /* =========================
-   ERROR
+   404
 ========================= */
 app.use((req, res) => {
-  res.status(404).send("404 Not Found");
+  res.status(404).render("about", {
+    settings: defaultSettingsFallback(),
+    path: normalizeUrlPath(req.path),
+    pageTitle: "404",
+    pageContent: "Halaman tidak ditemukan",
+    seo: { title: "404", noindex: true }
+  });
 });
 
+/* =========================
+   ERROR
+========================= */
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).send("500 Error");
+  res.status(500).render("about", {
+    settings: defaultSettingsFallback(),
+    path: normalizeUrlPath(req.path),
+    pageTitle: "500",
+    pageContent: "Server error",
+    seo: { title: "500", noindex: true }
+  });
 });
 
 /* =========================
