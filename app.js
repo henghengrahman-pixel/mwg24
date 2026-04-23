@@ -11,108 +11,209 @@ const { siteSeoDefaults } = require("./lib/seo");
 
 const app = express();
 
-/* ================= CONFIG ================= */
-const PORT = process.env.PORT || 3000;
-const BASE_URL = (process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/+$/, "");
-const SESSION_SECRET = process.env.SESSION_SECRET || "secret";
+const PORT = Number(process.env.PORT) || 3000;
+const RAW_BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const BASE_URL = String(RAW_BASE_URL).replace(/\/+$/, "");
+const SESSION_SECRET = process.env.SESSION_SECRET || "wisata-berastagi-secret";
 const IS_PROD = process.env.NODE_ENV === "production";
 
-/* ================= DIR ================= */
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
+const DATA_DIR = process.env.DATA_DIR && fs.existsSync(process.env.DATA_DIR)
+  ? process.env.DATA_DIR
+  : path.join(__dirname, "data");
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const PUBLIC_DIR = path.join(__dirname, "public");
 const VIEWS_DIR = path.join(__dirname, "views");
+const DB_PATH = path.join(DATA_DIR, "database.sqlite");
+const SESSION_DB_PATH = path.join(DATA_DIR, "sessions.sqlite");
 
-[DATA_DIR, UPLOADS_DIR].forEach(d => fs.mkdirSync(d, { recursive: true }));
+[
+  DATA_DIR,
+  UPLOADS_DIR,
+  path.join(UPLOADS_DIR, "berita"),
+  PUBLIC_DIR,
+  VIEWS_DIR,
+  path.join(PUBLIC_DIR, "css"),
+  path.join(PUBLIC_DIR, "js"),
+  path.join(PUBLIC_DIR, "images"),
+  path.join(PUBLIC_DIR, "favicon")
+].forEach((dir) => fs.mkdirSync(dir, { recursive: true }));
 
-initDb(path.join(DATA_DIR, "database.sqlite"));
+// 🔥 FIX: DB INIT SAFE
+try {
+  initDb(DB_PATH);
+} catch (err) {
+  console.error("DB INIT ERROR:", err);
+}
 
-/* ================= BASIC ================= */
 app.set("view engine", "ejs");
 app.set("views", VIEWS_DIR);
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+function normalizeUrlPath(urlPath = "/") {
+  if (!urlPath || urlPath === "/") return "/";
+  return urlPath.replace(/\/+$/, "") || "/";
+}
+
+function getRequestBaseUrl(req) {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const proto = forwardedProto ? String(forwardedProto).split(",")[0].trim() : req.protocol;
+  const host = req.headers["x-forwarded-host"] || req.get("host");
+  return `${proto}://${host}`.replace(/\/+$/, "");
+}
+
+function shouldRedirectToBase(req) {
+  if (!IS_PROD) return false;
+  return getRequestBaseUrl(req) !== BASE_URL;
+}
+
+function cleanCanonical(baseUrl, req) {
+  const pathname = normalizeUrlPath(req.path);
+  return `${baseUrl}${pathname === "/" ? "/" : pathname}`;
+}
+
+function xmlEscape(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function lastmod(value) {
+  try {
+    return new Date(value).toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  next();
+});
+
+app.use((req, res, next) => {
+  if (shouldRedirectToBase(req)) {
+    return res.redirect(301, `${BASE_URL}${req.originalUrl}`);
+  }
+
+  if (req.path.length > 1 && req.path.endsWith("/") && !req.path.startsWith("/admin")) {
+    const query = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+    return res.redirect(301, `${req.path.replace(/\/+$/, "")}${query}`);
+  }
+
+  next();
+});
+
+app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+app.use(express.json({ limit: "20mb" }));
 app.use(express.static(PUBLIC_DIR));
+app.use("/uploads", express.static(UPLOADS_DIR));
 
-/* ================= SESSION ================= */
 app.use(session({
-  store: new SQLiteStore({ db: "sessions.sqlite", dir: DATA_DIR }),
+  store: new SQLiteStore({
+    db: path.basename(SESSION_DB_PATH),
+    dir: path.dirname(SESSION_DB_PATH)
+  }),
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  rolling: true,
+  proxy: true,
   cookie: {
-    secure: IS_PROD,
+    maxAge: 1000 * 60 * 60 * 24 * 7,
     httpOnly: true,
-    sameSite: "lax"
+    sameSite: "lax",
+    secure: IS_PROD
   }
 }));
 
-/* ================= GLOBAL ================= */
 app.locals.baseUrl = BASE_URL;
 app.locals.site = siteSeoDefaults();
+app.locals.currentYear = new Date().getFullYear();
+app.locals.helpers = require("./lib/helpers");
 
-/* ================= HEALTH ================= */
-app.get("/health", (req, res) => {
-  res.status(200).send("OK");
+app.use((req, res, next) => {
+  const normalizedPath = normalizeUrlPath(req.path);
+  const canonical = cleanCanonical(BASE_URL, req);
+
+  res.locals.baseUrl = BASE_URL;
+  res.locals.path = normalizedPath;
+  res.locals.query = req.query;
+  res.locals.session = req.session;
+  res.locals.currentYear = new Date().getFullYear();
+  res.locals.requestUrl = `${BASE_URL}${req.originalUrl}`;
+  res.locals.canonicalUrl = canonical;
+  res.locals.canonical = canonical;
+  res.locals.helpers = require("./lib/helpers");
+
+  res.locals.breadcrumbCategory = "";
+  res.locals.breadcrumbCategorySlug = "";
+
+  if (normalizedPath === "/berita" || normalizedPath.startsWith("/berita/")) {
+    res.locals.breadcrumbCategory = "Berita";
+    res.locals.breadcrumbCategorySlug = "berita";
+  } else if (normalizedPath === "/wisata" || normalizedPath.startsWith("/wisata/")) {
+    res.locals.breadcrumbCategory = "Tempat Wisata";
+    res.locals.breadcrumbCategorySlug = "wisata";
+  } else if (normalizedPath === "/villa" || normalizedPath.startsWith("/villa/")) {
+    res.locals.breadcrumbCategory = "Villa & Hotel";
+    res.locals.breadcrumbCategorySlug = "villa";
+  } else if (normalizedPath === "/kuliner" || normalizedPath.startsWith("/kuliner/")) {
+    res.locals.breadcrumbCategory = "Kuliner";
+    res.locals.breadcrumbCategorySlug = "kuliner";
+  } else if (normalizedPath === "/galeri" || normalizedPath.startsWith("/galeri/")) {
+    res.locals.breadcrumbCategory = "Galeri";
+    res.locals.breadcrumbCategorySlug = "galeri";
+  }
+
+  next();
 });
 
-/* ================= ROBOTS ================= */
 app.get("/robots.txt", (req, res) => {
-  res.type("text/plain").send(`User-agent: *
+  res.type("text/plain; charset=UTF-8").send(`User-agent: *
 Allow: /
 Disallow: /admin
 
 Sitemap: ${BASE_URL}/sitemap.xml`);
 });
 
-/* ================= SITEMAP ================= */
 app.get("/sitemap.xml", (req, res) => {
   const db = getDb();
+  const now = new Date().toISOString();
 
-  let urls = `
-  <url><loc>${BASE_URL}/</loc></url>
-  <url><loc>${BASE_URL}/wisata</loc></url>
-  <url><loc>${BASE_URL}/villa</loc></url>
-  <url><loc>${BASE_URL}/kuliner</loc></url>
-  <url><loc>${BASE_URL}/berita</loc></url>
-  `;
+  const staticPages = [
+    { url: `${BASE_URL}/`, updated_at: now }
+  ];
 
-  ["wisata","villa","kuliner","articles"].forEach(table => {
-    const prefix = table === "articles" ? "berita" : table;
-    db.prepare(`SELECT slug FROM ${table}`).all().forEach(r=>{
-      urls += `<url><loc>${BASE_URL}/${prefix}/${r.slug}</loc></url>`;
-    });
-  });
+  let urls = staticPages.map(p => `<url><loc>${xmlEscape(p.url)}</loc><lastmod>${lastmod(p.updated_at)}</lastmod></url>`).join("");
 
-  res.type("application/xml").send(`<?xml version="1.0"?>
-  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  ${urls}
-  </urlset>`);
+  res.header("Content-Type", "application/xml");
+  res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
 });
 
-/* ================= ROUTES ================= */
+// 🔥 HEALTH + PING
+app.get("/health", (req, res) => res.json({ ok: true }));
+app.get("/ping", (req, res) => res.send("pong"));
+
 app.use("/", publicRoutes);
 app.use("/admin", adminRoutes);
 
-/* ================= ERROR ================= */
 app.use((err, req, res, next) => {
-  console.error("ERROR:", err);
+  console.error("APP ERROR:", err);
   res.status(500).send("Server Error");
 });
 
-/* ================= CRASH FIX ================= */
-process.on("uncaughtException", err => {
-  console.error("UNCAUGHT:", err);
-});
+// 🔥 CRASH HANDLER
+process.on("uncaughtException", err => console.error("UNCAUGHT:", err));
+process.on("unhandledRejection", err => console.error("REJECTION:", err));
 
-process.on("unhandledRejection", err => {
-  console.error("REJECTION:", err);
-});
-
-/* ================= START ================= */
+// 🔥 FIX RAILWAY LISTEN
 app.listen(PORT, "0.0.0.0", () => {
-  console.log("RUNNING PORT:", PORT);
-  console.log("BASE URL:", BASE_URL);
+  console.log(`Wisata Berastagi running on port ${PORT}`);
+  console.log(`Base URL: ${BASE_URL}`);
 });
