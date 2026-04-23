@@ -1,216 +1,226 @@
 const express = require("express");
-const { getDb } = require("../lib/db");
-const { makeSlug, excerpt } = require("../lib/helpers");
-const { requireAdmin } = require("../middleware/auth");
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
 
 const router = express.Router();
+const { getDb } = require("../lib/db");
+const { requireAdmin } = require("../middleware/auth");
+const { makeSlug, excerpt } = require("../lib/helpers");
+const { buildSeo } = require("../lib/seo");
 
-function normalizeImageInput(value, fallback = "") {
-  const raw = String(value || "").trim();
-  if (!raw) return fallback;
-  if (/^https?:\/\//i.test(raw)) return raw;
-  return raw.startsWith("/") ? raw : `/${raw}`;
+/* =========================
+   STORAGE
+========================= */
+const dataDir =
+  process.env.DATA_DIR && fs.existsSync(process.env.DATA_DIR)
+    ? path.join(process.env.DATA_DIR, "uploads")
+    : path.join(__dirname, "..", "uploads");
+
+fs.mkdirSync(dataDir, { recursive: true });
+
+function storageFor(folder) {
+  return multer.diskStorage({
+    destination(req, file, cb) {
+      const dir = path.join(dataDir, folder);
+      fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename(req, file, cb) {
+      const ext = path.extname(file.originalname || ".jpg").toLowerCase();
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`);
+    }
+  });
 }
 
-function parseMultiUrls(value) {
-  return String(value || "")
-    .split(",")
-    .map(v => v.trim())
-    .filter(Boolean);
+const uploadOpt = { limits: { fileSize: 5 * 1024 * 1024 } };
+
+const wisataUpload = multer({ storage: storageFor("wisata"), ...uploadOpt });
+const villaUpload = multer({ storage: storageFor("villa"), ...uploadOpt });
+const kulinerUpload = multer({ storage: storageFor("kuliner"), ...uploadOpt });
+const beritaUpload = multer({ storage: storageFor("berita"), ...uploadOpt });
+const galleryUpload = multer({ storage: storageFor("gallery"), ...uploadOpt });
+const editorUpload = multer({ storage: storageFor("berita"), ...uploadOpt });
+
+function fileUrl(folder, file) {
+  return `/uploads/${folder}/${file}`;
 }
+
+/* =========================
+   FIX IMAGE (UPLOAD + LINK)
+========================= */
+function fallbackImage(current, file, folder, imageUrlInput) {
+  const url = String(imageUrlInput || "").trim();
+
+  if (url) {
+    if (/^https?:\/\//i.test(url)) return url;
+    if (url.startsWith("/")) return url;
+    return `/${url}`;
+  }
+
+  if (file?.filename) {
+    return fileUrl(folder, file.filename);
+  }
+
+  return String(current || "").trim();
+}
+
+/* =========================
+   LOGIN
+========================= */
+router.get("/login", (req, res) => {
+  if (req.session.isAdmin) return res.redirect("/admin");
+  res.render("login", {
+    seo: buildSeo({ title: "Login Admin", noindex: true }),
+    error: null
+  });
+});
+
+router.post("/login", (req, res) => {
+  const db = getDb();
+  const user = db.prepare("SELECT * FROM users WHERE username=? AND password=?")
+    .get(req.body.username, req.body.password);
+
+  if (!user) {
+    return res.render("login", {
+      seo: buildSeo({ title: "Login Admin", noindex: true }),
+      error: "Login gagal"
+    });
+  }
+
+  req.session.isAdmin = true;
+  res.redirect("/admin");
+});
+
+router.get("/logout", (req, res) => {
+  req.session.destroy(() => res.redirect("/admin/login"));
+});
 
 router.use(requireAdmin);
 
-router.get("/", (req, res) => {
-  res.render("admin-dashboard", { seo: { noindex: true } });
+/* =========================
+   UPLOAD EDITOR
+========================= */
+router.post("/upload-image", editorUpload.single("image"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file" });
+  res.json({ location: fileUrl("berita", req.file.filename) });
 });
 
-/* ================== WISATA ================== */
-router.post("/wisata/save", (req, res) => {
+/* =========================
+   DASHBOARD
+========================= */
+router.get("/", (req, res) => {
   const db = getDb();
-  const id = Number(req.body.id || 0);
-  const title = req.body.title.trim();
-  const slug = makeSlug(req.body.slug || title);
+  res.render("admin-dashboard", {
+    seo: buildSeo({ title: "Dashboard", noindex: true }),
+    stats: {
+      wisata: db.prepare("SELECT COUNT(*) as t FROM wisata").get().t,
+      villa: db.prepare("SELECT COUNT(*) as t FROM villa").get().t,
+      kuliner: db.prepare("SELECT COUNT(*) as t FROM kuliner").get().t,
+      berita: db.prepare("SELECT COUNT(*) as t FROM articles").get().t
+    }
+  });
+});
+
+/* =========================
+   WISATA SAVE
+========================= */
+router.post("/wisata/save", wisataUpload.single("image"), (req, res) => {
+  const db = getDb();
+  const id = req.body.id;
+  const image = fallbackImage(req.body.current_image, req.file, "wisata", req.body.image_url);
 
   const data = {
-    title,
-    slug,
-    excerpt: req.body.excerpt || excerpt(req.body.content, 150),
+    title: req.body.title,
+    slug: makeSlug(req.body.slug || req.body.title),
     content: req.body.content,
-    image: normalizeImageInput(req.body.image, "/images/wisata-berastagi-cover.jpg"),
-    location: req.body.location,
-    ticket_price: req.body.ticket_price,
-    open_hours: req.body.open_hours,
-    maps_url: req.body.maps_url,
-    meta_title: req.body.meta_title || title,
-    meta_description: req.body.meta_description || excerpt(req.body.content,150),
-    is_featured: req.body.is_featured ? 1 : 0
+    image
   };
 
   if (id) {
-    db.prepare(`UPDATE wisata SET 
-      title=@title, slug=@slug, excerpt=@excerpt, content=@content,
-      image=@image, location=@location, ticket_price=@ticket_price,
-      open_hours=@open_hours, maps_url=@maps_url,
-      meta_title=@meta_title, meta_description=@meta_description,
-      is_featured=@is_featured
-      WHERE id=@id`).run({ id, ...data });
+    db.prepare("UPDATE wisata SET title=?,slug=?,content=?,image=? WHERE id=?")
+      .run(data.title, data.slug, data.content, data.image, id);
   } else {
-    db.prepare(`INSERT INTO wisata 
-      (title,slug,excerpt,content,image,location,ticket_price,open_hours,maps_url,meta_title,meta_description,is_featured)
-      VALUES (@title,@slug,@excerpt,@content,@image,@location,@ticket_price,@open_hours,@maps_url,@meta_title,@meta_description,@is_featured)
-    `).run(data);
+    db.prepare("INSERT INTO wisata (title,slug,content,image) VALUES (?,?,?,?)")
+      .run(data.title, data.slug, data.content, data.image);
   }
 
   res.redirect("/admin/wisata");
 });
 
-/* ================== KULINER ================== */
-router.post("/kuliner/save", (req, res) => {
+/* =========================
+   KULINER SAVE
+========================= */
+router.post("/kuliner/save", kulinerUpload.single("image"), (req, res) => {
   const db = getDb();
-  const id = Number(req.body.id || 0);
-  const title = req.body.title.trim();
-  const slug = makeSlug(req.body.slug || title);
-
-  const data = {
-    title,
-    slug,
-    excerpt: req.body.excerpt || excerpt(req.body.content,150),
-    content: req.body.content,
-    image: normalizeImageInput(req.body.image, "/images/wisata-berastagi-cover.jpg"),
-    location: req.body.location,
-    price_range: req.body.price_range,
-    open_hours: req.body.open_hours,
-    contact_phone: req.body.contact_phone,
-    maps_url: req.body.maps_url,
-    meta_title: req.body.meta_title || title,
-    meta_description: req.body.meta_description || excerpt(req.body.content,150),
-    is_featured: req.body.is_featured ? 1 : 0
-  };
+  const id = req.body.id;
+  const image = fallbackImage(req.body.current_image, req.file, "kuliner", req.body.image_url);
 
   if (id) {
-    db.prepare(`UPDATE kuliner SET 
-      title=@title,slug=@slug,excerpt=@excerpt,content=@content,
-      image=@image,location=@location,price_range=@price_range,
-      open_hours=@open_hours,contact_phone=@contact_phone,maps_url=@maps_url,
-      meta_title=@meta_title,meta_description=@meta_description,
-      is_featured=@is_featured
-      WHERE id=@id`).run({ id, ...data });
+    db.prepare("UPDATE kuliner SET title=?,image=? WHERE id=?")
+      .run(req.body.title, image, id);
   } else {
-    db.prepare(`INSERT INTO kuliner 
-      (title,slug,excerpt,content,image,location,price_range,open_hours,contact_phone,maps_url,meta_title,meta_description,is_featured)
-      VALUES (@title,@slug,@excerpt,@content,@image,@location,@price_range,@open_hours,@contact_phone,@maps_url,@meta_title,@meta_description,@is_featured)
-    `).run(data);
+    db.prepare("INSERT INTO kuliner (title,image) VALUES (?,?)")
+      .run(req.body.title, image);
   }
 
   res.redirect("/admin/kuliner");
 });
 
-/* ================== VILLA ================== */
-router.post("/villa/save", (req, res) => {
+/* =========================
+   VILLA SAVE
+========================= */
+router.post("/villa/save", villaUpload.single("image"), (req, res) => {
   const db = getDb();
-  const id = Number(req.body.id || 0);
-  const title = req.body.title.trim();
-  const slug = makeSlug(req.body.slug || title);
-
-  const image = normalizeImageInput(req.body.image);
-  const images = parseMultiUrls(req.body.images);
-
-  const data = {
-    title,
-    slug,
-    excerpt: req.body.excerpt || excerpt(req.body.content,150),
-    content: req.body.content,
-    image,
-    images: JSON.stringify(images),
-    price: req.body.price,
-    location: req.body.location,
-    facilities: req.body.facilities,
-    booking_url: req.body.booking_url,
-    contact_phone: req.body.contact_phone,
-    maps_url: req.body.maps_url,
-    meta_title: req.body.meta_title || title,
-    meta_description: req.body.meta_description || excerpt(req.body.content,150),
-    is_featured: req.body.is_featured ? 1 : 0
-  };
+  const id = req.body.id;
+  const image = fallbackImage(req.body.current_image, req.file, "villa", req.body.image_url);
 
   if (id) {
-    db.prepare(`UPDATE villa SET 
-      title=@title,slug=@slug,excerpt=@excerpt,content=@content,
-      image=@image,images=@images,price=@price,location=@location,
-      facilities=@facilities,booking_url=@booking_url,contact_phone=@contact_phone,
-      maps_url=@maps_url,meta_title=@meta_title,meta_description=@meta_description,
-      is_featured=@is_featured
-      WHERE id=@id`).run({ id, ...data });
+    db.prepare("UPDATE villa SET title=?,image=? WHERE id=?")
+      .run(req.body.title, image, id);
   } else {
-    db.prepare(`INSERT INTO villa 
-      (title,slug,excerpt,content,image,images,price,location,facilities,booking_url,contact_phone,maps_url,meta_title,meta_description,is_featured)
-      VALUES (@title,@slug,@excerpt,@content,@image,@images,@price,@location,@facilities,@booking_url,@contact_phone,@maps_url,@meta_title,@meta_description,@is_featured)
-    `).run(data);
+    db.prepare("INSERT INTO villa (title,image) VALUES (?,?)")
+      .run(req.body.title, image);
   }
 
   res.redirect("/admin/villa");
 });
 
-/* ================== BERITA ================== */
-router.post("/berita/save", (req, res) => {
+/* =========================
+   BERITA SAVE
+========================= */
+router.post("/berita/save", beritaUpload.single("image"), (req, res) => {
   const db = getDb();
-  const id = Number(req.body.id || 0);
-  const title = req.body.title.trim();
-  const slug = makeSlug(req.body.slug || title);
-
-  const data = {
-    title,
-    slug,
-    category: req.body.category || "berita",
-    excerpt: req.body.excerpt || excerpt(req.body.content,150),
-    content: req.body.content,
-    image: normalizeImageInput(req.body.image),
-    meta_title: req.body.meta_title || title,
-    meta_description: req.body.meta_description || excerpt(req.body.content,150)
-  };
+  const id = req.body.id;
+  const image = fallbackImage(req.body.current_image, req.file, "berita", req.body.image_url);
 
   if (id) {
-    db.prepare(`UPDATE articles SET 
-      title=@title,slug=@slug,excerpt=@excerpt,content=@content,
-      image=@image,category=@category,
-      meta_title=@meta_title,meta_description=@meta_description
-      WHERE id=@id`).run({ id, ...data });
+    db.prepare("UPDATE articles SET title=?,image=? WHERE id=?")
+      .run(req.body.title, image, id);
   } else {
-    db.prepare(`INSERT INTO articles 
-      (title,slug,excerpt,content,image,category,meta_title,meta_description)
-      VALUES (@title,@slug,@excerpt,@content,@image,@category,@meta_title,@meta_description)
-    `).run(data);
+    db.prepare("INSERT INTO articles (title,image) VALUES (?,?)")
+      .run(req.body.title, image);
   }
 
   res.redirect("/admin/berita");
 });
 
-/* ================== GALLERY ================== */
-router.post("/gallery/save", (req, res) => {
+/* =========================
+   GALLERY SAVE
+========================= */
+router.post("/gallery/save", galleryUpload.single("image"), (req, res) => {
   const db = getDb();
-  const id = Number(req.body.id || 0);
+  const id = req.body.id;
+  const image = fallbackImage(req.body.current_image, req.file, "gallery", req.body.image_url);
 
-  const data = {
-    title: req.body.title,
-    slug: makeSlug(req.body.slug || req.body.title),
-    image: normalizeImageInput(req.body.image),
-    alt_text: req.body.alt_text,
-    caption: req.body.caption,
-    sort_order: Number(req.body.sort_order || 0),
-    is_active: req.body.is_active ? 1 : 0
-  };
+  if (!image) return res.redirect("/admin/gallery");
 
   if (id) {
-    db.prepare(`UPDATE gallery SET 
-      title=@title,slug=@slug,image=@image,alt_text=@alt_text,
-      caption=@caption,sort_order=@sort_order,is_active=@is_active
-      WHERE id=@id`).run({ id, ...data });
+    db.prepare("UPDATE gallery SET image=? WHERE id=?")
+      .run(image, id);
   } else {
-    db.prepare(`INSERT INTO gallery 
-      (title,slug,image,alt_text,caption,sort_order,is_active)
-      VALUES (@title,@slug,@image,@alt_text,@caption,@sort_order,@is_active)
-    `).run(data);
+    db.prepare("INSERT INTO gallery (image) VALUES (?)")
+      .run(image);
   }
 
   res.redirect("/admin/gallery");
