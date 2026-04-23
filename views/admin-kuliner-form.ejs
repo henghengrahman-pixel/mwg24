@@ -7,340 +7,147 @@
 
     <main class="admin-main">
       <div class="admin-head">
-        <div>
-          <h1><%= item ? "Edit Kuliner" : "Tambah Kuliner" %></h1>
-          <p class="admin-subtitle">
-            Tambahkan data kuliner dengan lengkap agar tampil rapi, profesional, dan mudah ditemukan pengunjung.
-          </p>
-        </div>
+        <h1><%= item ? "Edit Kuliner" : "Tambah Kuliner" %></h1>
       </div>
 
-      <% if (typeof error !== "undefined" && error) { %>
-        <div class="alert-error"><%= error %></div>
-      <% } %>
-
-      <form action="/admin/kuliner/save" method="post" enctype="multipart/form-data" class="admin-form">
+      <form action="/admin/kuliner/save" method="post" class="admin-form">
         <input type="hidden" name="id" value="<%= item?.id || '' %>">
-        <input type="hidden" name="current_image" value="<%= item?.image || '' %>">
 
         <div class="form-grid">
           <div class="form-group full">
-            <label for="title">Judul Kuliner</label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value="<%= item?.title || '' %>"
-              placeholder="Contoh: Jagung Bakar Favorit di Berastagi"
-              required
-            >
+            <label>Judul</label>
+            <input type="text" id="title" name="title" value="<%= item?.title || '' %>" required>
           </div>
 
           <div class="form-group full">
-            <label for="slug">Slug URL</label>
-            <input
-              type="text"
-              id="slug"
-              name="slug"
-              value="<%= item?.slug || '' %>"
-              placeholder="otomatis-jika-dikosongkan"
-            >
-            <small class="form-hint">URL akan menjadi: /kuliner/slug-kuliner</small>
+            <label>Slug</label>
+            <input type="text" id="slug" name="slug" value="<%= item?.slug || '' %>">
           </div>
 
           <div class="form-group">
-            <label for="location">Lokasi</label>
-            <input
-              type="text"
-              id="location"
-              name="location"
-              value="<%= item?.location || '' %>"
-              placeholder="Contoh: Pusat Kota Berastagi"
-            >
+            <label>Lokasi</label>
+            <input type="text" name="location" value="<%= item?.location || '' %>">
           </div>
 
           <div class="form-group">
-            <label for="price_range">Range Harga</label>
-            <input
-              type="text"
-              id="price_range"
-              name="price_range"
-              value="<%= item?.price_range || '' %>"
-              placeholder="Contoh: 15.000 - 35.000"
-            >
+            <label>Harga</label>
+            <input type="text" name="price_range" value="<%= item?.price_range || '' %>">
           </div>
 
           <div class="form-group">
-            <label for="open_hours">Jam Buka</label>
-            <input
-              type="text"
-              id="open_hours"
-              name="open_hours"
-              value="<%= item?.open_hours || '' %>"
-              placeholder="Contoh: 09.00 - 22.00"
-            >
+            <label>Jam Buka</label>
+            <input type="text" name="open_hours" value="<%= item?.open_hours || '' %>">
           </div>
 
           <div class="form-group">
-            <label for="contact_phone">No. Kontak</label>
-            <input
-              type="text"
-              id="contact_phone"
-              name="contact_phone"
-              value="<%= item?.contact_phone || '' %>"
-              placeholder="Contoh: 0812-xxxx-xxxx"
-            >
+            <label>Kontak</label>
+            <input type="text" name="contact_phone" value="<%= item?.contact_phone || '' %>">
           </div>
 
           <div class="form-group full">
-            <label for="maps_url">Link Google Maps</label>
-            <input
-              type="url"
-              id="maps_url"
-              name="maps_url"
-              value="<%= item?.maps_url || '' %>"
-              placeholder="https://maps.google.com/..."
-            >
+            <label>Maps</label>
+            <input type="url" name="maps_url" value="<%= item?.maps_url || '' %>">
           </div>
 
           <div class="form-group full">
-            <label for="excerpt">Ringkasan Singkat</label>
-            <textarea
-              id="excerpt"
-              name="excerpt"
-              rows="3"
-              placeholder="Ringkasan singkat untuk preview card dan kebutuhan SEO."
-            ><%= item?.excerpt || '' %></textarea>
-            <small class="form-hint">Buat ringkasan singkat, padat, dan menarik untuk preview halaman.</small>
-          </div>
-
-          <div class="form-divider full">Konten Kuliner</div>
-
-          <div class="form-group full">
-            <label for="editor">Deskripsi Lengkap</label>
-            <textarea
-              id="editor"
-              name="content"
-              rows="16"
-              placeholder="Tulis deskripsi lengkap kuliner di sini..."
-              required
-            ><%= item?.content || '' %></textarea>
-            <small class="form-hint">
-              Gunakan toolbar untuk heading, bold, italic, link, list, tabel, dan tambah gambar di tengah artikel.
-            </small>
+            <label>Excerpt</label>
+            <textarea name="excerpt"><%= item?.excerpt || '' %></textarea>
           </div>
 
           <div class="form-group full">
-            <label for="image">Gambar Utama</label>
-
-            <% if (item?.image) { %>
-              <div class="image-preview">
-                <img src="<%= item.image %>" alt="<%= item.title || 'Preview Gambar' %>">
-              </div>
-            <% } %>
-
-            <input type="file" id="image" name="image" accept="image/*">
-            <small class="form-hint">Upload gambar baru jika ingin mengganti gambar sebelumnya.</small>
+            <label>Konten</label>
+            <textarea id="editor" name="content"><%= item?.content || '' %></textarea>
           </div>
 
-          <div class="form-divider full">Panduan Penulisan</div>
-
-          <div class="info-card form-group full">
-            <p><strong>Tips konten kuliner yang bagus:</strong></p>
-            <ul>
-              <li>Tulis pembuka singkat tentang rasa, suasana, dan daya tarik utama kuliner.</li>
-              <li>Gunakan Heading 2 untuk bagian menu favorit, harga, lokasi, dan tips berkunjung.</li>
-              <li>Tambahkan gambar di tengah artikel agar lebih menarik dan lebih enak dibaca.</li>
-              <li>Jelaskan harga, jam buka, dan titik lokasi dengan jelas.</li>
-              <li>Gunakan paragraf pendek agar nyaman dibaca di HP.</li>
-            </ul>
-          </div>
-
-          <div class="form-divider full">Pengaturan SEO</div>
-
+          <!-- 🔥 IMAGE URL -->
           <div class="form-group full">
-            <label for="meta_title">Meta Title</label>
-            <input
-              type="text"
-              id="meta_title"
-              name="meta_title"
-              value="<%= item?.meta_title || '' %>"
-              placeholder="Contoh: Jagung Bakar Berastagi Enak dan Murah | Kuliner Berastagi"
-            >
+            <label>Gambar (URL)</label>
+            <input type="text" id="image" name="image" value="<%= item?.image || '' %>" placeholder="https://..." required>
+
+            <img id="previewImage"
+              src="<%= item?.image || '' %>"
+              style="max-width:200px;margin-top:10px;<%= item?.image ? '' : 'display:none;' %>">
           </div>
 
           <div class="form-group full">
-            <label for="meta_description">Meta Description</label>
-            <textarea
-              id="meta_description"
-              name="meta_description"
-              rows="3"
-              placeholder="Deskripsi singkat untuk tampil di Google."
-            ><%= item?.meta_description || '' %></textarea>
+            <label>Meta Title</label>
+            <input type="text" name="meta_title" value="<%= item?.meta_title || '' %>">
           </div>
 
           <div class="form-group full">
-            <label class="checkbox-label">
-              <input
-                type="checkbox"
-                name="is_featured"
-                value="1"
-                <%= Number(item?.is_featured) === 1 ? "checked" : "" %>
-              >
-              Jadikan kuliner unggulan
+            <label>Meta Description</label>
+            <textarea name="meta_description"><%= item?.meta_description || '' %></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label>
+              <input type="checkbox" name="is_featured" value="1"
+              <%= Number(item?.is_featured) === 1 ? "checked" : "" %>>
+              Featured
             </label>
           </div>
         </div>
 
-        <div class="form-actions">
-          <button type="submit" class="btn-primary">
-            <%= item ? "Update Kuliner" : "Simpan Kuliner" %>
-          </button>
-
-          <a href="/admin/kuliner" class="btn-secondary">Batal</a>
-        </div>
+        <button type="submit">Simpan</button>
       </form>
     </main>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
-  <script>
-    const titleInput = document.getElementById("title");
-    const slugInput = document.getElementById("slug");
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
+<script>
+tinymce.init({
+  selector:"#editor",
+  height:400,
+  menubar:false,
+  plugins:"lists link image code",
+  toolbar:"undo redo | bold italic | bullist numlist | link image | code"
+});
 
-    function makeSlug(text) {
-      return String(text || "")
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
-    }
+// slug
+const title = document.getElementById("title");
+const slug = document.getElementById("slug");
 
-    if (titleInput && slugInput) {
-      titleInput.addEventListener("input", function () {
-        if (!slugInput.dataset.editedManually || !slugInput.value.trim()) {
-          slugInput.value = makeSlug(titleInput.value);
-        }
-      });
+function makeSlug(text){
+  return text.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
 
-      slugInput.addEventListener("input", function () {
-        slugInput.dataset.editedManually = "true";
-      });
-    }
+title.addEventListener("input",()=>{
+  if(!slug.value) slug.value = makeSlug(title.value);
+});
 
-    tinymce.init({
-      selector: "#editor",
-      height: 560,
-      menubar: false,
-      branding: false,
-      promotion: false,
-      plugins: [
-        "advlist",
-        "autolink",
-        "lists",
-        "link",
-        "image",
-        "charmap",
-        "preview",
-        "anchor",
-        "searchreplace",
-        "visualblocks",
-        "code",
-        "fullscreen",
-        "insertdatetime",
-        "media",
-        "table",
-        "wordcount"
-      ],
-      toolbar:
-        "undo redo | blocks | " +
-        "bold italic underline | forecolor backcolor | " +
-        "alignleft aligncenter alignright alignjustify | " +
-        "bullist numlist outdent indent | " +
-        "link image media table | removeformat code preview fullscreen",
-      block_formats: "Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4",
-      content_style: `
-        body {
-          font-family: Arial, Helvetica, sans-serif;
-          font-size: 16px;
-          line-height: 1.75;
-          color: #183124;
-          padding: 16px;
-        }
-        p {
-          margin: 0 0 16px;
-        }
-        h2, h3, h4 {
-          margin: 24px 0 12px;
-          color: #183124;
-          line-height: 1.3;
-        }
-        ul, ol {
-          margin: 0 0 16px;
-          padding-left: 22px;
-        }
-        img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 12px;
-        }
-        a {
-          color: #24593f;
-        }
-      `,
-      image_title: true,
-      automatic_uploads: true,
-      file_picker_types: "image",
-      relative_urls: false,
-      remove_script_host: false,
-      convert_urls: false,
-      paste_data_images: true,
-      image_caption: true,
-      image_advtab: true,
-      images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "/admin/upload-image");
-        xhr.withCredentials = false;
+// preview image
+const imgInput = document.getElementById("image");
+const preview = document.getElementById("previewImage");
 
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            progress((e.loaded / e.total) * 100);
-          }
-        };
+imgInput.addEventListener("input",()=>{
+  const val = imgInput.value.trim();
+  if(val){
+    preview.src = val;
+    preview.style.display="block";
+  } else {
+    preview.style.display="none";
+  }
+});
 
-        xhr.onload = function () {
-          if (xhr.status < 200 || xhr.status >= 300) {
-            reject("HTTP Error: " + xhr.status);
-            return;
-          }
+// validation
+document.querySelector("form").addEventListener("submit",(e)=>{
+  tinymce.triggerSave();
 
-          let json;
-          try {
-            json = JSON.parse(xhr.responseText);
-          } catch (err) {
-            reject("Response upload tidak valid");
-            return;
-          }
+  const titleVal = title.value.trim();
+  const content = document.getElementById("editor").value.trim();
 
-          if (!json || typeof json.location !== "string") {
-            reject("Lokasi gambar tidak ditemukan");
-            return;
-          }
+  if(!titleVal){
+    alert("Judul wajib diisi");
+    e.preventDefault();
+    return;
+  }
 
-          resolve(json.location);
-        };
-
-        xhr.onerror = function () {
-          reject("Upload gambar gagal. Coba lagi.");
-        };
-
-        const formData = new FormData();
-        formData.append("image", blobInfo.blob(), blobInfo.filename());
-        xhr.send(formData);
-      })
-    });
-  </script>
+  if(!content){
+    alert("Konten wajib diisi");
+    e.preventDefault();
+    return;
+  }
+});
+</script>
 </body>
 </html>
