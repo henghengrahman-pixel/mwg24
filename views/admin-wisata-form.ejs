@@ -23,9 +23,11 @@
         id="wisataForm"
         action="/admin/wisata/save"
         method="post"
+        enctype="multipart/form-data"
         class="admin-form"
       >
         <input type="hidden" name="id" value="<%= item?.id || '' %>">
+        <input type="hidden" name="current_image" value="<%= item?.image || '' %>">
 
         <div class="form-grid">
           <div class="form-group full">
@@ -34,7 +36,7 @@
           </div>
 
           <div class="form-group full">
-            <label for="slug">Slug (URL)</label>
+            <label for="slug">Slug</label>
             <input type="text" id="slug" name="slug" value="<%= item?.slug || '' %>">
           </div>
 
@@ -43,122 +45,79 @@
             <textarea id="excerpt" name="excerpt"><%= item?.excerpt || '' %></textarea>
           </div>
 
-          <div class="form-divider full">Konten</div>
-
           <div class="form-group full">
-            <label for="editor">Isi Konten</label>
-            <textarea id="editor" name="content" rows="14"><%= item?.content || '' %></textarea>
+            <label for="editor">Konten</label>
+            <textarea id="editor" name="content"><%= item?.content || '' %></textarea>
           </div>
 
-          <!-- 🔥 FIX IMAGE -->
+          <!-- 🔥 IMAGE FIX -->
           <div class="form-group full">
-            <label for="image">Gambar (URL)</label>
+            <label>Gambar Utama (Upload atau Link)</label>
 
-            <input
-              type="text"
-              id="image"
-              name="image"
-              placeholder="https://domain.com/image.jpg"
-              value="<%= item?.image || '' %>"
-              required
-            >
+            <% if (item?.image) { %>
+              <div class="image-preview">
+                <img src="<%= item.image %>" style="max-width:240px;border-radius:12px;">
+              </div>
+            <% } %>
 
-            <img
-              id="previewImage"
-              src="<%= item?.image || '' %>"
-              style="max-width:240px;margin-top:10px;<%= item?.image ? '' : 'display:none;' %>"
-            >
+            <!-- INPUT LINK -->
+            <input type="text" name="image_url" placeholder="https://cdn.com/gambar.jpg">
+
+            <!-- UPLOAD -->
+            <input type="file" name="image" accept="image/*">
           </div>
 
           <div class="form-group">
-            <label>Lokasi</label>
-            <input type="text" name="location" value="<%= item?.location || '' %>">
+            <input type="text" name="location" value="<%= item?.location || '' %>" placeholder="Lokasi">
           </div>
 
           <div class="form-group">
-            <label>Harga Tiket</label>
-            <input type="text" name="ticket_price" value="<%= item?.ticket_price || '' %>">
+            <input type="text" name="ticket_price" value="<%= item?.ticket_price || '' %>" placeholder="Harga">
           </div>
 
           <div class="form-group">
-            <label>Jam Buka</label>
-            <input type="text" name="open_hours" value="<%= item?.open_hours || '' %>">
+            <input type="text" name="open_hours" value="<%= item?.open_hours || '' %>" placeholder="Jam buka">
           </div>
 
           <div class="form-group">
-            <label>Link Maps</label>
-            <input type="url" name="maps_url" value="<%= item?.maps_url || '' %>">
+            <input type="url" name="maps_url" value="<%= item?.maps_url || '' %>" placeholder="Google Maps">
           </div>
 
           <div class="form-group full">
             <label>
               <input type="checkbox" name="is_featured" value="1"
-                <%= Number(item?.is_featured || 0) === 1 ? "checked" : "" %>>
-              Jadikan unggulan
+              <%= Number(item?.is_featured || 0) === 1 ? "checked" : "" %>>
+              Featured
             </label>
           </div>
 
-          <div class="form-divider full">SEO</div>
-
           <div class="form-group full">
-            <label>Meta Title</label>
-            <input type="text" name="meta_title" value="<%= item?.meta_title || '' %>">
+            <input type="text" name="meta_title" value="<%= item?.meta_title || '' %>" placeholder="Meta title">
           </div>
 
           <div class="form-group full">
-            <label>Meta Description</label>
             <textarea name="meta_description"><%= item?.meta_description || '' %></textarea>
           </div>
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn-primary">
-            <%= item && item.id ? "Update Wisata" : "Simpan Wisata" %>
+          <button type="submit">
+            <%= item && item.id ? "Update" : "Simpan" %>
           </button>
         </div>
       </form>
     </main>
   </div>
 
-  <!-- TinyMCE TANPA UPLOAD -->
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
-  <script>
-    tinymce.init({
-      selector: "#editor",
-      height: 500,
-      menubar: false,
-      plugins: "lists link image table code",
-      toolbar: "undo redo | bold italic | alignleft aligncenter alignright | bullist numlist | link image | code",
-      relative_urls: false,
-      remove_script_host: false,
-      convert_urls: false
-    });
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
+<script>
+tinymce.init({
+  selector: "#editor",
+  height: 500,
+  plugins: "link image table code",
+  toolbar: "undo redo | bold italic | link image | code"
+});
+</script>
 
-    // slug auto
-    const title = document.getElementById("title");
-    const slug = document.getElementById("slug");
-
-    function makeSlug(text) {
-      return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    }
-
-    title.addEventListener("input", () => {
-      if (!slug.value) slug.value = makeSlug(title.value);
-    });
-
-    // preview image
-    const imgInput = document.getElementById("image");
-    const preview = document.getElementById("previewImage");
-
-    imgInput.addEventListener("input", () => {
-      const val = imgInput.value.trim();
-      if (val) {
-        preview.src = val;
-        preview.style.display = "block";
-      } else {
-        preview.style.display = "none";
-      }
-    });
-  </script>
 </body>
 </html>
