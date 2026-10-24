@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+<%- include("partials/header") %>
+<main class="shop-page" id="main-content">
+  <div class="shop-shell">
+    <nav class="shop-breadcrumb" aria-label="Breadcrumb"><a href="/">Beranda</a><span aria-hidden="true">›</span><span>Rekomendasi Belanja</span></nav>
+    <section class="shop-heading" aria-labelledby="shop-title">
+      <div><span class="shop-eyebrow">PILIHAN PRODUK DARI MITRA</span><h1 id="shop-title">Rekomendasi Belanja</h1><p>Jelajahi pilihan fashion, perlengkapan liburan, dan kebutuhan harian dalam satu tempat.</p></div>
+      <div class="shop-heading-icon" aria-hidden="true">🛍️</div>
+    </section>
+    <form class="shop-filters" action="/rekomendasi" method="get" role="search">
+      <label class="shop-search"><span class="sr-only">Cari produk</span><input type="search" name="q" placeholder="Cari nama produk..." value="<%= q %>" maxlength="100"></label>
+      <label><span class="sr-only">Kategori</span><select name="category"><option value="">Semua kategori</option><% categories.forEach(c => { %><option value="<%= c.id %>" <%= categoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %></select></label>
+      <label><span class="sr-only">Marketplace</span><select name="partner"><option value="">Semua marketplace</option><% partners.forEach(pt => { %><option value="<%= pt.id %>" <%= partnerId === pt.id ? 'selected' : '' %>><%= pt.name %></option><% }) %></select></label>
+      <label><span class="sr-only">Urutan</span><select name="sort"><option value="newest" <%= sort === 'newest' ? 'selected' : '' %>>Rekomendasi</option><option value="name" <%= sort === 'name' ? 'selected' : '' %>>Nama A–Z</option><option value="price_asc" <%= sort === 'price_asc' ? 'selected' : '' %>>Harga terendah</option><option value="price_desc" <%= sort === 'price_desc' ? 'selected' : '' %>>Harga tertinggi</option></select></label>
+      <button type="submit" class="shop-filter-submit">Terapkan</button>
+      <% if (q || categoryId || partnerId || sort !== 'newest') { %><a class="shop-reset" href="/rekomendasi">Reset</a><% } %>
+    </form>
+    <div class="shop-results"><h2>Produk Pilihan</h2><span><%= total %> produk ditemukan</span></div>
+    <% if (!products.length) { %><div class="shop-empty"><h2>Belum ada produk yang cocok</h2><p>Coba kata kunci atau kategori lainnya.</p><a href="/rekomendasi">Tampilkan semua produk</a></div><% } %>
+    <div class="shop-grid">
+      <% products.forEach(p => { %>
+      <article class="shop-card">
+        <div class="shop-image-wrap">
+          <% if (p.is_featured) { %><span class="shop-featured">Pilihan</span><% } %>
+          <% if (p.image && /^https:\/\//i.test(p.image)) { %><img src="<%= p.image %>" alt="<%= p.name %>" loading="lazy" decoding="async" width="360" height="360" onerror="this.hidden=true;this.parentElement.classList.add('shop-no-image')"><% } else { %><div class="shop-image-placeholder">Foto produk belum tersedia</div><% } %>
+        </div>
+        <div class="shop-card-body">
+          <div class="shop-meta"><span><%= p.partner_name || 'Marketplace' %></span><% if (p.category_name) { %><span class="shop-dot">·</span><span><%= p.category_name %></span><% } %></div>
+          <h3 title="<%= p.name %>"><%= p.name %></h3>
+          <% if (p.price) { %><p class="shop-price"><%= /^\s*(Rp|IDR)/i.test(String(p.price)) ? p.price : 'Rp' + p.price %></p><% } else { %><p class="shop-price-placeholder">Cek harga di marketplace</p><% } %>
+          <a class="shop-buy" href="/go/<%= p.id %>?p=catalog" target="_blank" rel="sponsored nofollow noopener noreferrer" aria-label="Lihat <%= p.name %> di <%= p.partner_name || 'marketplace' %>">Lihat di <%= p.partner_name || 'Marketplace' %><span aria-hidden="true">↗</span></a>
+        </div>
+      </article>
+      <% }) %>
+    </div>
+    <% if (totalPages > 1) { %><nav class="shop-pagination" aria-label="Halaman katalog"><% for(let n=Math.max(1,page-2);n<=Math.min(totalPages,page+2);n++){ %><a href="/rekomendasi?<%= new URLSearchParams({q:q,category:categoryId||'',partner:partnerId||'',sort:sort,page:n}).toString() %>" aria-current="<%= n === page ? 'page' : 'false' %>"><%= n %></a><% } %></nav><% } %>
+    <p class="shop-disclosure">Transparansi: Beberapa tautan merupakan tautan affiliate. Kami dapat memperoleh komisi dari pembelian melalui tautan tersebut, tanpa biaya tambahan bagi Anda. Harga dan ketersediaan mengikuti marketplace.</p>
+  </div>
+</main>
+<%- include("partials/footer") %>
+</body>
+</html>
