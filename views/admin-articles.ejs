@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+
+    <main class="admin-main">
+      <div class="admin-head">
+        <div>
+          <h1>Kelola Berita</h1>
+          <p class="admin-subtitle">Atur berita terbaru untuk website Wisata Berastagi.</p>
+        </div>
+        <a href="/admin/berita/new" class="btn-primary">Tambah Berita</a>
+      </div>
+
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th style="width: 45%;">Judul</th>
+              <th style="width: 18%;">Kategori</th>
+              <th style="width: 17%;">Slug</th>
+              <th style="width: 20%;">Aksi</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <% if (items && items.length) { %>
+              <% items.forEach(item => { %>
+                <tr>
+                  <td>
+                    <div class="table-title-cell">
+                      <strong><%= item.title %></strong>
+                      <% if (item.excerpt) { %>
+                        <div class="table-muted">
+                          <%= item.excerpt.length > 110 ? item.excerpt.slice(0, 110) + "..." : item.excerpt %>
+                        </div>
+                      <% } %>
+                    </div>
+                  </td>
+
+                  <td>
+                    <span class="status-badge">
+                      <%= item.category || "berita" %>
+                    </span>
+                  </td>
+
+                  <td>
+                    <span class="table-muted"><%= item.slug || "-" %></span>
+                  </td>
+
+                  <td class="actions">
+                    <a href="/admin/berita/edit/<%= item.id %>" class="btn-action btn-edit">Edit</a>
+
+                    <form
+                      action="/admin/berita/delete/<%= item.id %>"
+                      method="post"
+                      onsubmit="return confirm('Hapus berita ini?')"
+                    >
+                      <button type="submit" class="btn-action btn-delete">Hapus</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } else { %>
+              <tr>
+                <td colspan="4">
+                  <div class="empty-state">
+                    <strong>Belum ada berita.</strong>
+                    <p>Silakan tambah berita baru agar tampil di halaman website.</p>
+                  </div>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

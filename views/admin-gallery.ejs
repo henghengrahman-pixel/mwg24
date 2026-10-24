@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+
+    <main class="admin-main">
+      <div class="admin-head">
+        <h1><%= item ? "Edit Galeri" : "Kelola Galeri" %></h1>
+      </div>
+
+      <div class="admin-card">
+        <form action="/admin/gallery/save" method="post" class="admin-form">
+          <input type="hidden" name="id" value="<%= item?.id || '' %>">
+
+          <div class="form-grid">
+            <div class="form-group full">
+              <label>Judul</label>
+              <input type="text" id="title" name="title" value="<%= item?.title || '' %>">
+            </div>
+
+            <div class="form-group full">
+              <label>Slug</label>
+              <input type="text" id="slug" name="slug" value="<%= item?.slug || '' %>">
+            </div>
+
+            <div class="form-group full">
+              <label>Alt Text</label>
+              <input type="text" name="alt_text" value="<%= item?.alt_text || '' %>">
+            </div>
+
+            <div class="form-group full">
+              <label>Caption</label>
+              <textarea name="caption"><%= item?.caption || '' %></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Urutan</label>
+              <input type="number" name="sort_order" value="<%= item?.sort_order ?? 0 %>">
+            </div>
+
+            <div class="form-group">
+              <label>
+                <input type="checkbox" name="is_active" value="1"
+                <%= Number(item?.is_active ?? 1) === 1 ? "checked" : "" %>>
+                Aktif
+              </label>
+            </div>
+
+            <!-- 🔥 IMAGE URL -->
+            <div class="form-group full">
+              <label>Gambar (URL)</label>
+              <input type="text" id="image" name="image" value="<%= item?.image || '' %>" placeholder="https://..." required>
+
+              <img id="previewImage"
+                src="<%= item?.image || '' %>"
+                style="max-width:220px;margin-top:10px;<%= item?.image ? '' : 'display:none;' %>">
+            </div>
+          </div>
+
+          <button type="submit">Simpan</button>
+        </form>
+      </div>
+
+      <!-- LIST -->
+      <div class="admin-card">
+        <% if (!items || !items.length) { %>
+          <p>Belum ada data</p>
+        <% } else { %>
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Foto</th>
+                <th>Judul</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% items.forEach(gal => { %>
+                <tr>
+                  <td>
+                    <img src="<%= gal.image %>" style="width:80px;height:60px;object-fit:cover;">
+                  </td>
+
+                  <td><%= gal.title || "-" %></td>
+
+                  <td>
+                    <%= Number(gal.is_active) === 1 ? "Aktif" : "Nonaktif" %>
+                  </td>
+
+                  <td>
+                    <a href="/admin/gallery/edit/<%= gal.id %>">Edit</a>
+                    <form action="/admin/gallery/delete/<%= gal.id %>" method="post" style="display:inline;">
+                      <button type="submit">Hapus</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </main>
+  </div>
+
+<script>
+// slug
+const title = document.getElementById("title");
+const slug = document.getElementById("slug");
+
+function makeSlug(text){
+  return text.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+if(title){
+  title.addEventListener("input",()=>{
+    if(!slug.value) slug.value = makeSlug(title.value);
+  });
+}
+
+// preview image
+const imgInput = document.getElementById("image");
+const preview = document.getElementById("previewImage");
+
+if(imgInput){
+  imgInput.addEventListener("input",()=>{
+    const val = imgInput.value.trim();
+    if(val){
+      preview.src = val;
+      preview.style.display="block";
+    } else {
+      preview.style.display="none";
+    }
+  });
+}
+</script>
+</body>
+</html>

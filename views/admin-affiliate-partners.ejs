@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+    <main class="admin-main">
+      <h1>Affiliate Partners</h1>
+      <form action="/admin/affiliate/partners/save" method="post">
+        <input type="text" name="name" placeholder="Nama Partner" required>
+        <input type="text" name="type" placeholder="shopee / traveloka / custom">
+        <button type="submit">Tambah Partner</button>
+      </form>
+      <ul>
+        <% items.forEach(i => { %><li><%= i.name %> (<%= i.type %>)</li><% }) %>
+      </ul>
+    </main>
+  </div>
+</body>
+</html>

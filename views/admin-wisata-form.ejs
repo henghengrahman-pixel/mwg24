@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+    <main class="admin-main">
+      <div class="admin-head">
+        <div>
+          <h1><%= item && item.id ? "Edit Wisata" : "Tambah Wisata" %></h1>
+        </div>
+      </div>
+      <% if (typeof error !== "undefined" && error) { %>
+        <div class="alert-error"><%= error %></div>
+      <% } %>
+      <form action="/admin/wisata/save" method="post" class="admin-form">
+        <input type="hidden" name="id" value="<%= item?.id || '' %>">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Judul Wisata</label>
+            <input type="text" name="title" value="<%= item?.title || '' %>" required>
+          </div>
+          <div class="form-group full">
+            <label>Slug</label>
+            <input type="text" name="slug" value="<%= item?.slug || '' %>">
+          </div>
+          <div class="form-group full">
+            <label>Konten</label>
+            <textarea name="content" rows="10"><%= item?.content || '' %></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Gambar Utama (HTTPS URL)</label>
+            <input type="url" name="image" value="<%= item?.image || '' %>" placeholder="https://example.com/foto.webp">
+            <% if (item?.image) { %>
+              <img src="<%= item.image %>" style="max-width:200px;margin-top:8px;border-radius:8px;" onerror="this.style.display='none'">
+            <% } %>
+          </div>
+          <div class="form-group full">
+            <label>Galeri (satu URL per baris atau dipisah koma)</label>
+            <textarea name="images" rows="4" placeholder="https://...&#10;https://..."><%= (item && item.images) ? (typeof item.images === 'string' ? JSON.parse(item.images||'[]').join('\n') : '') : '' %></textarea>
+          </div>
+          <div class="form-group">
+            <label>Lokasi</label>
+            <input type="text" name="location" value="<%= item?.location || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Harga Tiket</label>
+            <input type="text" name="ticket_price" value="<%= item?.ticket_price || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Jam Buka</label>
+            <input type="text" name="open_hours" value="<%= item?.open_hours || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Google Maps URL</label>
+            <input type="url" name="maps_url" value="<%= item?.maps_url || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select name="status">
+              <option value="publish" <%= item?.status === 'publish' ? 'selected' : '' %>>Publish</option>
+              <option value="draft" <%= item?.status === 'draft' ? 'selected' : '' %>>Draft</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label><input type="checkbox" name="is_featured" value="1" <%= Number(item?.is_featured||0)===1 ? 'checked' : '' %>> Featured</label>
+          </div>
+          <div class="form-group full">
+            <label>Meta Title</label>
+            <input type="text" name="meta_title" value="<%= item?.meta_title || '' %>">
+          </div>
+          <div class="form-group full">
+            <label>Meta Description</label>
+            <textarea name="meta_description"><%= item?.meta_description || '' %></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit"><%= item && item.id ? "Update" : "Simpan" %></button>
+        </div>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
