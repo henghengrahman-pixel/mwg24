@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+  <div class="admin-layout">
+    <%- include("partials/admin-sidebar") %>
+
+    <main class="admin-main">
+      <div class="admin-head">
+        <h1><%= item && item.id ? "Edit Berita" : "Tambah Berita" %></h1>
+      </div>
+
+      <form id="articleForm" action="/admin/berita/save" method="post" class="admin-form">
+<input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="id" value="<%= item?.id || '' %>">
+
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Judul</label>
+            <input type="text" id="title" name="title" value="<%= item?.title || '' %>" required>
+          </div>
+
+          <div class="form-group full">
+            <label>Slug</label>
+            <input type="text" id="slug" name="slug" value="<%= item?.slug || '' %>">
+          </div>
+
+          <div class="form-group full">
+            <label>Galeri (satu URL per baris)</label>
+            <textarea name="images" rows="4" placeholder="https://...&#10;https://..."><%= (item && item.images) ? (typeof item.images === 'string' ? JSON.parse(item.images||'[]').join('\n') : '') : '' %></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Kategori</label>
+            <select name="category">
+              <option value="berita" <%= item?.category==="berita"?"selected":"" %>>Berita</option>
+              <option value="wisata" <%= item?.category==="wisata"?"selected":"" %>>Wisata</option>
+              <option value="kuliner" <%= item?.category==="kuliner"?"selected":"" %>>Kuliner</option>
+              <option value="tips" <%= item?.category==="tips"?"selected":"" %>>Tips</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Tanggal</label>
+            <input type="datetime-local" name="published_at"
+              value="<%= item?.published_at ? String(item.published_at).replace(' ', 'T').slice(0,16) : '' %>">
+          </div>
+
+          <div class="form-group full">
+            <label>Excerpt</label>
+            <textarea name="excerpt"><%= item?.excerpt || '' %></textarea>
+          </div>
+
+          <div class="form-group full">
+            <label>Konten</label>
+            <textarea id="editor" name="content"><%= item?.content || '' %></textarea>
+          </div>
+
+          <!-- 🔥 IMAGE URL -->
+          <div class="form-group full">
+            <label>Gambar (URL)</label>
+            <input type="text" id="image" name="image" value="<%= item?.image || '' %>" placeholder="https://..." required>
+
+            <img id="previewImage"
+              src="<%= item?.image || '' %>"
+              style="max-width:220px;margin-top:10px;<%= item?.image ? '' : 'display:none;' %>">
+          </div>
+
+          <div class="form-group full">
+            <label>Meta Title</label>
+            <input type="text" name="meta_title" value="<%= item?.meta_title || '' %>">
+          </div>
+
+          <div class="form-group full">
+            <label>Meta Description</label>
+            <textarea name="meta_description"><%= item?.meta_description || '' %></textarea>
+          </div>
+        </div>
+
+        <button type="submit">Simpan</button>
+      </form>
+    </main>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6/tinymce.min.js"></script>
+<script>
+tinymce.init({
+  selector:"#editor",
+  height:450,
+  menubar:false,
+  plugins:"lists link image code",
+  toolbar:"undo redo | bold italic | bullist numlist | link image | code"
+});
+
+// slug
+const title = document.getElementById("title");
+const slug = document.getElementById("slug");
+
+function makeSlug(text){
+  return text.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+title.addEventListener("input",()=>{
+  if(!slug.value) slug.value = makeSlug(title.value);
+});
+
+// preview image
+const imgInput = document.getElementById("image");
+const preview = document.getElementById("previewImage");
+
+imgInput.addEventListener("input",()=>{
+  const val = imgInput.value.trim();
+  if(val){
+    preview.src = val;
+    preview.style.display="block";
+  } else {
+    preview.style.display="none";
+  }
+});
+
+// validation
+document.getElementById("articleForm").addEventListener("submit",(e)=>{
+  tinymce.triggerSave();
+
+  const titleVal = title.value.trim();
+  const content = document.getElementById("editor").value.trim();
+
+  if(!titleVal){
+    alert("Judul wajib diisi");
+    e.preventDefault();
+    return;
+  }
+
+  if(!content){
+    alert("Konten wajib diisi");
+    e.preventDefault();
+    return;
+  }
+
+  if(slug.value){
+    slug.value = makeSlug(slug.value);
+  }
+});
+</script>
+</body>
+</html>
