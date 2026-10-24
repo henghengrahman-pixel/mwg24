@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body class="admin-page">
+<div class="admin-layout">
+<%- include("partials/admin-sidebar") %>
+<main class="admin-main">
+  <header class="admin-head"><div><p class="admin-kicker">MWG24 / ADMIN</p><h1>Kelola Produk Affiliate</h1><p class="admin-subtitle">Kelola data website secara langsung dari database.</p></div><a class="admin-view-site" href="/rekomendasi" target="_blank" rel="noopener noreferrer">Lihat katalog ↗</a></header>
+<section class="admin-panel"><div class="admin-panel-title"><h2><%= item ? 'Edit Produk' : 'Tambah Produk' %></h2><a href="/admin/affiliate/products">Form baru</a></div>
+<form class="admin-form admin-editor" method="post" action="/admin/affiliate/products/save"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= item?.id || '' %>">
+<div class="admin-fields">
+<label>Nama produk *<input required maxlength="180" name="name" value="<%= item?.name || '' %>"></label>
+<label>Slug SEO<input name="slug" value="<%= item?.slug || '' %>"></label>
+<label class="wide">Deskripsi<textarea name="description" rows="4"><%= item?.description || '' %></textarea></label>
+<label>URL affiliate HTTPS *<input type="url" required name="affiliate_url" value="<%= item?.affiliate_url || '' %>" placeholder="https://..."></label>
+<label>Harga tampil<input name="price" value="<%= item?.price || '' %>" placeholder="Contoh: Rp 150.000"></label>
+<label>Partner<select name="partner_id"><option value="">Tanpa partner</option><% partners.forEach(x=>{ %><option value="<%= x.id %>" <%= Number(item?.partner_id)===x.id?'selected':'' %>><%= x.name %></option><% }) %></select></label>
+<label>Kategori<select name="category_id"><option value="">Tanpa kategori</option><% categories.forEach(x=>{ %><option value="<%= x.id %>" <%= Number(item?.category_id)===x.id?'selected':'' %>><%= x.name %></option><% }) %></select></label>
+<label class="wide">Gambar utama (URL HTTPS)<input type="url" name="image" data-preview="product-preview" value="<%= item?.image || '' %>" placeholder="https://..."><img id="product-preview" class="admin-image-preview" alt="Pratinjau gambar produk" hidden></label>
+<label class="wide">Galeri gambar (satu URL per baris)<textarea name="images" rows="3"><%= (()=>{try{return JSON.parse(item?.images||'[]').join('\n')}catch{return ''}})() %></textarea></label>
+<label>Meta title<input name="meta_title" value="<%= item?.meta_title || '' %>"></label>
+<label>Meta description<textarea name="meta_description"><%= item?.meta_description || '' %></textarea></label>
+</div><div class="admin-checks"><label><input type="checkbox" name="is_active" value="1" <%= (item?.is_active ?? 1)?'checked':'' %>> Aktif</label><label><input type="checkbox" name="is_featured" value="1" <%= item?.is_featured?'checked':'' %>> Unggulan</label></div>
+<div class="admin-actions"><button type="submit">Simpan Produk</button><a href="/admin/affiliate/products">Batal</a></div></form></section>
+<section class="admin-panel"><div class="admin-panel-title"><h2>Daftar Produk (<%= items.length %>)</h2><input class="admin-search" type="search" placeholder="Cari produk..." oninput="document.querySelectorAll('#product-rows tr').forEach(x=>x.hidden=!x.textContent.toLowerCase().includes(this.value.toLowerCase()))"></div>
+<div class="admin-table-scroll"><table class="admin-table"><thead><tr><th>Produk</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="product-rows"><% items.forEach(x=>{ %><tr><td><div class="admin-product-cell"><% if(x.image){ %><img loading="lazy" alt="" src="<%= x.image %>"><% } %><div><strong><%= x.name %></strong><small><%= x.slug %></small></div></div></td><td><%= x.price||'—' %></td><td><span class="admin-status <%= x.is_active?'on':'off' %>"><%= x.is_active?'Aktif':'Nonaktif' %></span></td><td class="admin-row-actions"><a href="/admin/affiliate/products/edit/<%= x.id %>">Edit</a><form method="post" action="/admin/affiliate/products/archive/<%= x.id %>" onsubmit="return confirm('Nonaktifkan produk ini?')"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="admin-danger" <%= x.is_active?'':'disabled' %>>Arsip</button></form></td></tr><% }) %></tbody></table></div><% if(!items.length){ %><p>Belum ada produk. Tambahkan produk pada formulir di atas.</p><% } %></section>
+</main></div>
+<script>document.querySelectorAll('input[type=url][data-preview]').forEach(el=>{const img=document.getElementById(el.dataset.preview);if(!img)return;const update=()=>{const valid=/^https:\/\//i.test(el.value);img.hidden=!valid;if(valid)img.src=el.value;};el.addEventListener('input',update);img.addEventListener('error',()=>img.hidden=true);update();});</script>
+</body></html>

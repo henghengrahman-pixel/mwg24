@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include("partials/head") %>
+<body>
+  <%- include("partials/header") %>
+
+  <section class="page-hero small">
+    <div class="container">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Beranda</a>
+        <span>/</span>
+        <span>Galeri</span>
+      </nav>
+
+      <span class="eyebrow">Galeri Wisata</span>
+      <h1>Galeri Keindahan Berastagi</h1>
+      <p>
+        Jelajahi kumpulan foto pilihan yang menampilkan panorama alam, destinasi wisata populer,
+        suasana kota, dan pesona terbaik dari Berastagi, Kabupaten Karo.
+      </p>
+    </div>
+  </section>
+
+  <section class="section container">
+    <div class="intro-box reveal">
+      <span class="eyebrow">Foto Pilihan</span>
+      <h2>Galeri Foto Berastagi yang Menampilkan Panorama dan Suasana Liburan</h2>
+      <p>
+        Halaman galeri ini berisi kumpulan foto terbaik Berastagi yang memperlihatkan
+        keindahan alam, udara sejuk dataran tinggi, tempat wisata populer, serta suasana
+        liburan yang membuat Berastagi selalu menarik untuk dikunjungi.
+      </p>
+      <p>
+        Melalui galeri ini, pengunjung bisa mendapatkan gambaran visual tentang tempat wisata,
+        sudut kota, pemandangan pegunungan, dan berbagai momen menarik yang ada di Berastagi.
+      </p>
+    </div>
+  </section>
+
+  <section class="section home-gallery-section" id="galeri-page">
+    <div class="container">
+      <div class="section-head gallery-head">
+        <div>
+          <span class="eyebrow">Galeri Berastagi</span>
+          <h2 class="section-title">Momen dan Panorama Terbaik Berastagi</h2>
+          <div class="section-divider"></div>
+          <p class="gallery-subtext">
+            Setiap foto di halaman ini menggambarkan daya tarik Berastagi yang terkenal dengan udara sejuk,
+            pemandangan pegunungan, wisata alam, dan suasana liburan yang nyaman.
+          </p>
+        </div>
+
+        <a href="/" class="text-link">Kembali ke beranda</a>
+      </div>
+
+      <% if (items && items.length) { %>
+        <div class="premium-gallery-grid">
+          <% items.forEach((item, index) => { %>
+            <article
+              class="premium-gallery-card reveal <%= index === 0 ? 'large' : '' %>"
+              data-gallery-item
+              data-gallery-image="<%= item.image || '/images/wisata-berastagi-cover.jpg' %>"
+              data-gallery-title="<%= item.title || 'Galeri Berastagi' %>"
+              data-gallery-caption="<%= item.caption || '' %>"
+              data-gallery-alt="<%= item.alt_text || item.title || 'Galeri Berastagi' %>"
+            >
+              <div class="premium-gallery-media">
+                <img
+                  src="<%= item.image || '/images/wisata-berastagi-cover.jpg' %>"
+                  alt="<%= item.alt_text || item.title || 'Galeri Berastagi' %>"
+                  loading="lazy"
+                />
+              </div>
+
+              <div class="premium-gallery-overlay">
+                <div class="premium-gallery-text">
+                  <h3><%= item.title || "Keindahan Berastagi" %></h3>
+                  <% if (item.caption) { %>
+                    <p><%= item.caption %></p>
+                  <% } %>
+                </div>
+
+                <button type="button" class="gallery-zoom-btn" aria-label="Lihat foto galeri">
+                  Lihat Foto
+                </button>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state reveal">
+          <strong>Galeri belum tersedia</strong>
+          <p>Foto galeri akan tampil di sini setelah ditambahkan dari panel admin.</p>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <% if (items && items.length) { %>
+    <div class="gallery-lightbox" id="galleryLightbox" aria-hidden="true">
+      <div class="gallery-lightbox-backdrop" data-lightbox-close></div>
+
+      <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Galeri Berastagi">
+        <button type="button" class="gallery-lightbox-close" data-lightbox-close aria-label="Tutup galeri">
+          &times;
+        </button>
+
+        <div class="gallery-lightbox-image-wrap">
+          <img id="galleryLightboxImage" src="" alt="">
+        </div>
+
+        <div class="gallery-lightbox-content">
+          <h3 id="galleryLightboxTitle">Galeri Berastagi</h3>
+          <p id="galleryLightboxCaption"></p>
+        </div>
+      </div>
+    </div>
+  <% } %>
+
+  <section class="section section-muted">
+    <div class="container">
+      <div class="intro-box reveal">
+        <span class="eyebrow">Jelajahi Berastagi</span>
+        <h2>Lihat Galeri, Cari Wisata, Kuliner, dan Penginapan Berastagi</h2>
+        <p>
+          Selain melihat <strong>galeri foto Berastagi</strong>, kamu juga bisa menjelajahi
+          <a href="/wisata">tempat wisata di Berastagi</a>,
+          <a href="/villa">villa dan hotel di Berastagi</a>,
+          <a href="/kuliner">kuliner Berastagi</a>, dan
+          <a href="/berita">berita wisata terbaru</a>
+          agar informasi liburan kamu lebih lengkap.
+        </p>
+
+        <div class="detail-quick-links">
+          <a href="/wisata">Tempat Wisata Berastagi</a>
+          <a href="/villa">Villa &amp; Hotel Berastagi</a>
+          <a href="/kuliner">Kuliner Berastagi</a>
+          <a href="/berita">Berita Wisata</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="container">
+      <div class="intro-box reveal">
+        <span class="eyebrow">Pertanyaan Umum</span>
+        <h2>FAQ Galeri Berastagi</h2>
+
+        <div class="faq-list">
+          <div class="faq-item">
+            <h3>Apa yang ditampilkan di galeri Berastagi ini?</h3>
+            <p>
+              Galeri ini menampilkan foto-foto pilihan tentang panorama alam, destinasi wisata,
+              suasana kota, dan berbagai sudut menarik dari Berastagi.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apakah galeri ini cocok untuk melihat referensi tempat wisata?</h3>
+            <p>
+              Ya, galeri ini cocok untuk pengunjung yang ingin melihat gambaran visual sebelum
+              berkunjung ke Berastagi atau memilih destinasi wisata tertentu.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Apakah website ini juga punya info wisata dan penginapan?</h3>
+            <p>
+              Ya, selain galeri foto, website ini juga menyediakan informasi tempat wisata,
+              villa, hotel, kuliner, dan berita wisata Berastagi.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Bagaimana cara melihat detail tempat wisata di Berastagi?</h3>
+            <p>
+              Kamu bisa membuka kategori wisata, kuliner, villa, atau berita melalui menu utama
+              website ini untuk melihat informasi yang lebih lengkap.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%- include("partials/footer", { settings }) %>
+</body>
+</html>
