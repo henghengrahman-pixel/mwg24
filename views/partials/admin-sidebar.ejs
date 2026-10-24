@@ -1,0 +1,51 @@
+<aside class="admin-sidebar">
+  <h2>Admin Panel</h2>
+
+  <a href="/admin" class="<%= (path || '') === '/admin' ? 'active' : '' %>">
+    Dashboard
+  </a>
+
+  <a href="/admin/wisata" class="<%= (path || '').startsWith('/admin/wisata') ? 'active' : '' %>">
+    Kelola Wisata
+  </a>
+
+  <a href="/admin/villa" class="<%= (path || '').startsWith('/admin/villa') ? 'active' : '' %>">
+    Kelola Villa
+  </a>
+
+  <a href="/admin/kuliner" class="<%= (path || '').startsWith('/admin/kuliner') ? 'active' : '' %>">
+    Kelola Kuliner
+  </a>
+
+  <a href="/admin/berita" class="<%= (path || '').startsWith('/admin/berita') || (path || '').startsWith('/admin/articles') ? 'active' : '' %>">
+    Kelola Berita
+  </a>
+
+  <a href="/admin/gallery" class="<%= (path || '').startsWith('/admin/gallery') ? 'active' : '' %>">
+    Kelola Galeri
+  </a>
+
+  <a href="/admin/comments" class="<%= (path || '').startsWith('/admin/comments') ? 'active' : '' %>">
+    Komentar
+  </a>
+
+  <a href="/admin/settings" class="<%= (path || '').startsWith('/admin/settings') ? 'active' : '' %>">
+    Pengaturan
+  </a>
+
+    <div class="sidebar-section">
+      <h3>AFFILIATE</h3>
+      <a href="/admin/affiliate">Overview</a>
+      <a href="/admin/affiliate/products">Products</a>
+      <a href="/admin/affiliate/partners">Partners</a>
+      <a href="/admin/affiliate/categories">Categories</a>
+      <a href="/admin/affiliate/placements">Placements</a>
+      <a href="/admin/affiliate/campaigns">Campaigns</a>
+      <a href="/admin/affiliate/clicks">Click Analytics</a>
+      <a href="/admin/affiliate/conversions">Conversions</a>
+      <a href="/rekomendasi" target="_blank" rel="noopener">Public Catalog</a>
+    </div>
+  <a href="/admin/logout">
+    Logout
+  </a>
+</aside>

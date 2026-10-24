@@ -1,0 +1,370 @@
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- META ADSENSE -->
+  <meta name="google-adsense-account" content="ca-pub-8313404846350628">
+
+  <!-- SEO / BASIC -->
+  <%
+    const safeSettings = settings || {};
+    const safeSeo = seo || {};
+
+    const normalizedBaseUrl = String(baseUrl || "").replace(/\/+$/, "");
+    const currentPath = String(path || "/") || "/";
+    const siteName = safeSettings.site_name || "Wisata Berastagi";
+    const siteLanguage = "id-ID";
+    const siteLocale = "id_ID";
+
+    const defaultTitle =
+      safeSettings.homepage_meta_title ||
+      "Wisata Berastagi Terlengkap – Tempat Wisata, Villa, Hotel, Kuliner & Panduan Liburan";
+
+    const defaultDescription =
+      safeSettings.homepage_meta_description ||
+      "Panduan wisata Berastagi terlengkap untuk menemukan tempat wisata populer, villa dan hotel terbaik, kuliner khas Karo, berita terbaru, serta tips liburan ke Berastagi Kabupaten Karo Sumatera Utara.";
+
+    const defaultKeywords =
+      "wisata berastagi, tempat wisata berastagi, villa berastagi, hotel berastagi, kuliner berastagi, liburan berastagi, wisata karo, tempat wisata karo, berita berastagi, penginapan berastagi, wisata sumatera utara, wisata kabupaten karo";
+
+    const pageTitle = String(safeSeo.title || defaultTitle).trim();
+    const pageDescription = String(safeSeo.description || defaultDescription).trim();
+    const pageKeywords = String(safeSeo.keywords || defaultKeywords).trim();
+    const pageType = String(safeSeo.type || "website").trim();
+    const noindex = !!safeSeo.noindex;
+
+    function normalizeFullUrl(url = "") {
+      return String(url || "").replace(/([^:]\/)\/+/g, "$1");
+    }
+
+    function makeAbsoluteUrl(input = "") {
+      const raw = String(input || "").trim();
+      if (!raw) return `${normalizedBaseUrl}/images/wisata-berastagi-cover.jpg`;
+      if (/^https?:\/\//i.test(raw)) return raw;
+      if (raw.startsWith("/")) return `${normalizedBaseUrl}${raw}`;
+      return `${normalizedBaseUrl}/${raw}`;
+    }
+
+    const canonicalUrlRaw =
+      safeSeo.canonical ||
+      canonical ||
+      `${normalizedBaseUrl}${currentPath.startsWith("/") ? currentPath : "/" + currentPath}`;
+
+    const canonicalUrl = normalizeFullUrl(canonicalUrlRaw);
+
+    const rawImage =
+      safeSeo.image ||
+      safeSettings.hero_background ||
+      safeSettings.logo ||
+      "/images/wisata-berastagi-cover.jpg";
+
+    const imageUrl = normalizeFullUrl(makeAbsoluteUrl(rawImage));
+
+    const organizationLogo = normalizeFullUrl(
+      makeAbsoluteUrl(safeSettings.logo || rawImage || "/images/wisata-berastagi-cover.jpg")
+    );
+
+    const publishedTime = safeSeo.publishedTime || safeSeo.published_time || null;
+    const modifiedTime = safeSeo.modifiedTime || safeSeo.updatedTime || safeSeo.modified_time || null;
+    const section = safeSeo.section || null;
+    const tags = Array.isArray(safeSeo.tags) ? safeSeo.tags : [];
+    const twitterSite = safeSeo.twitterSite || "";
+    const twitterCreator = safeSeo.twitterCreator || "";
+
+    const autoBreadcrumbCategory = String(breadcrumbCategory || "").trim();
+    const autoBreadcrumbCategorySlug = String(breadcrumbCategorySlug || "").trim();
+
+    function normalizeJsonLdToGraph(input) {
+      if (!input) return [];
+
+      try {
+        const parsed = typeof input === "string" ? JSON.parse(input) : input;
+
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && Array.isArray(parsed["@graph"])) return parsed["@graph"];
+        if (parsed && typeof parsed === "object") return [parsed];
+
+        return [];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    function toListItem(item, index) {
+      if (!item) return null;
+
+      if (item["@type"] === "ListItem") {
+        return {
+          "@type": "ListItem",
+          "position": item.position || index + 1,
+          "name": item.name || "",
+          "item": item.item || item.url || ""
+        };
+      }
+
+      const name = item.name || item.title || item.label || "";
+      const url = item.item || item.url || item.link || "";
+
+      if (!name || !url) return null;
+
+      return {
+        "@type": "ListItem",
+        "position": index + 1,
+        "name": name,
+        "item": url
+      };
+    }
+
+    let breadcrumbItems = [];
+
+    if (Array.isArray(safeSeo.breadcrumbs) && safeSeo.breadcrumbs.length > 0) {
+      breadcrumbItems = safeSeo.breadcrumbs
+        .map((item, index) => toListItem(item, index))
+        .filter(Boolean);
+    } else {
+      breadcrumbItems.push({
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Beranda",
+        "item": `${normalizedBaseUrl}/`
+      });
+
+      if (autoBreadcrumbCategory && autoBreadcrumbCategorySlug) {
+        breadcrumbItems.push({
+          "@type": "ListItem",
+          "position": 2,
+          "name": autoBreadcrumbCategory,
+          "item": `${normalizedBaseUrl}/${autoBreadcrumbCategorySlug}`
+        });
+
+        if (currentPath !== `/${autoBreadcrumbCategorySlug}`) {
+          breadcrumbItems.push({
+            "@type": "ListItem",
+            "position": 3,
+            "name": pageTitle,
+            "item": canonicalUrl
+          });
+        }
+      } else if (currentPath !== "/") {
+        breadcrumbItems.push({
+          "@type": "ListItem",
+          "position": 2,
+          "name": pageTitle,
+          "item": canonicalUrl
+        });
+      }
+    }
+
+    breadcrumbItems = breadcrumbItems
+      .filter(item => item && item.name && item.item)
+      .map((item, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "name": item.name,
+        "item": item.item
+      }));
+
+    let customGraph = normalizeJsonLdToGraph(safeSeo.jsonLd).filter(node => node && typeof node === "object");
+
+    customGraph = customGraph.filter((node) => node["@type"] !== "BreadcrumbList");
+
+    customGraph = customGraph.map((node) => {
+      if (node["@type"] === "WebPage" || node["@type"] === "CollectionPage") {
+        return {
+          ...node,
+          "@id": `${canonicalUrl}#webpage`,
+          url: canonicalUrl,
+          breadcrumb: breadcrumbItems.length
+            ? { "@id": `${canonicalUrl}#breadcrumb` }
+            : undefined
+        };
+      }
+
+      return node;
+    });
+
+    const hasCustomWebsite = customGraph.some((node) => node["@type"] === "WebSite");
+    const hasCustomOrganization = customGraph.some((node) => node["@type"] === "Organization");
+    const hasCustomWebPage = customGraph.some((node) => node["@type"] === "WebPage" || node["@type"] === "CollectionPage");
+
+    const schemaGraph = [];
+
+    if (!hasCustomWebsite) {
+      schemaGraph.push({
+        "@type": "WebSite",
+        "@id": `${normalizedBaseUrl}/#website`,
+        "url": `${normalizedBaseUrl}/`,
+        "name": siteName,
+        "alternateName": "Portal Wisata Berastagi",
+        "description": defaultDescription,
+        "inLanguage": siteLanguage,
+        "publisher": {
+          "@id": `${normalizedBaseUrl}/#organization`
+        },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": `${normalizedBaseUrl}/cari?q={search_term_string}`,
+          "query-input": "required name=search_term_string"
+        }
+      });
+    }
+
+    if (!hasCustomOrganization) {
+      schemaGraph.push({
+        "@type": "Organization",
+        "@id": `${normalizedBaseUrl}/#organization`,
+        "name": siteName,
+        "url": `${normalizedBaseUrl}/`,
+        "logo": {
+          "@type": "ImageObject",
+          "url": organizationLogo
+        },
+        "image": organizationLogo
+      });
+    }
+
+    if (!hasCustomWebPage) {
+      schemaGraph.push({
+        "@type": "WebPage",
+        "@id": `${canonicalUrl}#webpage`,
+        "url": canonicalUrl,
+        "name": pageTitle,
+        "headline": pageTitle,
+        "description": pageDescription,
+        "inLanguage": siteLanguage,
+        "isPartOf": {
+          "@id": `${normalizedBaseUrl}/#website`
+        },
+        "about": {
+          "@id": `${normalizedBaseUrl}/#organization`
+        },
+        "primaryImageOfPage": {
+          "@type": "ImageObject",
+          "url": imageUrl
+        },
+        "breadcrumb": breadcrumbItems.length
+          ? { "@id": `${canonicalUrl}#breadcrumb` }
+          : undefined
+      });
+    }
+
+    if (breadcrumbItems.length > 0) {
+      schemaGraph.push({
+        "@type": "BreadcrumbList",
+        "@id": `${canonicalUrl}#breadcrumb`,
+        "itemListElement": breadcrumbItems
+      });
+    }
+
+    schemaGraph.push(...customGraph);
+
+    const finalJsonLd = JSON.stringify(
+      {
+        "@context": "https://schema.org",
+        "@graph": schemaGraph
+      },
+      null,
+      2
+    );
+  %>
+
+  <title><%= pageTitle %></title>
+  <meta name="description" content="<%= pageDescription %>">
+  <meta name="keywords" content="<%= pageKeywords %>">
+  <meta name="author" content="<%= siteName %>">
+  <meta name="theme-color" content="#1e5b3a">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="robots" content="<%= noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' %>">
+  <meta name="googlebot" content="<%= noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' %>">
+
+  <link rel="canonical" href="<%= canonicalUrl %>">
+
+  <!-- Favicon -->
+  <link rel="icon" href="/favicon/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon/favicon-48x48.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/favicon/favicon-64x64.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon/favicon-180x180.png">
+
+  <!-- FONT -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- PERFORMANCE -->
+  <% if (normalizedBaseUrl) { %>
+    <link rel="preconnect" href="<%= normalizedBaseUrl %>" crossorigin>
+    <link rel="dns-prefetch" href="<%= normalizedBaseUrl %>">
+  <% } %>
+
+  <!-- Open Graph -->
+  <meta property="og:locale" content="<%= siteLocale %>">
+  <meta property="og:site_name" content="<%= siteName %>">
+  <meta property="og:title" content="<%= pageTitle %>">
+  <meta property="og:description" content="<%= pageDescription %>">
+  <meta property="og:type" content="<%= pageType %>">
+  <meta property="og:url" content="<%= canonicalUrl %>">
+  <meta property="og:image" content="<%= imageUrl %>">
+  <meta property="og:image:secure_url" content="<%= imageUrl %>">
+  <meta property="og:image:alt" content="<%= pageTitle %>">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <% if (publishedTime) { %>
+    <meta property="article:published_time" content="<%= publishedTime %>">
+  <% } %>
+  <% if (modifiedTime) { %>
+    <meta property="article:modified_time" content="<%= modifiedTime %>">
+  <% } %>
+  <% if (section) { %>
+    <meta property="article:section" content="<%= section %>">
+  <% } %>
+  <% tags.forEach(tag => { %>
+    <meta property="article:tag" content="<%= tag %>">
+  <% }) %>
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= pageTitle %>">
+  <meta name="twitter:description" content="<%= pageDescription %>">
+  <meta name="twitter:image" content="<%= imageUrl %>">
+  <meta name="twitter:image:alt" content="<%= pageTitle %>">
+  <meta name="twitter:url" content="<%= canonicalUrl %>">
+  <% if (twitterSite) { %>
+    <meta name="twitter:site" content="<%= twitterSite %>">
+  <% } %>
+  <% if (twitterCreator) { %>
+    <meta name="twitter:creator" content="<%= twitterCreator %>">
+  <% } %>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- JS -->
+  <script defer src="/js/main.js"></script>
+
+  <!-- Google Tag Manager / GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-11QT8Y3MC6"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-11QT8Y3MC6');
+  </script>
+
+  <!-- Google AdSense -->
+  <script
+    async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8313404846350628"
+    crossorigin="anonymous"></script>
+
+  <!-- Schema -->
+  <script type="application/ld+json"><%- finalJsonLd %></script>
+</head>
