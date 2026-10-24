@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include('partials/head') %>
+<body>
+<%- include('partials/header') %>
+<main id="main-content" class="shop-page shop-detail-page">
+ <div class="shop-shell">
+  <nav class="shop-breadcrumb" aria-label="Breadcrumb"><a href="/">Beranda</a><span>›</span><a href="/rekomendasi">Rekomendasi Belanja</a><span>›</span><span><%= item.name %></span></nav>
+  <div class="shop-detail-layout">
+   <section class="shop-detail-gallery" aria-label="Galeri foto produk">
+    <div class="shop-detail-main-image">
+     <% if (gallery.length) { %><img id="shop-detail-photo" src="<%= gallery[0] %>" alt="<%= item.name %>" width="720" height="720" fetchpriority="high" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div class="shop-detail-placeholder" hidden>Gambar tidak tersedia</div><% } else { %><div class="shop-detail-placeholder">Gambar produk belum tersedia</div><% } %>
+    </div>
+    <% if (gallery.length > 1) { %><div class="shop-detail-thumbnails" aria-label="Pilih gambar produk">
+      <% gallery.forEach((image,i)=>{ %><button type="button" class="shop-detail-thumb <%= i===0?'is-selected':'' %>" data-photo="<%= image %>" data-alt="<%= item.name %> - foto <%= i+1 %>" aria-label="Lihat foto ke-<%= i+1 %>" aria-pressed="<%= i===0?'true':'false' %>"><img src="<%= image %>" alt="" width="90" height="90" loading="lazy" onerror="this.hidden=true"></button><% }) %>
+    </div><% } %>
+   </section>
+   <article class="shop-detail-info">
+    <p class="shop-detail-eyebrow"><%= item.category_name || 'Rekomendasi Belanja' %> · <%= item.partner_name || 'Marketplace' %></p>
+    <h1><%= item.name %></h1>
+    <% if(item.price) { %><p class="shop-detail-price"><%= /^\s*(Rp|IDR)/i.test(String(item.price)) ? item.price : 'Rp'+item.price %></p><p class="shop-detail-note">Harga dapat berubah mengikuti marketplace.</p><% } else { %><p class="shop-detail-price-note">Cek harga terbaru di marketplace</p><% } %>
+    <div class="shop-detail-cta"><a class="shop-buy" href="/go/<%= item.id %>?p=detail" target="_blank" rel="sponsored nofollow noopener noreferrer">Beli di <%= item.partner_name || 'Marketplace' %> <span aria-hidden="true">↗</span></a></div>
+    <p class="shop-detail-disclaimer">Anda akan diarahkan ke marketplace mitra untuk memeriksa harga, ukuran, ketersediaan, dan menyelesaikan transaksi.</p>
+    <section class="shop-detail-description"><h2>Deskripsi Produk</h2><div class="shop-detail-copy"><%= item.description || 'Informasi produk tersedia di marketplace.' %></div></section>
+   </article>
+  </div>
+  <section class="shop-detail-related"><div class="shop-related-heading"><div><p class="shop-detail-eyebrow">PILIHAN LAIN UNTUKMU</p><h2>Rekomendasi Belanja Lainnya</h2></div><a href="/rekomendasi" class="shop-related-all">Lihat semua produk →</a></div><% if(related.length) { %><div class="shop-grid"><% related.forEach(p=>{ %><article class="shop-card"><a class="shop-image-wrap shop-image-link" href="/rekomendasi/<%= encodeURIComponent(p.slug) %>" aria-label="Detail <%= p.name %>"><% if(p.image && /^https:\/\//i.test(p.image)){ %><img src="<%= p.image %>" alt="<%= p.name %>" width="360" height="360" loading="lazy" onerror="this.hidden=true"><% } else { %><div class="shop-image-placeholder">Foto belum tersedia</div><% } %></a><div class="shop-card-body"><div class="shop-meta"><%= p.partner_name || 'Marketplace' %></div><h3><a href="/rekomendasi/<%= encodeURIComponent(p.slug) %>"><%= p.name %></a></h3><p class="shop-price"><%= p.price || 'Cek harga di marketplace' %></p><a href="/rekomendasi/<%= encodeURIComponent(p.slug) %>" class="shop-buy">Lihat Detail</a></div></article><% }) %></div><% } else { %><p class="shop-related-empty">Produk lainnya belum tersedia. <a href="/rekomendasi">Jelajahi katalog belanja</a>.</p><% } %></section>
+ </div>
+</main>
+<%- include('partials/footer') %>
+<script src="/js/affiliate-detail.js" defer></script>
+</body>
+</html>
